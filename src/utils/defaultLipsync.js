@@ -1,0 +1,62 @@
+// This is a default lipsync JSON that will be used for all messages
+// It contains generic mouth cues that sync reasonably well with most speech
+const defaultLipsync = {
+    "metadata": {
+      "soundFile": "speech.mp3",
+      "duration": 5.0
+    },
+    "mouthCues": [
+      { "start": 0.00, "end": 0.10, "value": "X" },
+      { "start": 0.10, "end": 0.20, "value": "A" },
+      { "start": 0.20, "end": 0.30, "value": "B" },
+      { "start": 0.30, "end": 0.40, "value": "C" },
+      { "start": 0.40, "end": 0.50, "value": "D" },
+      { "start": 0.50, "end": 0.60, "value": "E" },
+      { "start": 0.60, "end": 0.70, "value": "F" },
+      { "start": 0.70, "end": 0.80, "value": "G" },
+      { "start": 0.80, "end": 0.90, "value": "H" },
+      { "start": 0.90, "end": 1.00, "value": "X" },
+      { "start": 1.00, "end": 1.10, "value": "B" },
+      { "start": 1.10, "end": 1.20, "value": "C" },
+      { "start": 1.20, "end": 1.30, "value": "D" },
+      { "start": 1.30, "end": 1.40, "value": "E" },
+      { "start": 1.40, "end": 1.50, "value": "F" },
+      { "start": 1.50, "end": 1.60, "value": "G" },
+      { "start": 1.60, "end": 1.70, "value": "A" },
+      { "start": 1.70, "end": 1.80, "value": "B" },
+      { "start": 1.80, "end": 1.90, "value": "C" },
+      { "start": 1.90, "end": 2.00, "value": "D" },
+      { "start": 2.00, "end": 2.10, "value": "E" },
+      { "start": 2.10, "end": 2.20, "value": "F" },
+      { "start": 2.20, "end": 2.30, "value": "G" },
+      { "start": 2.30, "end": 2.40, "value": "A" },
+      { "start": 2.40, "end": 2.50, "value": "B" },
+      { "start": 2.50, "end": 2.60, "value": "C" },
+      { "start": 2.60, "end": 2.70, "value": "D" },
+      { "start": 2.70, "end": 2.80, "value": "E" },
+      { "start": 2.80, "end": 2.90, "value": "F" },
+      { "start": 2.90, "end": 3.00, "value": "G" },
+      { "start": 3.00, "end": 3.10, "value": "A" },
+      { "start": 3.10, "end": 3.20, "value": "B" },
+      { "start": 3.20, "end": 3.30, "value": "C" },
+      { "start": 3.30, "end": 3.40, "value": "D" },
+      { "start": 3.40, "end": 3.50, "value": "E" },
+      { "start": 3.50, "end": 3.60, "value": "F" },
+      { "start": 3.60, "end": 3.70, "value": "G" },
+      { "start": 3.70, "end": 3.80, "value": "A" },
+      { "start": 3.80, "end": 3.90, "value": "B" },
+      { "start": 3.90, "end": 4.00, "value": "C" },
+      { "start": 4.00, "end": 4.10, "value": "D" },
+      { "start": 4.10, "end": 4.20, "value": "E" },
+      { "start": 4.20, "end": 4.30, "value": "F" },
+      { "start": 4.30, "end": 4.40, "value": "G" },
+      { "start": 4.40, "end": 4.50, "value": "A" },
+      { "start": 4.50, "end": 4.60, "value": "B" },
+      { "start": 4.60, "end": 4.70, "value": "C" },
+      { "start": 4.70, "end": 4.80, "value": "D" },
+      { "start": 4.80, "end": 4.90, "value": "E" },
+      { "start": 4.90, "end": 5.00, "value": "X" }
+    ]
+  };
+  
+  export default defaultLipsync;
