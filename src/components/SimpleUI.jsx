@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useChat } from "../hooks/useChat";
-import { useSimpleVoice } from "../hooks/useSimpleVoice"; // Importar el hook modificado
-import { Send, Loader, Mic, MicOff, RefreshCw } from "lucide-react";
+import { useSimpleVoice } from "../hooks/useSimpleVoice";
+import { useUserImage } from "../hooks/useUserImage"; // Importar nuevo hook
+import { Send, Loader, Mic, MicOff, RefreshCw, Camera } from "lucide-react";
 
 // Variable global para evitar envíos duplicados
 let lastSentMessage = '';
@@ -9,13 +10,102 @@ let lastSentTime = 0;
 
 export const SimpleUI = ({ hidden, ...props }) => {
   const input = useRef();
-  const { chat, loading, cameraZoomed, setCameraZoomed, message, displayResponses, onMessagePlayed,isThinking } = useChat();
+  const hiddenVideoRef = useRef(null);
+  const { chat, 
+    loading, 
+    cameraZoomed, 
+    setCameraZoomed, 
+    message, 
+    displayResponses, 
+    onMessagePlayed,
+    isThinking,
+    saveConversation,
+    pendingMessages,
+    loadConversation } = useChat();
   // Estado para deshabilitar temporalmente los controles después de enviar
   const [inputDisabled, setInputDisabled] = useState(false);
   const [messageEnded, setMessageEnded] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState(null);
+  
+  // Hook para manejar imágenes del usuario
+  const { 
+    initCamera, 
+    setVideoElement, 
+    captureAndUpload,
+    captureInitialImage,
+    isReady: isCameraReady,
+    getLastCaptureTime
+  } = useUserImage();
   
   // Determinar si el avatar está respondiendo
   const isAvatarResponding = loading || !!message;
+  
+  // Inicializar la cámara cuando carga el componente
+  useEffect(() => {
+    if (!hidden) {
+      // Inicializar cámara
+      const setupCamera = async () => {
+        const success = await initCamera();
+        if (success && hiddenVideoRef.current) {
+          setVideoElement(hiddenVideoRef.current);
+          
+          // Realizar la captura inicial UNA SOLA VEZ
+          captureInitialImage();
+        }
+      };
+      
+      setupCamera();
+    }
+  }, [hidden, initCamera, setVideoElement, captureInitialImage]);
+  
+  // Efecto para capturar imagen SOLO al finalizar reproducción de audio
+  // ESTE ES EL MOMENTO CLAVE PARA CAPTURAR IMAGEN
+  useEffect(() => {
+    const handleAudioEnded = () => {
+      if (isCameraReady) {
+        console.log("🔄 Audio finalizado, capturando imagen de reacción...");
+        captureAndUpload()
+          .then(success => {
+            console.log(`📸 Imagen post-audio enviada: ${success ? 'éxito' : 'falló'}`);
+          })
+          .catch(e => console.error("Error en captura post-audio:", e));
+      }
+    };
+    
+    window.addEventListener('avatar-audio-ended', handleAudioEnded);
+    
+    return () => {
+      window.removeEventListener('avatar-audio-ended', handleAudioEnded);
+    };
+  }, [isCameraReady, captureAndUpload]);
+  
+  // Función para manejar la entrada del usuario y capturar imagen anticipadamente
+  const handleInputChange = (e) => {
+    // Si ya hay un timeout, limpiarlo
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+    
+    // Establecer un nuevo timeout para capturar la imagen después de que el usuario ha dejado de escribir
+    const timeout = setTimeout(() => {
+      // Solo capturar si la cámara está lista y hay algo escrito
+      if (isCameraReady && e.target.value.trim().length > 0) {
+        console.log('📸 Capturando imagen anticipada mientras escribe...');
+        captureAndUpload().catch(e => console.error("Error en captura anticipada:", e));
+      }
+    }, 1500); // 1.5 segundos después de que el usuario deja de escribir
+    
+    setTypingTimeout(timeout);
+  };
+  
+  // Limpiar el timeout al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+    };
+  }, [typingTimeout]);
   
   // Función directa y simple para enviar mensajes, con deduplicación
   const sendMessage = (text) => {
@@ -33,7 +123,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
       }
       return;
     }
-    
+
     // Comprobar duplicación
     const now = Date.now();
     if (messageText === lastSentMessage && (now - lastSentTime) < 2000) {
@@ -50,8 +140,24 @@ export const SimpleUI = ({ hidden, ...props }) => {
     // Deshabilitar temporalmente la entrada
     setInputDisabled(true);
     
+    // Verificar el tiempo desde la última captura
+    // Si hace menos de 3 segundos que capturamos una imagen, no necesitamos otra
+    const timeSinceLastCapture = Date.now() - getLastCaptureTime();
+    const needsNewCapture = timeSinceLastCapture > 3000;
+    
+    // Capturar imagen solo si es necesario, en paralelo con el envío del mensaje
+    if (isCameraReady && needsNewCapture) {
+      captureAndUpload()
+        .then(success => {
+          console.log(`📸 Imagen pre-mensaje enviada: ${success ? 'éxito' : 'falló'}`);
+        })
+        .catch(e => console.error("Error en captura pre-mensaje:", e));
+    } else if (!needsNewCapture) {
+      console.log('📸 Usando imagen reciente, no es necesario capturar otra');
+    }
+    
+    // Enviar el mensaje inmediatamente sin esperar por la imagen
     try {
-      // Enviar el mensaje al chat
       chat(messageText);
       
       // Limpiar input si es un mensaje de texto
@@ -71,6 +177,19 @@ export const SimpleUI = ({ hidden, ...props }) => {
     setMessageEnded(false);
   };
   
+  const handleContinuousModeEnabled = () => {
+    console.log("🔄 SimpleUI: Modo continuo activado, cargando conversación previa...");
+    // Llamamos a la función para cargar la conversación
+    loadConversation();
+  };
+
+  const handleContinuousModeDisabled = () => {
+    console.log("🔄 SimpleUI: Modo continuo desactivado, guardando conversación...");
+    // Llamamos a la función para guardar la conversación
+    saveConversation();
+  };
+  
+  
   // Usar el hook simplificado con funcionalidades extendidas
   const { 
     isListening, 
@@ -79,7 +198,9 @@ export const SimpleUI = ({ hidden, ...props }) => {
     continuousMode,
     toggleContinuousMode 
   } = useSimpleVoice({
-    language: 'es-ES'
+    language: 'es-ES',
+    onContinuousModeDisabled: handleContinuousModeDisabled,
+    onContinuousModeEnabled: handleContinuousModeEnabled
   });
 
   // Escuchar evento directchat (ahora único punto de entrada)
@@ -88,14 +209,26 @@ export const SimpleUI = ({ hidden, ...props }) => {
       const messageText = event.detail;
       console.log(`📱 UI: Evento directchat recibido: "${messageText}"`);
       
-      // Usar el mecanismo general de envío con override para asegurar el envío
-      // incluso si isAvatarResponding no se ha actualizado completamente
-      sendMessage(messageText, true);
+      // Verificar si necesitamos una nueva captura
+      const timeSinceLastCapture = Date.now() - getLastCaptureTime();
+      const needsNewCapture = timeSinceLastCapture > 3000;
+      
+      // Capturar imagen solo si es necesario
+      if (isCameraReady && needsNewCapture) {
+        captureAndUpload()
+          .then(success => {
+            console.log(`📸 Imagen pre-mensaje de voz enviada: ${success ? 'éxito' : 'falló'}`);
+          })
+          .catch(e => console.error("Error en captura pre-mensaje de voz:", e));
+      }
+      
+      // No esperar a que termine la captura, enviar el mensaje inmediatamente
+      sendMessage(messageText);
     };
     
     window.addEventListener('directchat', directChatHandler);
     return () => window.removeEventListener('directchat', directChatHandler);
-  }, []);
+  }, [isCameraReady, captureAndUpload, getLastCaptureTime]);
 
   // Función personalizada para manejar el fin de un mensaje
   const handleMessageEnd = () => {
@@ -113,41 +246,41 @@ export const SimpleUI = ({ hidden, ...props }) => {
     const handleAvatarAudioEnded = () => {
       console.log("🔄 UI: Evento avatar-audio-ended recibido");
       
-      // Si estamos en modo continuo y no estamos escuchando ya
-      if (continuousMode) {
+      // Solo activar reconocimiento si estamos en modo continuo,
+      // NO hay mensajes pendientes, y no estamos escuchando ya
+      if (continuousMode && !pendingMessages && !isListening) {
+        console.log("✅ No hay más mensajes pendientes, iniciando escucha");
         // Pequeño retraso para asegurar que los estados se actualizan
         setTimeout(() => {
-          if (!isListening) {
-            console.log("🔄 Reiniciando escucha inmediatamente (modo continuo)");
-            // Iniciar la escucha inmediatamente
-            startListening();
-          }
+          startListening();
         }, 300);
+      } else if (pendingMessages) {
+        console.log("⏳ Aún hay mensajes pendientes, esperando...");
       }
     };
     
-    // Escuchar el evento personalizado del Avatar
     window.addEventListener('avatar-audio-ended', handleAvatarAudioEnded);
     
     return () => {
       window.removeEventListener('avatar-audio-ended', handleAvatarAudioEnded);
     };
-  }, [continuousMode, isListening, startListening]);
+  }, [continuousMode, isListening, pendingMessages, startListening]);
 
   // También mantener el anterior efecto para casos de respaldo
   useEffect(() => {
-    // Si estamos en modo continuo, el mensaje ha terminado y no estamos escuchando ya
-    if (continuousMode && messageEnded && !isAvatarResponding && !isListening) {
-      console.log("🔄 Reiniciando escucha como respaldo (modo continuo)");
+    // Solo activar si en modo continuo, mensaje terminado, sin respuesta activa,
+    // sin mensajes pendientes y no estamos escuchando
+    if (continuousMode && messageEnded && !isAvatarResponding && 
+        !pendingMessages && !isListening) {
+      console.log("🔄 Reiniciando escucha como respaldo (sin mensajes pendientes)");
       
-      // Pequeño retardo para asegurar que todo está listo
       const timer = setTimeout(() => {
         startListening();
       }, 500);
       
       return () => clearTimeout(timer);
     }
-  }, [continuousMode, messageEnded, isAvatarResponding, isListening, startListening]);
+  }, [continuousMode, messageEnded, isAvatarResponding, pendingMessages, isListening, startListening]);
 
   // Monitorear el objeto message para detectar cuándo termina
   useEffect(() => {
@@ -170,10 +303,29 @@ export const SimpleUI = ({ hidden, ...props }) => {
 
   return (
     <>
+      {/* Video oculto para la cámara (no visible para el usuario) */}
+      <video 
+        ref={hiddenVideoRef}
+        autoPlay 
+        playsInline 
+        muted
+        className="hidden"
+      />
+      
       <div className="fixed top-0 left-0 right-0 bottom-0 z-10 flex justify-between p-4 flex-col pointer-events-none">
         <div className="self-start backdrop-blur-md bg-white bg-opacity-50 p-4 rounded-lg flex items-center">
           <h1 className="font-black text-xl">NAIA</h1>
-          
+
+          {pendingMessages && (
+              <div className="ml-3 flex items-center">
+                <div className="relative mr-2">
+                  <div className="absolute inset-0 bg-yellow-500 rounded-full animate-pulse opacity-75"></div>
+                  <div className="relative rounded-full bg-yellow-600 h-3 w-3"></div>
+                </div>
+                <span className="mr-2 text-sm font-medium">Procesando respuesta</span>
+              </div>
+          )}
+
           {/* Indicador de estado de escucha */}
           {isListening && (
             <div className="ml-3 flex items-center">
@@ -206,6 +358,8 @@ export const SimpleUI = ({ hidden, ...props }) => {
               <span className="mr-2 text-sm font-medium">Modo continuo</span>
             </div>
           )}
+          
+          
         </div>
 
         {/* Response area */}
@@ -226,6 +380,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
             placeholder="Escribe un mensaje..."
             ref={input}
             onKeyDown={handleKeyDown}
+            onChange={handleInputChange}
             disabled={isAvatarResponding || inputDisabled}
             rows={1}
           />

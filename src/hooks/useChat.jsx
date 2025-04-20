@@ -12,13 +12,8 @@ const availableFacialExpressions = ["smile", "sad", "angry", "surprised", "funny
 
 // Transiciones y muletillas para hacer el habla más natural
 const SPEECH_TRANSITIONS = [
-  "Mmmm... ",
-  "Ehhh... ",
-  "Buenooo, ",
-  "Y... ",
-  "Pues, ",
- 
-
+  "Mmmm ",
+  "Ehhh ",
 ];
 
 // Helper functions
@@ -59,7 +54,7 @@ class OpenAIAPI {
         },
         body: JSON.stringify({
           user_input: message,
-          user_id: 1,
+          user_id: 1,  // Estos valores deberían venir de un contexto o configuración
           role_id: 1,
         }),
         signal
@@ -76,7 +71,10 @@ class OpenAIAPI {
       // Registramos la respuesta para debug
       console.log('Respuesta API local:', data);
       
-      // Ahora procesamos TODOS los mensajes, no solo el primero
+      // Guardamos la respuesta completa para poder verificar el campo warning después
+      this.lastFullResponse = data;
+      
+      // Procesamos los mensajes para el avatar
       let messages = [];
       
       if (data.response) {
@@ -95,11 +93,19 @@ class OpenAIAPI {
       }
       
       // Limpiamos y validamos cada mensaje
-      return messages.map(msg => ({
+      const formattedMessages = messages.map(msg => ({
         text: cleanText(msg.text) || "No se pudo obtener una respuesta clara.",
         facialExpression: msg.facialExpression || "default",
         animation: msg.animation || "Talking_1"
       }));
+      
+      // Devolvemos un objeto que contiene tanto los mensajes formateados como la respuesta completa
+      return {
+        messages: formattedMessages,
+        warning: data.warning || null,
+        num_tokens: data.num_tokens || 0,
+        response_time: data.response_time || 0
+      };
     } catch (error) {
       if (error.name === 'AbortError') {
         console.log('Request cancelled');
@@ -146,6 +152,133 @@ class OpenAIAPI {
   }
 }
 
+
+const loadConversation = async () => {
+  console.log("📂 Cargando conversación previa...");
+  
+  try {
+    // Realizar la petición GET al endpoint correspondiente
+    const response = await fetch('http://127.0.0.1:8000/api/v1/chat/messages/?user_id=1&role_id=1', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al cargar la conversación');
+    }
+    
+    const data = await response.json();
+    console.log("✅ Conversación cargada exitosamente:", data);
+    
+    // Verificamos si hay datos de conversación
+    if (data && Array.isArray(data) && data.length > 0) {
+      // Resetear el estado actual de la conversación
+      setConversationHistory([]);
+      setDisplayResponses([]);
+      
+      // Textos para mostrar en la interfaz
+      let displayTexts = [];
+      
+      // Reconstruimos el historial manteniendo EXACTAMENTE el mismo formato
+      const newHistory = data.map(item => {
+        // Para mensajes del asistente, extraemos los textos para mostrar en la UI
+        if (item.role === 'assistant' && Array.isArray(item.content)) {
+          // Extraer los textos para mostrar en la interfaz
+          item.content.forEach(msg => {
+            if (msg.text) {
+              displayTexts.push(msg.text);
+            }
+          });
+        }
+        
+        // Devolvemos el objeto tal cual para mantener el formato exacto
+        return item;
+      });
+      
+      // Establecer el nuevo historial completo
+      setConversationHistory(newHistory);
+      
+      // Actualizar los mensajes mostrados en la UI
+      if (displayTexts.length > 0) {
+        setDisplayResponses(displayTexts);
+      }
+      
+      console.log("📂 Historial de conversación restaurado con éxito");
+    } else {
+      console.log("📂 No hay conversación previa para cargar");
+    }
+    
+  } catch (error) {
+    console.error("❌ Error al cargar la conversación:", error);
+    // No mostramos notificación al usuario para no interrumpir la experiencia
+  }
+};
+
+
+const saveConversation = async () => {
+  console.log("💾 Guardando conversación en el backend...");
+  
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/v1/chat/messages/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: 1, 
+        role_id: 1
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al guardar la conversación');
+    }
+    
+    const data = await response.json();
+    console.log("✅ Conversación guardada exitosamente:", data);
+    
+  } catch (error) {
+    console.error("❌ Error al guardar la conversación:", error);
+
+  }
+};
+
+
+
+
+const handleTokenWarning = async (userId, roleId) => {
+  console.log("🔄 Detectado warning de tokens, solicitando resumen automático");
+  
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/v1/chat/messages/resume/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        role_id: roleId
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al solicitar resumen');
+    }
+    
+    const data = await response.json();
+    console.log("✅ Resumen aplicado exitosamente:", data);
+    
+    // No realizamos ninguna acción visible para el usuario
+    // El backend ya ha actualizado internamente el contexto de la conversación
+    
+  } catch (error) {
+    console.error("❌ Error al aplicar resumen:", error);
+    // No mostramos notificación al usuario para mantener la experiencia sin interrupciones
+  }
+};
+
 // Función para limpiar texto con problemas de codificación
 function cleanText(text) {
   if (!text) return "";
@@ -184,7 +317,7 @@ function arrayBufferToBase64(buffer) {
 // Provider component
 export const ChatProvider = ({ children }) => {
   
-
+  const [pendingMessages, setPendingMessages] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const { addNotification } = useNotification();
   const [loading, setLoading] = useState(false);
@@ -395,6 +528,10 @@ export const ChatProvider = ({ children }) => {
     }
     
     try {
+      // Establecer que hay mensajes pendientes al inicio del procesamiento
+      setPendingMessages(true);
+      console.log(`🔄 Procesando ${messageQueueRef.current.length} mensajes en cola`);
+      
       // Generar el audio del primer mensaje INMEDIATAMENTE (prioridad máxima)
       console.log("🚀 Generando audio del primer mensaje para respuesta instantánea");
       const firstMessage = messageQueueRef.current[0];
@@ -432,10 +569,10 @@ export const ChatProvider = ({ children }) => {
         if (preloadedIndex >= 0) {
           // Usar audio ya precargado
           nextAudio = preloadedAudiosRef.current.splice(preloadedIndex, 1)[0];
-          console.log(`✅ Usando audio ya precargado para mensaje ${i+1}`);
+          console.log(`✅ Usando audio ya precargado para mensaje ${i+1}/${messageQueueRef.current.length}`);
         } else {
           // Si no está precargado, generarlo ahora (con transición)
-          console.log(`🔄 Generando audio para mensaje ${i+1} (no estaba precargado)`);
+          console.log(`🔄 Generando audio para mensaje ${i+1}/${messageQueueRef.current.length} (no estaba precargado)`);
           nextAudio = await preloadMessageAudio(messageQueueRef.current[i], i, true);
         }
         
@@ -447,10 +584,12 @@ export const ChatProvider = ({ children }) => {
     } catch (error) {
       console.error("Error procesando mensajes:", error);
     } finally {
-      // Limpiar
+      // Limpiar y marcar que ya no hay mensajes pendientes
       if (currentSession === sessionIdRef.current) {
         setLoading(false);
         setMessageFinished(true);
+        setPendingMessages(false); // Indicar que no hay más mensajes pendientes
+        console.log("✅ Todos los mensajes procesados, no hay mensajes pendientes");
         
         setTimeout(() => {
           setMessageFinished(false);
@@ -507,12 +646,30 @@ export const ChatProvider = ({ children }) => {
       setConversationHistory(prev => [...prev, { role: 'user', content: userMessage }]);
       
       // Obtener respuesta de la API
-      const responses = await apiRef.current.getResponse(userMessage);
+      const apiResponse = await apiRef.current.getResponse(userMessage);
       
       // Desactivar estado de pensando
       setIsThinking(false);
       
-      if (!responses || responses.length === 0) {
+      if (!apiResponse) {
+        setLoading(false);
+        return;
+      }
+      
+      // NUEVO: Verificar si hay warning de tokens y manejarlo silenciosamente
+      if (apiResponse.warning) {
+        console.log("⚠️ Advertencia de tokens detectada:", apiResponse.warning);
+        // Llamamos a handleTokenWarning sin afectar el flujo de la aplicación
+        // Utilizamos setTimeout para asegurar que esto ocurra de manera asíncrona
+        setTimeout(() => {
+          handleTokenWarning(1, 1); // Ajustar con los IDs correctos según tu aplicación
+        }, 100);
+      }
+      
+      // Extraer los mensajes para procesamiento
+      const responses = apiResponse.messages || [];
+      
+      if (responses.length === 0) {
         setLoading(false);
         return;
       }
@@ -546,6 +703,9 @@ export const ChatProvider = ({ children }) => {
         displayResponses,
         conversationHistory,
         messageFinished,
+        saveConversation,
+        loadConversation,
+        pendingMessages,
         // For backwards compatibility
         messages: message ? [message] : []
       }}

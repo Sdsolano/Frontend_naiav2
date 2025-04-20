@@ -23,7 +23,11 @@ export const useSimpleVoice = (options = {}) => {
   }, [transcript]);
   
   // Obtener la función de envío desde las opciones
-  const { handleSendMessage = null, language = 'es-ES' } = options;
+  const { handleSendMessage = null, 
+    language = 'es-ES',
+    onContinuousModeDisabled = null, // Callback para desactivar el modo continuo
+    onContinuousModeEnabled = null
+  } = options;
   
   // Función para evitar envíos duplicados
   const processVoiceMessage = (text) => {
@@ -178,9 +182,24 @@ export const useSimpleVoice = (options = {}) => {
 
   // Función para activar/desactivar el modo continuo
   const toggleContinuousMode = () => {
+
+    const currentMode = continuousMode;
     setContinuousMode(prev => !prev);
     console.log(`🎤 Modo continuo ${!continuousMode ? 'activado' : 'desactivado'}`);
     
+    // Si desactivamos el modo continuo llamar al callback
+    if (currentMode && onContinuousModeDisabled) {
+      console.log("🎤 Llamando al callback de desactivación de modo continuo");
+      onContinuousModeDisabled();
+    }
+
+
+    // Si estamos activando el modo continuo, llamamos al nuevo callback
+    if (!currentMode && onContinuousModeEnabled) {
+      console.log("🎤 Llamando al callback de activación de modo continuo");
+      onContinuousModeEnabled();
+    }
+
     // Si activamos el modo continuo y no estamos escuchando, comenzar a escuchar
     if (!continuousMode && !isListening) {
       startListening();
