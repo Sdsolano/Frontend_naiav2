@@ -9,7 +9,7 @@ let lastSentTime = 0;
 
 export const SimpleUI = ({ hidden, ...props }) => {
   const input = useRef();
-  const { chat, loading, cameraZoomed, setCameraZoomed, message, displayResponses, onMessagePlayed } = useChat();
+  const { chat, loading, cameraZoomed, setCameraZoomed, message, displayResponses, onMessagePlayed,isThinking } = useChat();
   // Estado para deshabilitar temporalmente los controles después de enviar
   const [inputDisabled, setInputDisabled] = useState(false);
   const [messageEnded, setMessageEnded] = useState(false);

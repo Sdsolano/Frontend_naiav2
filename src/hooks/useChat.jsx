@@ -13,15 +13,12 @@ const availableFacialExpressions = ["smile", "sad", "angry", "surprised", "funny
 // Transiciones y muletillas para hacer el habla más natural
 const SPEECH_TRANSITIONS = [
   "Mmmm... ",
-  "Eh... ",
-  "Bueno, ",
-  "Además, ",
-  "Ahora, ",
+  "Ehhh... ",
+  "Buenooo, ",
   "Y... ",
-  "Entonces, ",
   "Pues, ",
-  "Claro, ",
-  "Verás, ",
+ 
+
 ];
 
 // Helper functions
@@ -124,9 +121,10 @@ class OpenAIAPI {
           'Authorization': `Bearer ${this.apiKey}`
         },
         body: JSON.stringify({
-          model: 'tts-1',
+          model: 'gpt-4o-mini-tts',
           input: text,
           voice: VOICE_TYPE,
+          instructions:"Habla pausado, claro y natural y con la mejor entonación posible, utiliza un acento colombiano costeño para que suene más natural. añade muletillas y transiciones",
           speed: 1.0
         }),
         signal
@@ -185,6 +183,9 @@ function arrayBufferToBase64(buffer) {
 
 // Provider component
 export const ChatProvider = ({ children }) => {
+  
+
+  const [isThinking, setIsThinking] = useState(false);
   const { addNotification } = useNotification();
   const [loading, setLoading] = useState(false);
   const [cameraZoomed, setCameraZoomed] = useState(true);
@@ -487,6 +488,7 @@ export const ChatProvider = ({ children }) => {
     
     // Resetear el estado
     setLoading(true);
+    setIsThinking(true); // Activar estado de pensando
     setDisplayResponses([]);
     setMessage(null);
     setMessageFinished(false);
@@ -507,6 +509,9 @@ export const ChatProvider = ({ children }) => {
       // Obtener respuesta de la API
       const responses = await apiRef.current.getResponse(userMessage);
       
+      // Desactivar estado de pensando
+      setIsThinking(false);
+      
       if (!responses || responses.length === 0) {
         setLoading(false);
         return;
@@ -524,6 +529,7 @@ export const ChatProvider = ({ children }) => {
       console.error('Chat error:', error);
       addNotification(`Error: ${error.message}`, 'error');
       setLoading(false);
+      setIsThinking(false); // Desactivar estado de pensando en caso de error
     }
   };
   
@@ -534,6 +540,7 @@ export const ChatProvider = ({ children }) => {
         message,
         onMessagePlayed,
         loading,
+        isThinking, // Añadir el nuevo estado al contexto
         cameraZoomed,
         setCameraZoomed,
         displayResponses,

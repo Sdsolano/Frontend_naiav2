@@ -106,7 +106,7 @@ export function Avatar(props) {
     "/models/investigator.glb"
   );
 
-  const { message, onMessagePlayed, chat } = useChat();
+  const { message, onMessagePlayed, chat,isThinking } = useChat();
 
   const [lipsync, setLipsync] = useState();
   const [audio, setAudio] = useState();
@@ -115,6 +115,15 @@ export function Avatar(props) {
 
   useEffect(() => {
     console.log(message);
+
+    if (isThinking) {
+      console.log("Avatar pensando...");
+      setAnimationSafely("Thinking"); // Animación de pensamiento
+      setFacialExpression("default");
+      return; // Importante: salimos del useEffect aquí
+    }
+
+
     if (!message) {
       if (isPlaying) {
         // Si estábamos reproduciendo y el mensaje se vuelve null, volvemos a Idle
@@ -210,7 +219,7 @@ export function Avatar(props) {
       });
     }, 100);
     
-  }, [message]);
+  }, [message,isThinking]);
 
   // Cleanup al desmontar
   useEffect(() => {
