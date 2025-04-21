@@ -3,6 +3,7 @@ import { useChat } from "../hooks/useChat";
 import { useSimpleVoice } from "../hooks/useSimpleVoice";
 import { useUserImage } from "../hooks/useUserImage"; 
 import { Send, Loader, Mic, MicOff, RefreshCw, Camera } from "lucide-react";
+import FunctionResultsDisplay from "./FunctionResultsDisplay";
 
 // Variable global para evitar envíos duplicados
 let lastSentMessage = '';
@@ -21,7 +22,8 @@ export const SimpleUI = ({ hidden, ...props }) => {
     isThinking,
     saveConversation,
     pendingMessages,
-    loadConversation } = useChat();
+    loadConversation,
+    functionResults } = useChat();
   // Estado para deshabilitar temporalmente los controles después de enviar
   const [inputDisabled, setInputDisabled] = useState(false);
   const [messageEnded, setMessageEnded] = useState(false);
@@ -186,10 +188,10 @@ export const SimpleUI = ({ hidden, ...props }) => {
     // Indicar que se ha enviado un nuevo mensaje
     setMessageEnded(false);
   };
-  
   const handleContinuousModeEnabled = () => {
     console.log("🔄 SimpleUI: Modo continuo activado, cargando conversación previa...");
     // Llamamos a la función para cargar la conversación
+    // Esta función ahora limpia los subtítulos internamente
     loadConversation();
   };
 
@@ -341,8 +343,8 @@ export const SimpleUI = ({ hidden, ...props }) => {
           {pendingMessages && (
               <div className="ml-3 flex items-center">
                 <div className="relative mr-2">
-                  <div className="absolute inset-0 bg-yellow-500 rounded-full animate-pulse opacity-75"></div>
-                  <div className="relative rounded-full bg-yellow-600 h-3 w-3"></div>
+                  <div className="absolute inset-0 bg-yellow-700 rounded-full animate-pulse opacity-75"></div>
+                  <div className="relative rounded-full bg-yellow-800 h-3 w-3"></div>
                 </div>
                 <span className="mr-2 text-sm font-medium">Procesando respuesta</span>
               </div>
@@ -352,8 +354,8 @@ export const SimpleUI = ({ hidden, ...props }) => {
           {isListening && (
             <div className="ml-3 flex items-center">
               <div className="relative mr-2">
-                <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-75"></div>
-                <div className="relative rounded-full bg-red-600 h-3 w-3"></div>
+                <div className="absolute inset-0 bg-red-900 rounded-full animate-ping opacity-75"></div>
+                <div className="relative rounded-full bg-red-800 h-3 w-3"></div>
               </div>
               <span className="mr-2 text-sm font-medium">Escuchando</span>
             </div>
@@ -363,8 +365,8 @@ export const SimpleUI = ({ hidden, ...props }) => {
           {isAvatarResponding && (
             <div className="ml-3 flex items-center">
               <div className="relative mr-2">
-                <div className="absolute inset-0 bg-blue-500 rounded-full animate-pulse opacity-75"></div>
-                <div className="relative rounded-full bg-blue-600 h-3 w-3"></div>
+                <div className="absolute inset-0 bg-blue-950 rounded-full animate-pulse opacity-75"></div>
+                <div className="relative rounded-full bg-blue-900 h-3 w-3"></div>
               </div>
               <span className="mr-2 text-sm font-medium">Respondiendo</span>
             </div>
@@ -374,8 +376,8 @@ export const SimpleUI = ({ hidden, ...props }) => {
           {continuousMode && (
             <div className="ml-3 flex items-center">
               <div className="relative mr-2">
-                <div className="absolute inset-0 bg-green-500 rounded-full animate-pulse opacity-75"></div>
-                <div className="relative rounded-full bg-green-600 h-3 w-3"></div>
+                <div className="absolute inset-0 bg-green-9 rounded-full animate-pulse opacity-75"></div>
+                <div className="relative rounded-full bg-green-900 h-3 w-3"></div>
               </div>
               <span className="mr-2 text-sm font-medium">Modo continuo</span>
             </div>
@@ -408,6 +410,9 @@ export const SimpleUI = ({ hidden, ...props }) => {
           </div>
         )}
 
+        {/* Function Results Display */}
+        <FunctionResultsDisplay functionResults={functionResults} />
+
         {/* Input area */}
         <div className="flex items-center gap-2 pointer-events-auto max-w-screen-sm w-full mx-auto">
           <textarea
@@ -425,7 +430,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
             onClick={toggleContinuousMode}
             className={`p-3 rounded-md flex-shrink-0 ${
               continuousMode 
-                ? "bg-green-500 hover:bg-green-600 text-white" 
+                ? "bg-green-900 hover:bg-green-950 text-white" 
                 : "bg-gray-200 hover:bg-gray-300 text-gray-700"
             }`}
             title={continuousMode ? "Desactivar modo continuo" : "Activar modo continuo"}
@@ -438,7 +443,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
             onClick={toggleListening}
             className={`p-3 rounded-md flex-shrink-0 ${
               isListening 
-                ? "bg-red-500 hover:bg-red-600 text-white" 
+                ? "bg-red-900 hover:bg-red-950 text-white" 
                 : "bg-gray-200 hover:bg-gray-300 text-gray-700"
             } ${(isAvatarResponding || inputDisabled) ? "cursor-not-allowed opacity-75" : ""}`}
             disabled={isAvatarResponding || inputDisabled}
@@ -454,7 +459,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
           <button
             disabled={isAvatarResponding || inputDisabled}
             onClick={() => sendMessage()}
-            className={`bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-md flex-shrink-0 ${
+            className={`bg-blue-950 hover:bg-blue-900 text-white p-3 rounded-md flex-shrink-0 ${
               (isAvatarResponding || inputDisabled) ? "cursor-not-allowed opacity-50" : ""
             }`}
             title="Enviar mensaje"

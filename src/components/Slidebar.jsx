@@ -55,7 +55,7 @@ const Sidebar = () => {
       <button
         id="sidebar-toggle"
         onClick={toggleSidebar}
-        className={`fixed top-6 left-6 ${toggleButtonZIndex} flex items-center justify-center w-12 h-12 bg-gradient-to-br from-white to-white-600 bg-opacity-50 text-black rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2`}
+        className={`fixed top-6 left-6 ${toggleButtonZIndex} flex items-center justify-center w-12 h-12 bg-gradient-to-br from-white to-white-600 bg-opacity-50 text-black rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-900 focus:ring-offset-2`}
         aria-label="Toggle menu"
       >
         {isOpen ? <X size={20} /> : <Menu size={20} />}
@@ -68,14 +68,14 @@ const Sidebar = () => {
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="h-full flex flex-col m-4 rounded-2xl bg-white/90 backdrop-blur-md shadow-2xl overflow-hidden border border-sky-100">
+        <div className="h-full flex flex-col m-4 rounded-2xl bg-white bg-opacity-80  backdrop-blur-md shadow-2xl overflow-hidden border border-sky-100">
           {/* Logo/Brand */}
           <div className="p-6 border-b border-sky-100">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-sky-600">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-blue-800 to-blue-950">
                 <Layers className="text-white" size={20} />
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-sky-800 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-950 to-sky-900 bg-clip-text text-transparent">
                 NAIA
               </h1>
             </div>
@@ -89,7 +89,7 @@ const Sidebar = () => {
                   to="/"
                   className={({ isActive }) =>
                     `flex items-center p-4 rounded-xl transition-all ${
-                      isActive ? "bg-sky-50 text-sky-700 font-medium shadow-sm" : "text-gray-600 hover:bg-gray-50"
+                      isActive ? "bg-gray-300 text-blue-950 font-medium shadow-sm" : "text-gray-600 hover:bg-gray-50"
                     }`
                   }
                   onClick={() => setIsOpen(false)}
@@ -103,7 +103,7 @@ const Sidebar = () => {
                   to="/documents"
                   className={({ isActive }) =>
                     `flex items-center p-4 rounded-xl transition-all ${
-                      isActive ? "bg-sky-50 text-sky-700 font-medium shadow-sm" : "text-gray-600 hover:bg-gray-50"
+                      isActive ? "bg-gray-300 text-blue-950 font-medium shadow-sm" : "text-gray-600 hover:bg-gray-50"
                     }`
                   }
                   onClick={() => setIsOpen(false)}
@@ -117,12 +117,12 @@ const Sidebar = () => {
                   to="/naia"
                   className={({ isActive }) =>
                     `flex items-center p-4 rounded-xl transition-all ${
-                      isActive ? "bg-sky-50 text-sky-700 font-medium shadow-sm" : "text-gray-600 hover:bg-gray-50"
+                      isActive ? "bg-gray-300 text-blue-950 font-medium shadow-sm" : "text-gray-600 hover:bg-gray-50"
                     }`
                   }
                   onClick={() => setIsOpen(false)}
                 >
-                  <div className="w-5 h-5 mr-3 flex items-center justify-center rounded-md bg-gradient-to-br from-sky-400 to-sky-600 text-white font-medium text-xs">
+                  <div className="w-5 h-5 mr-3 flex items-center justify-center rounded-md bg-gradient-to-br from-blue-800 to-blue-950 text-white font-medium text-xs">
                     N
                   </div>
                   <span>NAIA</span>

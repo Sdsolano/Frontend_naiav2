@@ -2,7 +2,8 @@ import React, { createContext, useContext, useEffect, useState, useRef } from "r
 import { useNotification } from "../components/NotificationContext";
 import defaultLipsync from "../utils/defaultLipsync";
 import { OPENAI_API_KEY } from "../../config";
-
+import SubtitlesContext from '../components/subtitles';
+import { BACKEND_URL } from "../../config";
 
 const VOICE_TYPE = "nova";
 
@@ -12,7 +13,7 @@ const availableFacialExpressions = ["smile", "sad", "angry", "surprised", "funny
 
 // Transiciones y muletillas para hacer el habla más natural
 const SPEECH_TRANSITIONS = [
-
+" "
 ];
 
 // Helper functions
@@ -46,7 +47,7 @@ class OpenAIAPI {
     
     try {
       // Usar tu API local en lugar de OpenAI
-      const response = await fetch('http://127.0.0.1:8000/api/v1/chat/', {
+      const response = await fetch(`${BACKEND_URL}/api/v1/chat/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +104,8 @@ class OpenAIAPI {
         messages: formattedMessages,
         warning: data.warning || null,
         num_tokens: data.num_tokens || 0,
-        response_time: data.response_time || 0
+        response_time: data.response_time || 0,
+        function_results: data.function_results || null
       };
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -129,7 +131,7 @@ class OpenAIAPI {
           model: 'gpt-4o-mini-tts',
           input: text,
           voice: VOICE_TYPE,
-          instructions:"Habla pausado, claro y natural y con la mejor entonación posible, utiliza un acento colombiano costeño para que suene más natural. añade muletillas y transiciones",
+          instructions:"Habla pausado, claro y natural y con la mejor entonación posible, utiliza un acento colombiano costeño para que suene más natural. añade muletillas y transiciones, ignora lo que no sepas y jamas digas <undefined> ignora los signos que no conozcas",
           speed: 1.0
         }),
         signal
@@ -151,20 +153,11 @@ class OpenAIAPI {
   }
 }
 
-
-
-
-
-
-
-
-
-
 const handleTokenWarning = async (userId, roleId) => {
   console.log("🔄 Detectado warning de tokens, solicitando resumen automático");
   
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/v1/chat/messages/resume/', {
+    const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/resume/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -238,6 +231,7 @@ export const ChatProvider = ({ children }) => {
   const [conversationHistory, setConversationHistory] = useState([]);
   const [message, setMessage] = useState(null);
   const [messageFinished, setMessageFinished] = useState(false);
+  const [functionResults, setFunctionResults] = useState(null);
   
   // Cola de mensajes pendientes por procesar
   const messageQueueRef = useRef([]);
@@ -251,6 +245,8 @@ export const ChatProvider = ({ children }) => {
   const preloadTimerRef = useRef(null);
   // Estado de precarga por índice de mensaje
   const preloadingStatusRef = useRef({});
+
+  const subtitlesContext = useContext(SubtitlesContext);
   
   // API service ref
   const apiRef = useRef(new OpenAIAPI(OPENAI_API_KEY));
@@ -259,7 +255,7 @@ export const ChatProvider = ({ children }) => {
     console.log("💾 Guardando conversación en el backend...");
     
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/chat/messages/', {
+      const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -286,9 +282,12 @@ export const ChatProvider = ({ children }) => {
   const loadConversation = async () => {
     console.log("📂 Cargando conversación previa...");
     
+    // Limpiar subtítulos antes de cargar la conversación
+    clearSubtitles();
+    
     try {
       // Realizar la petición GET al endpoint correspondiente
-      const response = await fetch('http://127.0.0.1:8000/api/v1/chat/messages/?user_id=1&role_id=1', {
+      const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/?user_id=1&role_id=1`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -305,35 +304,9 @@ export const ChatProvider = ({ children }) => {
       // Verificamos si hay datos de conversación
       if (data && Array.isArray(data) && data.length > 0) {
         // Resetear el estado actual de la conversación
-        setConversationHistory([]);
-        setDisplayResponses([]);
+        setConversationHistory(data);
         
-        // Textos para mostrar en la interfaz
-        let displayTexts = [];
-        
-        // Reconstruimos el historial manteniendo EXACTAMENTE el mismo formato
-        const newHistory = data.map(item => {
-          // Para mensajes del asistente, extraemos los textos para mostrar en la UI
-          if (item.role === 'assistant' && Array.isArray(item.content)) {
-            // Extraer los textos para mostrar en la interfaz
-            item.content.forEach(msg => {
-              if (msg.text) {
-                displayTexts.push(msg.text);
-              }
-            });
-          }
-          
-          // Devolvemos el objeto tal cual para mantener el formato exacto
-          return item;
-        });
-        
-        // Establecer el nuevo historial completo
-        setConversationHistory(newHistory);
-        
-        // Actualizar los mensajes mostrados en la UI
-        if (displayTexts.length > 0) {
-          setDisplayResponses(displayTexts);
-        }
+        // NO actualizamos displayResponses para evitar el problema con los subtítulos
         
         console.log("📂 Historial de conversación restaurado con éxito");
       } else {
@@ -342,7 +315,19 @@ export const ChatProvider = ({ children }) => {
       
     } catch (error) {
       console.error("❌ Error al cargar la conversación:", error);
-      // No mostramos notificación al usuario para no interrumpir la experiencia
+    }
+  };
+
+  const clearSubtitles = () => {
+    // Resetear cualquier mensaje actual
+    setMessage(null);
+    
+    // Limpiar los subtítulos usando el contexto
+    if (subtitlesContext && subtitlesContext.setSubtitles) {
+      subtitlesContext.setSubtitles('');
+      console.log("🧹 Subtítulos limpiados exitosamente");
+    } else {
+      console.warn("⚠️ No se pudo acceder a setSubtitles");
     }
   };
 
@@ -634,6 +619,7 @@ export const ChatProvider = ({ children }) => {
     setDisplayResponses([]);
     setMessage(null);
     setMessageFinished(false);
+    setFunctionResults(null); // Reset any previous function results
     
     // Nueva sesión
     sessionIdRef.current = Date.now();
@@ -657,6 +643,13 @@ export const ChatProvider = ({ children }) => {
       if (!apiResponse) {
         setLoading(false);
         return;
+      }
+      
+      // Check for function results
+      if (apiResponse.function_results) {
+        console.log("Function results received:", apiResponse.function_results);
+        // Handle array or single object - ensure it's set properly
+        setFunctionResults(apiResponse.function_results);
       }
       
       // NUEVO: Verificar si hay warning de tokens y manejarlo silenciosamente
@@ -700,7 +693,7 @@ export const ChatProvider = ({ children }) => {
         message,
         onMessagePlayed,
         loading,
-        isThinking, // Añadir el nuevo estado al contexto
+        isThinking,
         cameraZoomed,
         setCameraZoomed,
         displayResponses,
@@ -709,6 +702,8 @@ export const ChatProvider = ({ children }) => {
         saveConversation,
         loadConversation,
         pendingMessages,
+        functionResults,
+        setFunctionResults,
         // For backwards compatibility
         messages: message ? [message] : []
       }}
