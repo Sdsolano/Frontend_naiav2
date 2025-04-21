@@ -26,11 +26,12 @@ function App() {
   return (
     <>
       {/* Login screen for unauthenticated users */}
+      {/*}
       <UnauthenticatedTemplate>
         <LoginPage />
       </UnauthenticatedTemplate>
       
-      {/* Main application for authenticated users */}
+      {/* Main application for authenticated users 
       <AuthenticatedTemplate>
         <UserProvider>
           <SubtitlesContext.Provider value={{ subtitles, setSubtitles }}>
@@ -50,8 +51,25 @@ function App() {
         </UserProvider>
       </AuthenticatedTemplate>
       
-      {/* Notifications are visible in both authenticated and unauthenticated states */}
+      {/* Notifications are visible in both authenticated and unauthenticated states 
       <Notifications />
+      */}
+        <UserProvider>
+          <SubtitlesContext.Provider value={{ subtitles, setSubtitles }}>
+            <Leva hidden />
+            <Loader />
+            <SimpleUI hidden={permissionsGranted} />
+            <Canvas shadows camera={{ position: [0, 0, 1], fov: 30 }}>
+              <Experience />
+            </Canvas>
+            <ChatEventListener />
+            {isAuthenticated && (
+              <PermissionHandler 
+                onAllPermissionsGranted={handlePermissionsGranted} 
+              />
+            )}
+          </SubtitlesContext.Provider>
+        </UserProvider>
     </>
   );
 }
