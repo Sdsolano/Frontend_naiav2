@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useChat } from "../hooks/useChat";
 import { useSimpleVoice } from "../hooks/useSimpleVoice";
-import { useUserImage } from "../hooks/useUserImage"; // Importar nuevo hook
+import { useUserImage } from "../hooks/useUserImage"; 
 import { Send, Loader, Mic, MicOff, RefreshCw, Camera } from "lucide-react";
 
 // Variable global para evitar envíos duplicados
@@ -26,7 +26,8 @@ export const SimpleUI = ({ hidden, ...props }) => {
   const [inputDisabled, setInputDisabled] = useState(false);
   const [messageEnded, setMessageEnded] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
-  
+  const [showDebugVideo, setShowDebugVideo] = useState(false); // Para depuración
+
   // Hook para manejar imágenes del usuario
   const { 
     initCamera, 
@@ -34,7 +35,8 @@ export const SimpleUI = ({ hidden, ...props }) => {
     captureAndUpload,
     captureInitialImage,
     isReady: isCameraReady,
-    getLastCaptureTime
+    getLastCaptureTime,
+    debugInfo
   } = useUserImage();
   
   // Determinar si el avatar está respondiendo
@@ -45,12 +47,21 @@ export const SimpleUI = ({ hidden, ...props }) => {
     if (!hidden) {
       // Inicializar cámara
       const setupCamera = async () => {
+        console.log('🎥 Iniciando configuración de cámara...');
         const success = await initCamera();
+        console.log(`🎥 Inicialización de cámara: ${success ? 'exitosa' : 'fallida'}`);
+        
+        // Asignar el elemento de video
         if (success && hiddenVideoRef.current) {
+          console.log('🎥 Asignando elemento de video al hook');
           setVideoElement(hiddenVideoRef.current);
           
-          // Realizar la captura inicial UNA SOLA VEZ
-          captureInitialImage();
+          // Esperar un tiempo para permitir que la cámara se inicialice completamente
+          setTimeout(() => {
+            // Realizar la captura inicial UNA SOLA VEZ
+            console.log('🎥 Intentando captura inicial después de espera');
+            captureInitialImage();
+          }, 3000);
         }
       };
       
@@ -59,7 +70,6 @@ export const SimpleUI = ({ hidden, ...props }) => {
   }, [hidden, initCamera, setVideoElement, captureInitialImage]);
   
   // Efecto para capturar imagen SOLO al finalizar reproducción de audio
-  // ESTE ES EL MOMENTO CLAVE PARA CAPTURAR IMAGEN
   useEffect(() => {
     const handleAudioEnded = () => {
       if (isCameraReady) {
@@ -189,7 +199,6 @@ export const SimpleUI = ({ hidden, ...props }) => {
     saveConversation();
   };
   
-  
   // Usar el hook simplificado con funcionalidades extendidas
   const { 
     isListening, 
@@ -290,6 +299,11 @@ export const SimpleUI = ({ hidden, ...props }) => {
     }
   }, [message, isAvatarResponding]);
 
+  // Toggle para el video de depuración
+  const toggleDebugVideo = () => {
+    setShowDebugVideo(!showDebugVideo);
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -303,16 +317,24 @@ export const SimpleUI = ({ hidden, ...props }) => {
 
   return (
     <>
-      {/* Video oculto para la cámara (no visible para el usuario) */}
+      {/* Video para la cámara - ahora posicionado fuera de la pantalla para que se renderice correctamente */}
       <video 
         ref={hiddenVideoRef}
         autoPlay 
         playsInline 
         muted
-        className="hidden"
+        style={{
+          position: showDebugVideo ? 'fixed' : 'absolute',
+          right: showDebugVideo ? '10px' : '-9999px',
+          bottom: showDebugVideo ? '10px' : '-9999px',
+          width: '320px',
+          height: '240px',
+          zIndex: 1000,
+          border: showDebugVideo ? '2px solid red' : 'none'
+        }}
       />
       
-      <div className="fixed top-0 left-0 right-0 bottom-0 z-10 flex justify-between p-4 flex-col pointer-events-none">
+      <div className="fixed top-0 left-0 right-0 bottom-0 z-10 flex justify-between p-4 pl-20 flex-col pointer-events-none">
         <div className="self-start backdrop-blur-md bg-white bg-opacity-50 p-4 rounded-lg flex items-center">
           <h1 className="font-black text-xl">NAIA</h1>
 
@@ -359,7 +381,20 @@ export const SimpleUI = ({ hidden, ...props }) => {
             </div>
           )}
           
+          {/* Botón para mostrar/ocultar el video de depuración */}
+          {/* <button 
+            onClick={toggleDebugVideo} 
+            className="ml-3 p-2 rounded-md bg-gray-200 text-gray-700 pointer-events-auto"
+          >
+            <Camera size={16} />
+          </button> */}
           
+          {/* Información de depuración sobre la cámara */}
+          {showDebugVideo && debugInfo && (
+            <div className="ml-3 text-xs text-gray-700">
+              <span>Video: {debugInfo.videoWidth}x{debugInfo.videoHeight} (RS:{debugInfo.readyState})</span>
+            </div>
+          )}
         </div>
 
         {/* Response area */}

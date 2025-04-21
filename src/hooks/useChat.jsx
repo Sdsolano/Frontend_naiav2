@@ -12,8 +12,7 @@ const availableFacialExpressions = ["smile", "sad", "angry", "surprised", "funny
 
 // Transiciones y muletillas para hacer el habla más natural
 const SPEECH_TRANSITIONS = [
-  "Mmmm ",
-  "Ehhh ",
+
 ];
 
 // Helper functions
@@ -153,97 +152,10 @@ class OpenAIAPI {
 }
 
 
-const loadConversation = async () => {
-  console.log("📂 Cargando conversación previa...");
-  
-  try {
-    // Realizar la petición GET al endpoint correspondiente
-    const response = await fetch('http://127.0.0.1:8000/api/v1/chat/messages/?user_id=1&role_id=1', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error('Error al cargar la conversación');
-    }
-    
-    const data = await response.json();
-    console.log("✅ Conversación cargada exitosamente:", data);
-    
-    // Verificamos si hay datos de conversación
-    if (data && Array.isArray(data) && data.length > 0) {
-      // Resetear el estado actual de la conversación
-      setConversationHistory([]);
-      setDisplayResponses([]);
-      
-      // Textos para mostrar en la interfaz
-      let displayTexts = [];
-      
-      // Reconstruimos el historial manteniendo EXACTAMENTE el mismo formato
-      const newHistory = data.map(item => {
-        // Para mensajes del asistente, extraemos los textos para mostrar en la UI
-        if (item.role === 'assistant' && Array.isArray(item.content)) {
-          // Extraer los textos para mostrar en la interfaz
-          item.content.forEach(msg => {
-            if (msg.text) {
-              displayTexts.push(msg.text);
-            }
-          });
-        }
-        
-        // Devolvemos el objeto tal cual para mantener el formato exacto
-        return item;
-      });
-      
-      // Establecer el nuevo historial completo
-      setConversationHistory(newHistory);
-      
-      // Actualizar los mensajes mostrados en la UI
-      if (displayTexts.length > 0) {
-        setDisplayResponses(displayTexts);
-      }
-      
-      console.log("📂 Historial de conversación restaurado con éxito");
-    } else {
-      console.log("📂 No hay conversación previa para cargar");
-    }
-    
-  } catch (error) {
-    console.error("❌ Error al cargar la conversación:", error);
-    // No mostramos notificación al usuario para no interrumpir la experiencia
-  }
-};
 
 
-const saveConversation = async () => {
-  console.log("💾 Guardando conversación en el backend...");
-  
-  try {
-    const response = await fetch('http://127.0.0.1:8000/api/v1/chat/messages/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        user_id: 1, 
-        role_id: 1
-      })
-    });
 
-    if (!response.ok) {
-      throw new Error('Error al guardar la conversación');
-    }
-    
-    const data = await response.json();
-    console.log("✅ Conversación guardada exitosamente:", data);
-    
-  } catch (error) {
-    console.error("❌ Error al guardar la conversación:", error);
 
-  }
-};
 
 
 
@@ -343,6 +255,97 @@ export const ChatProvider = ({ children }) => {
   // API service ref
   const apiRef = useRef(new OpenAIAPI(OPENAI_API_KEY));
   
+  const saveConversation = async () => {
+    console.log("💾 Guardando conversación en el backend...");
+    
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/v1/chat/messages/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: 1, 
+          role_id: 1
+        })
+      });
+  
+      if (!response.ok) {
+        throw new Error('Error al guardar la conversación');
+      }
+      
+      const data = await response.json();
+      console.log("✅ Conversación guardada exitosamente:", data);
+      
+    } catch (error) {
+      console.error("❌ Error al guardar la conversación:", error);
+  
+    }
+  };
+
+  const loadConversation = async () => {
+    console.log("📂 Cargando conversación previa...");
+    
+    try {
+      // Realizar la petición GET al endpoint correspondiente
+      const response = await fetch('http://127.0.0.1:8000/api/v1/chat/messages/?user_id=1&role_id=1', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      if (!response.ok) {
+        throw new Error('Error al cargar la conversación');
+      }
+      
+      const data = await response.json();
+      console.log("✅ Conversación cargada exitosamente:", data);
+      
+      // Verificamos si hay datos de conversación
+      if (data && Array.isArray(data) && data.length > 0) {
+        // Resetear el estado actual de la conversación
+        setConversationHistory([]);
+        setDisplayResponses([]);
+        
+        // Textos para mostrar en la interfaz
+        let displayTexts = [];
+        
+        // Reconstruimos el historial manteniendo EXACTAMENTE el mismo formato
+        const newHistory = data.map(item => {
+          // Para mensajes del asistente, extraemos los textos para mostrar en la UI
+          if (item.role === 'assistant' && Array.isArray(item.content)) {
+            // Extraer los textos para mostrar en la interfaz
+            item.content.forEach(msg => {
+              if (msg.text) {
+                displayTexts.push(msg.text);
+              }
+            });
+          }
+          
+          // Devolvemos el objeto tal cual para mantener el formato exacto
+          return item;
+        });
+        
+        // Establecer el nuevo historial completo
+        setConversationHistory(newHistory);
+        
+        // Actualizar los mensajes mostrados en la UI
+        if (displayTexts.length > 0) {
+          setDisplayResponses(displayTexts);
+        }
+        
+        console.log("📂 Historial de conversación restaurado con éxito");
+      } else {
+        console.log("📂 No hay conversación previa para cargar");
+      }
+      
+    } catch (error) {
+      console.error("❌ Error al cargar la conversación:", error);
+      // No mostramos notificación al usuario para no interrumpir la experiencia
+    }
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
