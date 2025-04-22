@@ -41,6 +41,7 @@ export const useUserImage = (userId = 1) => {
   // Inicializar la cámara
   const initCamera = useCallback(async () => {
     try {
+      console.log('streamref.current', streamRef.current);
       if (streamRef.current) return true; // Ya inicializado
       
       console.log('📸 Iniciando cámara para capturas de imagen...');
