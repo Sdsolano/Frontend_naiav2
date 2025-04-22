@@ -1,6 +1,7 @@
 // hooks/useUserImage.jsx
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNotification } from '../components/NotificationContext';
+import { BACKEND_URL } from '../../config';
 
 const CAPTURE_QUALITY = 0.9; // Calidad de compresión JPEG (0-1)
 const MAX_IMAGE_SIZE = 640; // Tamaño máximo en píxeles (ancho o alto)
@@ -296,7 +297,7 @@ export const useUserImage = (userId = 1) => {
         formData.append('image', latestImage.blob, 'user_image.jpg');
         
         try {
-          const response = await fetch('http://127.0.0.1:8000/api/v1/chat/images/', {
+          const response = await fetch(`${BACKEND_URL}/api/v1/chat/images/`, {
             method: 'POST',
             body: formData,
           });
