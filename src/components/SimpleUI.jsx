@@ -384,12 +384,12 @@ export const SimpleUI = ({ hidden, ...props }) => {
           )}
           
           {/* Botón para mostrar/ocultar el video de depuración */}
-          {/* <button 
+         <button 
             onClick={toggleDebugVideo} 
             className="ml-3 p-2 rounded-md bg-gray-200 text-gray-700 pointer-events-auto"
           >
             <Camera size={16} />
-          </button> */}
+          </button> 
           
           {/* Información de depuración sobre la cámara */}
           {showDebugVideo && debugInfo && (
