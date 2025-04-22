@@ -318,7 +318,7 @@ export const useUserImage = (userId = 1) => {
     // devolvemos un placeholder en vez de fallar silenciosamente
     if (isVirtualEnvironment && (!isReady || !streamRef.current)) {
       console.log('📸 Entorno virtualizado detectado, generando imagen placeholder');
-      return generatePlaceholderImage();
+      return Promise.resolve(generatePlaceholderImage());
     }
     
     if (!isReady || !streamRef.current) {
@@ -374,7 +374,7 @@ export const useUserImage = (userId = 1) => {
           console.log('📸 Generando placeholder por error de dimensiones en VM');
           const placeholderBlob = generatePlaceholderImage();
           latestImageRef.current = placeholderBlob;
-          return placeholderBlob;
+          return Promise.resolve(placeholderBlob);
         }
         
         throw new Error('Video no inicializado completamente');
@@ -431,7 +431,7 @@ export const useUserImage = (userId = 1) => {
           console.log('📸 Generando placeholder por imagen negra en VM');
           const placeholderBlob = generatePlaceholderImage();
           latestImageRef.current = placeholderBlob;
-          return placeholderBlob;
+          return Promise.resolve(placeholderBlob);
         }
       }
       
@@ -449,7 +449,7 @@ export const useUserImage = (userId = 1) => {
           console.log('📸 Generando placeholder por blob inválido en VM');
           const placeholderBlob = generatePlaceholderImage();
           latestImageRef.current = placeholderBlob;
-          return placeholderBlob;
+          return Promise.resolve(placeholderBlob);
         }
       } else {
         console.log('📸 Imagen capturada:', blob.size, 'bytes');
@@ -467,7 +467,7 @@ export const useUserImage = (userId = 1) => {
         console.log('📸 Generando placeholder por error en VM:', error.message);
         const placeholderBlob = generatePlaceholderImage();
         latestImageRef.current = placeholderBlob;
-        return placeholderBlob;
+        return Promise.resolve(placeholderBlob);
       }
       
       return null;
@@ -477,7 +477,7 @@ export const useUserImage = (userId = 1) => {
   }, [isReady, isCapturing, isVirtualEnvironment]);
   
   // ⚠️ NUEVA FUNCIÓN: Generar imagen de placeholder para entornos virtualizados
-  const generatePlaceholderImage = useCallback(() => {
+  const generatePlaceholderImage = () => {
     console.log('📸 Generando imagen placeholder');
     
     // Crear un canvas para el placeholder
@@ -519,11 +519,20 @@ export const useUserImage = (userId = 1) => {
     ctx.textAlign = 'center';
     ctx.fillText('Cámara no disponible en VM', canvas.width / 2, 180);
     
-    // Generar blob
-    return new Promise(resolve => {
-      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.9);
-    });
-  }, []);
+    // Convertir el canvas a un blob de manera sincrónica
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    const byteString = atob(dataUrl.split(',')[1]);
+    const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+    
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    
+    return new Blob([ab], {type: mimeString});
+  };
   
   // Procesar cola de imágenes
   const processImageQueue = useCallback(async () => {
