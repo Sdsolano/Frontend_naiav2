@@ -38,13 +38,15 @@ export const SimpleUI = ({ hidden, ...props }) => {
     captureInitialImage,
     isReady: isCameraReady,
     getLastCaptureTime,
-    debugInfo
+    debugInfo,
+    uploadDummyImage,
+    stopCamera
   } = useUserImage();
   
   // Determinar si el avatar está respondiendo
   const isAvatarResponding = loading || !!message;
   
-  // Inicializar la cámara cuando carga el componente
+// Reemplaza este bloque en SimpleUI.jsx, dentro del useEffect de inicialización
   useEffect(() => {
     if (!hidden) {
       // Inicializar cámara
@@ -64,12 +66,18 @@ export const SimpleUI = ({ hidden, ...props }) => {
             console.log('🎥 Intentando captura inicial después de espera');
             captureInitialImage();
           }, 3000);
+        } else {
+          // Si la cámara falla, usar fallback para la imagen inicial
+          console.log('🎥 Cámara no inicializada, usando fallback para imagen inicial');
+          setTimeout(() => {
+            uploadDummyImage();
+          }, 1000);
         }
       };
       
       setupCamera();
     }
-  }, [hidden, initCamera, setVideoElement, captureInitialImage]);
+  }, [hidden, initCamera, setVideoElement, captureInitialImage, uploadDummyImage]);
   
   // Efecto para capturar imagen SOLO al finalizar reproducción de audio
   useEffect(() => {
