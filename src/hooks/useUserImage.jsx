@@ -52,74 +52,129 @@ export const useUserImage = (userId = 1) => {
   }, []);
   
   // Inicializar cámara
-  const initCamera = useCallback(async () => {
-    try {
-      if (streamRef.current) return true; // Ya inicializado
-      
-      console.log('📸 Iniciando cámara para capturas de imagen...');
-      
-      // Solicitar acceso a la cámara
+    const initCamera = useCallback(async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: MAX_IMAGE_SIZE },
-            height: { ideal: MAX_IMAGE_SIZE }
-          }
-        });
+        // Si ya hay un stream activo, consideramos que la cámara está lista
+        if (streamRef.current) {
+          console.log('📸 Usando stream de cámara existente');
+          return true;
+        }
         
-        streamRef.current = stream;
-      } catch (e) {
-        console.error('📸 Error al solicitar acceso a la cámara:', e);
+        console.log('📸 Solicitando permisos de cámara...');
+        
+        // Verificar si el navegador soporta getUserMedia
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          console.error('📸 getUserMedia no es soportado en este navegador');
+          return false;
+        }
+        
+        // Intentar obtener el stream de la cámara
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'user',
+              width: { ideal: MAX_IMAGE_SIZE },
+              height: { ideal: MAX_IMAGE_SIZE }
+            }
+          });
+          
+          // Verificar que el stream tenga tracks de video
+          if (!stream || !stream.getVideoTracks().length) {
+            console.error('📸 No se obtuvieron tracks de video');
+            return false;
+          }
+          
+          streamRef.current = stream;
+          console.log('📸 Stream de cámara obtenido correctamente');
+          
+          // Si hay un elemento de video, asignar el stream
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            
+            // Esperar a que el video esté listo para reproducir
+            await new Promise((resolve) => {
+              videoRef.current.onloadedmetadata = () => {
+                videoRef.current.play()
+                  .then(() => {
+                    console.log('📸 Video reproducción iniciada con éxito');
+                    resolve();
+                  })
+                  .catch(err => {
+                    console.error('📸 Error al iniciar reproducción:', err);
+                    resolve(); // Continuamos de todas formas
+                  });
+              };
+            });
+          }
+          
+          // Establecer un temporizador para marcar la cámara como lista
+          if (cameraInitTimerRef.current) {
+            clearTimeout(cameraInitTimerRef.current);
+          }
+          
+          cameraInitTimerRef.current = setTimeout(() => {
+            // Verificar que realmente se esté obteniendo una imagen válida
+            const videoTrack = stream.getVideoTracks()[0];
+            if (videoTrack && videoTrack.readyState === 'live' && videoTrack.enabled) {
+              setIsReady(true);
+              console.log('📸 Cámara inicializada y lista para capturar');
+              
+              // Actualizar información de debug
+              if (videoRef.current) {
+                setDebugInfo({
+                  videoWidth: videoRef.current.videoWidth || 0,
+                  videoHeight: videoRef.current.videoHeight || 0,
+                  readyState: videoRef.current.readyState || 0,
+                  videoTrackState: videoTrack.readyState
+                });
+              }
+            } else {
+              console.error('📸 El video track no está activo o en estado live');
+              setIsReady(false);
+              return false;
+            }
+          }, CAMERA_INIT_DELAY);
+          
+          return true;
+        } catch (error) {
+          console.error('📸 Error al solicitar acceso a la cámara:', error);
+          return false;
+        }
+      } catch (error) {
+        console.error('📸 Error inesperado al inicializar cámara:', error);
+        setIsReady(false);
         return false;
       }
-      
-      // Si hay un elemento de video, asignar el stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = streamRef.current;
-        
-        // Esperar a que el video esté listo
-        await new Promise((resolve) => {
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current.play().then(() => {
-              console.log('📸 Video reproducción iniciada con éxito');
-              resolve();
-            }).catch(err => {
-              console.error('📸 Error al iniciar reproducción:', err);
-              resolve(); // Continuamos de todas formas
-            });
-          };
-        });
-      }
-      
-      // Temporizador para asegurar que la cámara esté realmente lista
-      if (cameraInitTimerRef.current) {
-        clearTimeout(cameraInitTimerRef.current);
-      }
-      
-      cameraInitTimerRef.current = setTimeout(() => {
-        setIsReady(true);
-        console.log('📸 Cámara inicializada y lista para capturar');
-        
-        // Actualizar información de debug
-        if (videoRef.current) {
-          setDebugInfo({
-            videoWidth: videoRef.current.videoWidth,
-            videoHeight: videoRef.current.videoHeight,
-            readyState: videoRef.current.readyState
-          });
-        }
-      }, CAMERA_INIT_DELAY);
-      
-      return true;
-    } catch (error) {
-      console.error('📸 Error al inicializar cámara:', error);
-      addNotification('No se pudo acceder a la cámara para las capturas de imagen', 'warning');
-      setIsReady(false);
+    }, []);
+  
+  // Añadir esta función nueva al hook
+  const isCameraActuallyWorking = useCallback(() => {
+    // Verificar que tenemos un stream activo
+    if (!streamRef.current) return false;
+    
+    // Verificar que hay tracks de video activos
+    const videoTracks = streamRef.current.getVideoTracks();
+    if (!videoTracks.length) return false;
+    
+    // Verificar que el primer track está activo
+    const mainTrack = videoTracks[0];
+    if (mainTrack.readyState !== 'live' || !mainTrack.enabled) return false;
+    
+    // Verificar que, si tenemos un elemento video, tiene dimensiones
+    if (videoRef.current && 
+      (videoRef.current.videoWidth === 0 || 
+        videoRef.current.videoHeight === 0 || 
+        videoRef.current.readyState < 2)) {
       return false;
     }
-  }, [addNotification]);
-  
+    
+    // Si pasó todas las verificaciones, la cámara está funcionando
+    return true;
+  }, []);
+
+
+
+
   // Detener cámara
   const stopCamera = useCallback(() => {
     if (cameraInitTimerRef.current) {
@@ -371,38 +426,29 @@ export const useUserImage = (userId = 1) => {
   
   // Capturar y subir
   const captureAndUpload = useCallback(async () => {
-    // Si la cámara no está lista, intentar inicializarla
-    if (!isReady) {
-      console.log('📸 Cámara no lista, intentando inicializar');
-      const success = await initCamera();
-      
-      // Si no podemos inicializar la cámara, usar fallback
-      if (!success) {
-        console.log('📸 No se pudo inicializar la cámara, usando fallback');
-        return uploadDummyImage();
-      }
-      
+    // Solo subir si realmente podemos acceder a la cámara
+    if (!isReady || !isCameraActuallyWorking()) {
+      // No subir nada si no hay cámara disponible
+      console.log('📸 Cámara no disponible, omitiendo captura');
       return false;
     }
     
     try {
-      // Capturar imagen normal
+      // Intentar captura normal (sin fallback)
       const imageBlob = await captureImage();
       
-      // Si no tenemos imagen, usar fallback
-      if (!imageBlob) {
-        console.log('📸 No se pudo capturar imagen, usando fallback');
-        return uploadDummyImage();
+      // Solo subir si realmente obtuvimos una imagen
+      if (imageBlob && imageBlob.size > 5000) { // Mínimo 5KB para una imagen real
+        return uploadImage(imageBlob);
+      } else {
+        console.log('📸 Imagen no válida o muy pequeña, omitiendo subida');
+        return false;
       }
-      
-      // Si tenemos imagen, subirla normalmente
-      return uploadImage(imageBlob);
     } catch (error) {
       console.error('Error en captureAndUpload:', error);
-      // Usar fallback en caso de error
-      return uploadDummyImage();
+      return false;
     }
-  }, [isReady, initCamera, captureImage, uploadImage, uploadDummyImage]);
+  }, [isReady, isCameraActuallyWorking, captureImage, uploadImage]);
   
   // Función para captura inicial única
   const captureInitialImage = useCallback(async () => {
@@ -414,29 +460,32 @@ export const useUserImage = (userId = 1) => {
     // Marcar como completada
     initialCaptureCompletedRef.current = true;
     
-    // Tiempo más largo para inicialización
+    // Tiempo para inicialización
     setTimeout(async () => {
+      // Verificar si realmente tenemos acceso a la cámara
+      if (!isReady || !isCameraActuallyWorking()) {
+        console.log('📸 Cámara no disponible para captura inicial, omitiendo');
+        return false;
+      }
+      
+      // Intentar captura normal
       try {
-        // Verificar que la cámara esté lista
-        if (!isReady) {
-          console.log('📸 Esperando a que la cámara esté lista para captura inicial');
-          
-          // Esperar más tiempo
-          setTimeout(async () => {
-            const success = await captureAndUpload();
-            console.log(`📸 Captura inicial (segundo intento): ${success ? 'éxito' : 'falló'}`);
-          }, 2000);
-          
-          return;
-        }
+        const imageBlob = await captureImage();
         
-        const success = await captureAndUpload();
-        console.log(`📸 Captura inicial: ${success ? 'éxito' : 'falló'}`);
+        if (imageBlob && imageBlob.size > 5000) {
+          uploadImage(imageBlob);
+          console.log('📸 Captura inicial exitosa');
+          return true;
+        } else {
+          console.log('📸 Captura inicial no produjo una imagen válida, omitiendo');
+          return false;
+        }
       } catch (e) {
         console.error('Error en captura inicial:', e);
+        return false;
       }
     }, 3000);
-  }, [captureAndUpload, isReady]);
+  }, [captureImage, uploadImage, isReady, isCameraActuallyWorking]);
   
   // Limpiar al desmontar
   useEffect(() => {
@@ -463,7 +512,8 @@ export const useUserImage = (userId = 1) => {
     captureInitialImage,
     getLastCaptureTime,
     debugInfo,
-    uploadDummyImage
+    isCameraActuallyWorking, // Nueva función
+    uploadDummyImage // Mantener para casos donde explícitamente se quiera usar
   };
 };
 

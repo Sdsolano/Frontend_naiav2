@@ -40,13 +40,13 @@ export const SimpleUI = ({ hidden, ...props }) => {
     getLastCaptureTime,
     debugInfo,
     uploadDummyImage,
-    stopCamera
+    stopCamera,
+    isCameraActuallyWorking
   } = useUserImage();
   
   // Determinar si el avatar está respondiendo
   const isAvatarResponding = loading || !!message;
   
-// Reemplaza este bloque en SimpleUI.jsx, dentro del useEffect de inicialización
   useEffect(() => {
     if (!hidden) {
       // Inicializar cámara
@@ -55,30 +55,26 @@ export const SimpleUI = ({ hidden, ...props }) => {
         const success = await initCamera();
         console.log(`🎥 Inicialización de cámara: ${success ? 'exitosa' : 'fallida'}`);
         
-        // Asignar el elemento de video
+        // Si la cámara se inicializó correctamente
         if (success && hiddenVideoRef.current) {
           console.log('🎥 Asignando elemento de video al hook');
           setVideoElement(hiddenVideoRef.current);
           
-          // Esperar un tiempo para permitir que la cámara se inicialice completamente
+          // Realizar la captura inicial después de un tiempo
           setTimeout(() => {
-            // Realizar la captura inicial UNA SOLA VEZ
             console.log('🎥 Intentando captura inicial después de espera');
             captureInitialImage();
           }, 3000);
         } else {
-          // Si la cámara falla, usar fallback para la imagen inicial
-          console.log('🎥 Cámara no inicializada, usando fallback para imagen inicial');
           setTimeout(() => {
-            uploadDummyImage();
+            captureInitialImage();
           }, 1000);
         }
       };
       
       setupCamera();
     }
-  }, [hidden, initCamera, setVideoElement, captureInitialImage, uploadDummyImage]);
-  
+  }, [hidden, initCamera, setVideoElement, captureInitialImage]);
   // Efecto para capturar imagen SOLO al finalizar reproducción de audio
   useEffect(() => {
     const handleAudioEnded = () => {
