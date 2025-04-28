@@ -648,8 +648,26 @@ export const ChatProvider = ({ children }) => {
       // Check for function results
       if (apiResponse.function_results) {
         console.log("Function results received:", apiResponse.function_results);
-        // Handle array or single object - ensure it's set properly
-        setFunctionResults(apiResponse.function_results);
+        // Acumular resultados en lugar de reemplazarlos
+        setFunctionResults(prev => {
+          const newResults = apiResponse.function_results;
+          
+          // Si no hay resultados previos, simplemente establecer los nuevos
+          if (!prev) return newResults;
+          
+          // Combinar resultados previos con nuevos
+          if (Array.isArray(prev)) {
+            // Si prev es array, añadir los nuevos (como array o como objeto individual)
+            return Array.isArray(newResults) 
+              ? [...prev, ...newResults] 
+              : [...prev, newResults];
+          } else {
+            // Si prev es un objeto individual, convertirlo a array y añadir los nuevos
+            return Array.isArray(newResults) 
+              ? [prev, ...newResults] 
+              : [prev, newResults];
+          }
+        });
       }
       
       // NUEVO: Verificar si hay warning de tokens y manejarlo silenciosamente
