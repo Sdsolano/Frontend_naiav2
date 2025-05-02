@@ -4,19 +4,21 @@ import defaultLipsync from "../utils/defaultLipsync";
 import { OPENAI_API_KEY } from "../../config";
 import SubtitlesContext from '../components/subtitles';
 import { BACKEND_URL } from "../../config";
+import PollingManager from "../components/PollingManager";
 
+// Constantes para configuración del chat
 const VOICE_TYPE = "nova";
-
-// Available options for animations and expressions
-const availableAnimations = [ "Talking_1 ","Talking_2", "Crying", "Laughing", "Rumba", "Idle", "Terrified", "Angry", "standing_greeting", "raising_two_arms_talking", "put_hand_on_chin", "one_arm_up_talking", "happy_expressions"];
-const availableFacialExpressions = ["smile", "sad", "angry", "surprised", "funnyFace", "crazy", "default"];
+const POLLING_INTERVAL = 2000; // 2 segundos
+const POLLING_START_DELAY = 5000; // 5 segundos
 
 // Transiciones y muletillas para hacer el habla más natural
-const SPEECH_TRANSITIONS = [
-" "
-];
+const SPEECH_TRANSITIONS = [" "];
 
-// Helper functions
+// Opciones para animaciones y expresiones
+const availableAnimations = ["Talking_1","Talking_2", "Crying", "Laughing", "Rumba", "Idle", "Terrified", "Angry", "standing_greeting", "raising_two_arms_talking", "put_hand_on_chin", "one_arm_up_talking", "happy_expressions"];
+const availableFacialExpressions = ["smile", "sad", "angry", "surprised", "funnyFace", "crazy", "default"];
+
+// Helper function
 const getRandomItem = (array) => array[Math.floor(Math.random() * array.length)];
 
 // Create the context
@@ -26,7 +28,7 @@ const ChatContext = createContext();
 let currentAudio = null;
 
 /**
- * OpenAI API Service
+ * OpenAI API Service - Clase para manejar llamadas a la API
  */
 class OpenAIAPI {
   constructor(apiKey) {
@@ -46,7 +48,7 @@ class OpenAIAPI {
     const signal = this.reset();
     
     try {
-      // Usar tu API local en lugar de OpenAI
+      // Usar la API local en lugar de OpenAI
       const response = await fetch(`${BACKEND_URL}/api/v1/chat/`, {
         method: 'POST',
         headers: {
@@ -54,7 +56,7 @@ class OpenAIAPI {
         },
         body: JSON.stringify({
           user_input: message,
-          user_id: 1,  // Estos valores deberían venir de un contexto o configuración
+          user_id: 1,
           role_id: 1,
         }),
         signal
@@ -65,16 +67,13 @@ class OpenAIAPI {
         throw new Error(error.error?.message || 'API error');
       }
 
-      // Obtenemos directamente la respuesta en formato JSON
+      // Obtener la respuesta en formato JSON
       const data = await response.json();
       
-      // Registramos la respuesta para debug
-      console.log('Respuesta API local:', data);
-      
-      // Guardamos la respuesta completa para poder verificar el campo warning después
+      // Guardar respuesta completa para referencia
       this.lastFullResponse = data;
       
-      // Procesamos los mensajes para el avatar
+      // Procesar los mensajes para el avatar
       let messages = [];
       
       if (data.response) {
@@ -92,14 +91,14 @@ class OpenAIAPI {
         messages = [data];
       }
       
-      // Limpiamos y validamos cada mensaje
+      // Limpiar y validar cada mensaje
       const formattedMessages = messages.map(msg => ({
         text: cleanText(msg.text) || "No se pudo obtener una respuesta clara.",
         facialExpression: msg.facialExpression || "default",
         animation: msg.animation || "Talking_1"
       }));
       
-      // Devolvemos un objeto que contiene tanto los mensajes formateados como la respuesta completa
+      // Devolver un objeto que contiene tanto los mensajes formateados como la respuesta completa
       return {
         messages: formattedMessages,
         warning: data.warning || null,
@@ -131,7 +130,7 @@ class OpenAIAPI {
           model: 'gpt-4o-mini-tts',
           input: text,
           voice: VOICE_TYPE,
-          instructions:"Habla pausado, claro y natural y con la mejor entonación posible, utiliza un acento colombiano costeño para que suene más natural. añade muletillas y transiciones, ignora lo que no sepas y jamas digas <undefined> ignora los signos que no conozcas",
+          instructions: "Habla pausado, claro y natural y con la mejor entonación posible, utiliza un acento colombiano costeño para que suene más natural. añade muletillas y transiciones, ignora lo que no sepas y jamas digas <undefined> ignora los signos que no conozcas",
           speed: 1.0
         }),
         signal
@@ -152,37 +151,6 @@ class OpenAIAPI {
     }
   }
 }
-
-const handleTokenWarning = async (userId, roleId) => {
-  console.log("🔄 Detectado warning de tokens, solicitando resumen automático");
-  
-  try {
-    const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/resume/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        role_id: roleId
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Error al solicitar resumen');
-    }
-    
-    const data = await response.json();
-    console.log("✅ Resumen aplicado exitosamente:", data);
-    
-    // No realizamos ninguna acción visible para el usuario
-    // El backend ya ha actualizado internamente el contexto de la conversación
-    
-  } catch (error) {
-    console.error("❌ Error al aplicar resumen:", error);
-    // No mostramos notificación al usuario para mantener la experiencia sin interrupciones
-  }
-};
 
 // Función para limpiar texto con problemas de codificación
 function cleanText(text) {
@@ -221,10 +189,9 @@ function arrayBufferToBase64(buffer) {
 
 // Provider component
 export const ChatProvider = ({ children }) => {
-  
+  // Estado principal
   const [pendingMessages, setPendingMessages] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
-  const { addNotification } = useNotification();
   const [loading, setLoading] = useState(false);
   const [cameraZoomed, setCameraZoomed] = useState(true);
   const [displayResponses, setDisplayResponses] = useState([]);
@@ -232,25 +199,71 @@ export const ChatProvider = ({ children }) => {
   const [message, setMessage] = useState(null);
   const [messageFinished, setMessageFinished] = useState(false);
   const [functionResults, setFunctionResults] = useState(null);
+  const [pollingSessionId, setPollingSessionId] = useState(0);
   
-  // Cola de mensajes pendientes por procesar
-  const messageQueueRef = useRef([]);
-  // Cola de audios precargados
-  const preloadedAudiosRef = useRef([]);
-  // Estado para controlar si se está reproduciendo un mensaje
-  const isPlayingRef = useRef(false);
-  // ID único para cada sesión de respuesta
-  const sessionIdRef = useRef(Date.now());
-  // Temporizador para precargar mensajes en segundo plano
-  const preloadTimerRef = useRef(null);
-  // Estado de precarga por índice de mensaje
-  const preloadingStatusRef = useRef({});
-
+  // Estado del polling
+  const [pollingEnabled, setPollingEnabled] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState(null);
+  
+  // Referencias importantes
+  const { addNotification } = useNotification();
   const subtitlesContext = useContext(SubtitlesContext);
-  
-  // API service ref
   const apiRef = useRef(new OpenAIAPI(OPENAI_API_KEY));
   
+  // Referencias para manejo del flujo
+  const messageQueueRef = useRef([]);
+  const preloadedAudiosRef = useRef([]);
+  const isPlayingRef = useRef(false);
+  const sessionIdRef = useRef(Date.now());
+  const preloadTimerRef = useRef(null);
+  const preloadingStatusRef = useRef({});
+  
+  // Función para manejar la actualización de estado del servidor
+  const handleStatusUpdate = (status, sessionId) => {
+    console.log(`🔄 Estado del servidor actualizado (sesión ${sessionId}): ${status}`);
+    
+    // Solo procesar si coincide con la sesión actual
+    if (sessionId === pollingSessionId) {
+      setProcessingStatus(status);
+      
+      // Actualizar subtítulos si existe el contexto
+      if (subtitlesContext && subtitlesContext.setSubtitles) {
+        subtitlesContext.setSubtitles(status);
+      }
+    } else {
+      console.log(`🚫 Ignorando actualización de sesión antigua ${sessionId} (actual: ${pollingSessionId})`);
+    }
+  };
+  
+  // Manejo de advertencias de tokens
+  const handleTokenWarning = async (userId = 1, roleId = 1) => {
+    console.log("🔄 Detectado warning de tokens, solicitando resumen automático");
+    
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/resume/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          role_id: roleId
+        })
+      });
+  
+      if (!response.ok) {
+        throw new Error('Error al solicitar resumen');
+      }
+      
+      const data = await response.json();
+      console.log("✅ Resumen aplicado exitosamente:", data);
+      
+    } catch (error) {
+      console.error("❌ Error al aplicar resumen:", error);
+    }
+  };
+  
+  // Función para guardar la conversación en el backend
   const saveConversation = async () => {
     console.log("💾 Guardando conversación en el backend...");
     
@@ -275,10 +288,10 @@ export const ChatProvider = ({ children }) => {
       
     } catch (error) {
       console.error("❌ Error al guardar la conversación:", error);
-  
     }
   };
 
+  // Función para cargar una conversación previa
   const loadConversation = async () => {
     console.log("📂 Cargando conversación previa...");
     
@@ -286,7 +299,6 @@ export const ChatProvider = ({ children }) => {
     clearSubtitles();
     
     try {
-      // Realizar la petición GET al endpoint correspondiente
       const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/?user_id=1&role_id=1`, {
         method: 'GET',
         headers: {
@@ -299,15 +311,10 @@ export const ChatProvider = ({ children }) => {
       }
       
       const data = await response.json();
-      console.log("✅ Conversación cargada exitosamente:", data);
       
-      // Verificamos si hay datos de conversación
+      // Verificar si hay datos de conversación
       if (data && Array.isArray(data) && data.length > 0) {
-        // Resetear el estado actual de la conversación
         setConversationHistory(data);
-        
-        // NO actualizamos displayResponses para evitar el problema con los subtítulos
-        
         console.log("📂 Historial de conversación restaurado con éxito");
       } else {
         console.log("📂 No hay conversación previa para cargar");
@@ -318,6 +325,7 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // Función para limpiar los subtítulos
   const clearSubtitles = () => {
     // Resetear cualquier mensaje actual
     setMessage(null);
@@ -331,7 +339,7 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // Cleanup on unmount
+  // Cleanup al desmontar
   useEffect(() => {
     return () => {
       stopAnyPlayingAudio();
@@ -352,7 +360,7 @@ export const ChatProvider = ({ children }) => {
     };
   }, []);
   
-  // Función para detener cualquier audio que esté reproduciéndose
+  // Función para detener cualquier audio reproduciéndose
   const stopAnyPlayingAudio = () => {
     if (currentAudio) {
       try {
@@ -427,7 +435,7 @@ export const ChatProvider = ({ children }) => {
         continue;
       }
       
-      // Precargar con muletillas/transiciones
+      // Precargar con transiciones
       const preloadedMessage = await preloadMessageAudio(messageQueueRef.current[i], i, true);
       
       if (preloadedMessage) {
@@ -512,6 +520,7 @@ export const ChatProvider = ({ children }) => {
     
     if (messageQueueRef.current.length === 0) {
       setLoading(false);
+      setPollingEnabled(false); // Desactivar polling cuando se completa
       return;
     }
     
@@ -533,6 +542,9 @@ export const ChatProvider = ({ children }) => {
       
       // Si ya no estamos en la misma sesión, salir
       if (currentSession !== sessionIdRef.current) return;
+      
+      // Desactivar el polling una vez que tenemos la respuesta
+      setPollingEnabled(false);
       
       // Reproducir el primer mensaje inmediatamente
       if (firstAudio) {
@@ -571,6 +583,7 @@ export const ChatProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Error procesando mensajes:", error);
+      setPollingEnabled(false); // Desactivar polling incluso en caso de error
     } finally {
       // Limpiar y marcar que ya no hay mensajes pendientes
       if (currentSession === sessionIdRef.current) {
@@ -597,16 +610,29 @@ export const ChatProvider = ({ children }) => {
     // Resetear mensaje
     setMessage(null);
   };
-  
-  // Chat function
+  const resetPollingState = () => {
+    // Desactivar polling
+    setPollingEnabled(false);
+    
+    // Reiniciar el estado de procesamiento explícitamente 
+    setProcessingStatus(null);
+    
+    // Incrementar el ID de sesión para invalidar estados anteriores
+    setPollingSessionId(prev => prev + 1);
+  };
+
+  // Función principal de chat
   const chat = async (userMessage) => {
     if (!userMessage?.trim()) {
-      addNotification("Please enter a message", "warning");
+      addNotification("Por favor, introduce un mensaje", "warning");
       return;
     }
     
     // Detener cualquier audio activo
     stopAnyPlayingAudio();
+    
+    // IMPORTANTE: Reiniciar completamente el estado de polling
+    resetPollingState();
     
     // Cancelar cualquier temporizador de precarga
     if (preloadTimerRef.current) {
@@ -619,7 +645,14 @@ export const ChatProvider = ({ children }) => {
     setDisplayResponses([]);
     setMessage(null);
     setMessageFinished(false);
-    setFunctionResults(null); // Reset any previous function results
+    setFunctionResults(null);
+    
+    // Esperar un momento para que la limpieza se aplique completamente
+    // y luego establecer el estado inicial
+    setTimeout(() => {
+      // Solo establecer el estado si seguimos en la misma sesión
+      setProcessingStatus("pensando...");
+    }, 20);
     
     // Nueva sesión
     sessionIdRef.current = Date.now();
@@ -634,73 +667,69 @@ export const ChatProvider = ({ children }) => {
       // Actualizar historia
       setConversationHistory(prev => [...prev, { role: 'user', content: userMessage }]);
       
+      // Esperar un poco antes de activar el polling para que se vea "pensando..." unos segundos
+      setTimeout(() => {
+        // Activar polling con retraso específico para esta sesión
+        setPollingEnabled(true);
+      }, 1000);
+      
       // Obtener respuesta de la API
+      console.log("🔄 Enviando mensaje a la API y esperando respuesta...");
       const apiResponse = await apiRef.current.getResponse(userMessage);
+      
+      // Desactivar polling una vez que tenemos la respuesta
+      setPollingEnabled(false);
       
       // Desactivar estado de pensando
       setIsThinking(false);
       
+      // Limpiar el estado de procesamiento con un pequeño retraso
+      setTimeout(() => {
+        setProcessingStatus(null);
+      }, 100);
+      
       if (!apiResponse) {
+        console.log("⚠️ Respuesta cancelada o null");
         setLoading(false);
         return;
       }
       
-      // Check for function results
-      if (apiResponse.function_results) {
-        console.log("Function results received:", apiResponse.function_results);
-        // Acumular resultados en lugar de reemplazarlos
-        setFunctionResults(prev => {
-          const newResults = apiResponse.function_results;
-          
-          // Si no hay resultados previos, simplemente establecer los nuevos
-          if (!prev) return newResults;
-          
-          // Combinar resultados previos con nuevos
-          if (Array.isArray(prev)) {
-            // Si prev es array, añadir los nuevos (como array o como objeto individual)
-            return Array.isArray(newResults) 
-              ? [...prev, ...newResults] 
-              : [...prev, newResults];
-          } else {
-            // Si prev es un objeto individual, convertirlo a array y añadir los nuevos
-            return Array.isArray(newResults) 
-              ? [prev, ...newResults] 
-              : [prev, newResults];
-          }
-        });
-      }
+      console.log("✅ Respuesta recibida de la API");
       
-      // NUEVO: Verificar si hay warning de tokens y manejarlo silenciosamente
+      // Procesar advertencia de tokens si existe
       if (apiResponse.warning) {
-        console.log("⚠️ Advertencia de tokens detectada:", apiResponse.warning);
-        // Llamamos a handleTokenWarning sin afectar el flujo de la aplicación
-        // Utilizamos setTimeout para asegurar que esto ocurra de manera asíncrona
-        setTimeout(() => {
-          handleTokenWarning(1, 1); // Ajustar con los IDs correctos según tu aplicación
-        }, 100);
+        console.log("⚠️ Advertencia recibida de la API:", apiResponse.warning);
+        
+        if (apiResponse.warning === "token_limit") {
+          handleTokenWarning(1, 1);
+        }
       }
       
-      // Extraer los mensajes para procesamiento
-      const responses = apiResponse.messages || [];
+      // Procesar resultados de funciones si existen
+      if (apiResponse.function_results) {
+        console.log("🧩 Resultados de funciones recibidos:", apiResponse.function_results);
+        setFunctionResults(apiResponse.function_results);
+      }
       
-      if (responses.length === 0) {
+      // Guardar los mensajes en la cola
+      messageQueueRef.current = apiResponse.messages || [];
+      
+      // Si no hay mensajes, terminar
+      if (!messageQueueRef.current.length) {
+        console.log("⚠️ No hay mensajes para procesar");
         setLoading(false);
         return;
       }
       
-      console.log(`🔄 Recibidos ${responses.length} mensajes para procesar`);
-      
-      // Guardar en la cola
-      messageQueueRef.current = [...responses];
-      
-      // Iniciar procesamiento rápido
-      processMessagesQuickly();
+      // Procesar los mensajes
+      await processMessagesQuickly();
       
     } catch (error) {
       console.error('Chat error:', error);
       addNotification(`Error: ${error.message}`, 'error');
       setLoading(false);
-      setIsThinking(false); // Desactivar estado de pensando en caso de error
+      setIsThinking(false);
+      setPollingEnabled(false);
     }
   };
   
@@ -722,10 +751,25 @@ export const ChatProvider = ({ children }) => {
         pendingMessages,
         functionResults,
         setFunctionResults,
-        // For backwards compatibility
+        processingStatus,
+        pollingSessionId,
+        // Para compatibilidad
         messages: message ? [message] : []
       }}
     >
+      {/* Componente de polling mejorado y desacoplado */}
+      <PollingManager 
+        serverStatusUrl={`${BACKEND_URL}/api/v1/status/`}
+        onStatusUpdate={handleStatusUpdate}
+        enabled={pollingEnabled}
+        interval={POLLING_INTERVAL}
+        startDelay={POLLING_START_DELAY}
+        debug={true} // Activar logs para depuración
+        userId={1}
+        roleId={1}
+        sessionId={pollingSessionId}
+      />
+      
       {children}
     </ChatContext.Provider>
   );
@@ -734,7 +778,7 @@ export const ChatProvider = ({ children }) => {
 export const useChat = () => {
   const context = useContext(ChatContext);
   if (!context) {
-    throw new Error("useChat must be used within a ChatProvider");
+    throw new Error("useChat debe usarse dentro de un ChatProvider");
   }
   return context;
 };

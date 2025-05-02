@@ -96,7 +96,7 @@ const FunctionResultsDisplay = ({ functionResults }) => {
                 className={`flex-1 py-3 px-4 text-sm font-medium ${activeTab === 'display' ? 'text-blue-950 border-b-2 border-blue-950' : 'text-gray-500 hover:text-gray-700'}`}
                 onClick={() => setActiveTab('display')}
               >
-                Contenido HTML ({displayResults.length})
+                Bibliografía ({displayResults.length})
               </button>
             )}
             {pdfResults.length > 0 && (

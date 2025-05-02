@@ -4,29 +4,75 @@ import { Leva } from "leva";
 import { Experience } from "./components/Experience";
 import { SimpleUI } from "./components/SimpleUI";
 import SubtitlesContext from './components/subtitles';
-import React, { useState, useEffect } from 'react';
-import { ChatEventListener } from './hooks/useChat';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChatEventListener, useChat } from './hooks/useChat';
 import { UserProvider } from "./components/UserContext";
+import ElegantSubtitles from "./components/ElegantSubtitles";
 
 function App() {
   const [subtitles, setSubtitles] = useState('');
-
-  // Añadir efecto para prevenir scroll en el body
+  // Obtener pollingSessionId del contexto
+  const { loading, isThinking, processingStatus, pollingSessionId } = useChat();
+  
+  // Estado para controlar la visibilidad del indicador
+  const [showProcessingIndicator, setShowProcessingIndicator] = useState(false);
+  // Estado para el texto que se mostrará
+  const [displayText, setDisplayText] = useState('');
+  
+  // Seguimiento de la sesión actual para sincronización
+  const currentSessionRef = useRef(pollingSessionId);
+  
+  // Efecto para actualizar el texto mostrado basado en los cambios de processingStatus
   useEffect(() => {
-    // Guardar el overflow original
-    const originalOverflow = document.body.style.overflow;
+    // Actualizar nuestra referencia de la sesión actual
+    currentSessionRef.current = pollingSessionId;
     
-    // Prevenir scroll
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
+    // Función para verificar si estamos en un estado de carga
+    const isLoading = loading || isThinking;
     
-    // Restaurar al desmontar
+    if (!isLoading) {
+      // Si no estamos cargando, no mostrar nada
+      setDisplayText('');
+      return;
+    }
+    
+    // Si estamos cargando y hay un estado de procesamiento, mostrarlo
+    if (processingStatus) {
+      console.log(`📝 Actualizando texto a mostrar: "${processingStatus}"`);
+      setDisplayText(processingStatus);
+    } else {
+      // Si no hay estado específico, mostrar el genérico
+      setDisplayText('pensando...');
+    }
+  }, [processingStatus, loading, isThinking, pollingSessionId]);
+  
+  // Efecto para controlar la visibilidad del indicador
+  useEffect(() => {
+    let timer = null;
+    
+    if (loading || isThinking) {
+      // Mostrar inmediatamente si estamos cargando
+      setShowProcessingIndicator(true);
+    } else {
+      // Pequeño retraso para ocultar y evitar parpadeos
+      timer = setTimeout(() => {
+        setShowProcessingIndicator(false);
+      }, 300);
+    }
+    
     return () => {
-      document.body.style.overflow = originalOverflow;
-      document.documentElement.style.overflow = '';
+      if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [loading, isThinking]);
 
+  // Añadir logs para depuración
+  useEffect(() => {
+    console.log(
+      `🔍 Estado de UI: loading=${loading}, isThinking=${isThinking}, ` +
+      `sesión=${pollingSessionId}, texto="${displayText}", mostrar=${showProcessingIndicator}`
+    );
+  }, [loading, isThinking, pollingSessionId, displayText, showProcessingIndicator]);
+  
   return (
     <div className="overflow-hidden fixed inset-0 w-screen h-screen">
       <UserProvider>
@@ -34,6 +80,8 @@ function App() {
           <Leva hidden />
           <Loader />
           <SimpleUI hidden={false} />
+          
+          {/* Canvas para el mundo 3D */}
           <Canvas 
             shadows 
             camera={{ position: [0, 0, 1], fov: 30 }}
@@ -41,6 +89,13 @@ function App() {
           >
             <Experience />
           </Canvas>
+          
+          {/* Indicador de estado elegante */}
+          <ElegantSubtitles 
+            text={displayText}
+            isActive={showProcessingIndicator}
+          />
+          
           <ChatEventListener />
         </SubtitlesContext.Provider>
       </UserProvider>
