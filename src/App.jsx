@@ -42,7 +42,7 @@ function App() {
       setDisplayText(processingStatus);
     } else {
       // Si no hay estado específico, mostrar el genérico
-      setDisplayText('pensando...');
+      setDisplayText('Respondiendo');
     }
   }, [processingStatus, loading, isThinking, pollingSessionId]);
   

@@ -130,7 +130,7 @@ class OpenAIAPI {
           model: 'gpt-4o-mini-tts',
           input: text,
           voice: VOICE_TYPE,
-          instructions: "Habla pausado, claro y natural y con la mejor entonación posible, utiliza un acento colombiano costeño para que suene más natural. añade muletillas y transiciones, ignora lo que no sepas y jamas digas <undefined> ignora los signos que no conozcas",
+          instructions: "Habla claro y natural y con la mejor entonación posible, utiliza un acento colombiano costeño muy muy marcado y barranquillero, añade jerga costeña como <eche> o <nojoda> para que suene más natural, u tono alegre y relajado, aspiración de la <s> al final de sílabas, omisión de la <d> intervocálica, y entonación musical. Ignora los signos que no conozcas",
           speed: 1.0
         }),
         signal
@@ -651,7 +651,7 @@ export const ChatProvider = ({ children }) => {
     // y luego establecer el estado inicial
     setTimeout(() => {
       // Solo establecer el estado si seguimos en la misma sesión
-      setProcessingStatus("pensando...");
+      setProcessingStatus("Pensando");
     }, 20);
     
     // Nueva sesión
@@ -671,7 +671,7 @@ export const ChatProvider = ({ children }) => {
       setTimeout(() => {
         // Activar polling con retraso específico para esta sesión
         setPollingEnabled(true);
-      }, 1000);
+      }, 3000);
       
       // Obtener respuesta de la API
       console.log("🔄 Enviando mensaje a la API y esperando respuesta...");

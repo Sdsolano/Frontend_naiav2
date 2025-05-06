@@ -2,7 +2,7 @@ import { useAnimations, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { button, useControls } from "leva";
 import React, { useEffect, useRef, useState } from "react";
-
+import defaultLipsync from "../utils/defaultLipsync";
 import * as THREE from "three";
 import { useChat } from "../hooks/useChat";
 
@@ -211,12 +211,19 @@ export function Avatar(props) {
     
     // Pequeño retraso para asegurar que la animación y expresión se han aplicado
     setTimeout(() => {
-      audioElement.play().catch(err => {
-        console.error('Error playing audio:', err);
-        setAnimation("Idle");
-        setFacialExpression("default");
-        setIsPlaying(false);
-      });
+      audioElement.play()
+        .then(() => {
+          console.log("🔄 Avatar: Audio iniciado correctamente");
+          // Emitir evento para sincronizar subtítulos
+          const audioStartedEvent = new CustomEvent('avatar-audio-started');
+          window.dispatchEvent(audioStartedEvent);
+        })
+        .catch(err => {
+          console.error('Error playing audio:', err);
+          setAnimation("Idle");
+          setFacialExpression("default");
+          setIsPlaying(false);
+        });
     }, 100);
     
   }, [message,isThinking]);
@@ -263,6 +270,8 @@ export function Avatar(props) {
   });
   useEffect(() => {
     // Verificar que la animación existe
+    actions[animation].timeScale = 0.5;
+
     if (actions && animation && actions[animation]) {
       actions[animation]
         .reset()
@@ -310,6 +319,20 @@ export function Avatar(props) {
   const [winkRight, setWinkRight] = useState(false);
   const [facialExpression, setFacialExpression] = useState("");
 
+  const vowelIntensity = {
+    "A": 1.5,  // More open for "AA" sound
+    "C": 1.3,  // "I" sound
+    "D": 1.4,  // "AA" sound
+    "E": 1.3,  // "O" sound
+    "F": 1.3,  // "U" sound
+    // Default multipliers for consonants
+    "B": 0.9,  // "kk" sound
+    "G": 0.8,  // "FF" sound
+    "H": 0.7,  // "TH" sound
+    "X": 0.6   // Default closed mouth
+  };
+
+
   useFrame(() => {
     !setupMode &&
       Object.keys(nodes.EyeLeft.morphTargetDictionary).forEach((key) => {
@@ -327,34 +350,82 @@ export function Avatar(props) {
     lerpMorphTarget("eyeBlinkLeft", blink || winkLeft ? 1 : 0, 0.5);
     lerpMorphTarget("eyeBlinkRight", blink || winkRight ? 1 : 0, 0.5);
 
-    // LIPSYNC
-    if (setupMode) {
-      return;
-    }
 
-    const appliedMorphTargets = [];
-    if (isPlaying && message && lipsync && audio) {
-      const currentAudioTime = audio.currentTime;
+     // LIPSYNC
+  if (setupMode) {
+    return;
+  }
+
+  const appliedMorphTargets = [];
+  if (isPlaying && message && lipsync && audio) {
+    const currentAudioTime = audio.currentTime;
+    
+    // Check if we're still within the defined lipsync data range
+    const lastCue = lipsync.mouthCues[lipsync.mouthCues.length - 1];
+    const isWithinDataRange = currentAudioTime <= lastCue.end;
+    
+    if (isWithinDataRange) {
+      // Use defined lipsync data
       for (let i = 0; i < lipsync.mouthCues.length; i++) {
         const mouthCue = lipsync.mouthCues[i];
         if (
           currentAudioTime >= mouthCue.start &&
           currentAudioTime <= mouthCue.end
         ) {
-          appliedMorphTargets.push(corresponding[mouthCue.value]);
-          lerpMorphTarget(corresponding[mouthCue.value], 1, 0.2);
+          const visemeKey = mouthCue.value; // This is something like "A", "B", etc.
+          const morphTarget = corresponding[visemeKey];
+          
+          // Get intensity multiplier for this viseme (default to 1.0 if not defined)
+          const intensity = vowelIntensity[visemeKey] || 1.0;
+          
+          // Apply with enhanced intensity for vowels (especially "A")
+          appliedMorphTargets.push(morphTarget);
+          
+          // Use higher intensity and faster transition for more dramatic mouth movements
+          lerpMorphTarget(morphTarget, intensity, 0.25);
           break;
         }
       }
-    }
-
-    Object.values(corresponding).forEach((value) => {
-      if (appliedMorphTargets.includes(value)) {
-        return;
+    } else {
+      // Beyond predefined data - implement procedural mouth animation with enhanced vowels
+      
+      // Create a deterministic but varied pattern based on time
+      const cycleDuration = 0.8; // seconds per cycle
+      const cyclePosition = (currentAudioTime % cycleDuration) / cycleDuration;
+      
+      // Enhanced procedural animation with stronger vowel shapes
+      if (cyclePosition < 0.2) {
+        // Nearly closed
+        lerpMorphTarget(corresponding["X"], 0.3, 0.2);
+        appliedMorphTargets.push(corresponding["X"]);
+      } else if (cyclePosition < 0.3) {
+        // Opening
+        lerpMorphTarget(corresponding["F"], 0.8, 0.3); // Enhanced
+        appliedMorphTargets.push(corresponding["F"]);
+      } else if (cyclePosition < 0.5) {
+        // Wide open for "A" vowel - significantly increased
+        lerpMorphTarget(corresponding["A"], 1.5, 0.3); // Very enhanced
+        appliedMorphTargets.push(corresponding["A"]);
+      } else if (cyclePosition < 0.7) {
+        // Different vowel shape - enhanced
+        lerpMorphTarget(corresponding["C"], 1.2, 0.3); // Enhanced
+        appliedMorphTargets.push(corresponding["C"]);
+      } else {
+        // Transitioning back to neutral but still expressive
+        lerpMorphTarget(corresponding["D"], 0.9, 0.3);
+        appliedMorphTargets.push(corresponding["D"]);
       }
-      lerpMorphTarget(value, 0, 0.1);
+    }
+  }
+    
+      // Reset any morph targets not currently being used
+      Object.values(corresponding).forEach((value) => {
+        if (appliedMorphTargets.includes(value)) {
+          return;
+        }
+        lerpMorphTarget(value, 0, 0.1);
+      });
     });
-  });
 
   useControls("FacialExpressions", {
     chat: button(() => chat()),

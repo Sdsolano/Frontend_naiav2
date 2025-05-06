@@ -29,6 +29,9 @@ export const SimpleUI = ({ hidden, ...props }) => {
   const [messageEnded, setMessageEnded] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const [showDebugVideo, setShowDebugVideo] = useState(false); // Para depuración
+  
+  // Estado para mostrar los subtítulos actuales
+  const [currentSubtitle, setCurrentSubtitle] = useState("");
 
   // Hook para manejar imágenes del usuario
   const { 
@@ -38,15 +41,13 @@ export const SimpleUI = ({ hidden, ...props }) => {
     captureInitialImage,
     isReady: isCameraReady,
     getLastCaptureTime,
-    debugInfo,
-    uploadDummyImage,
-    stopCamera,
-    isCameraActuallyWorking
+    debugInfo
   } = useUserImage();
   
   // Determinar si el avatar está respondiendo
   const isAvatarResponding = loading || !!message;
   
+  // Inicializar la cámara cuando carga el componente
   useEffect(() => {
     if (!hidden) {
       // Inicializar cámara
@@ -55,29 +56,30 @@ export const SimpleUI = ({ hidden, ...props }) => {
         const success = await initCamera();
         console.log(`🎥 Inicialización de cámara: ${success ? 'exitosa' : 'fallida'}`);
         
-        // Si la cámara se inicializó correctamente
+        // Asignar el elemento de video
         if (success && hiddenVideoRef.current) {
           console.log('🎥 Asignando elemento de video al hook');
           setVideoElement(hiddenVideoRef.current);
           
-          // Realizar la captura inicial después de un tiempo
+          // Esperar un tiempo para permitir que la cámara se inicialice completamente
           setTimeout(() => {
+            // Realizar la captura inicial UNA SOLA VEZ
             console.log('🎥 Intentando captura inicial después de espera');
             captureInitialImage();
           }, 3000);
-        } else {
-          setTimeout(() => {
-            captureInitialImage();
-          }, 1000);
         }
       };
       
       setupCamera();
     }
   }, [hidden, initCamera, setVideoElement, captureInitialImage]);
+  
   // Efecto para capturar imagen SOLO al finalizar reproducción de audio
   useEffect(() => {
     const handleAudioEnded = () => {
+      // Limpiar el subtítulo actual cuando termina el audio
+      setCurrentSubtitle("");
+      
       if (isCameraReady) {
         console.log("🔄 Audio finalizado, capturando imagen de reacción...");
         captureAndUpload()
@@ -94,6 +96,18 @@ export const SimpleUI = ({ hidden, ...props }) => {
       window.removeEventListener('avatar-audio-ended', handleAudioEnded);
     };
   }, [isCameraReady, captureAndUpload]);
+
+  // Efecto para actualizar los subtítulos cuando cambia el mensaje
+  useEffect(() => {
+    if (message && message.text) {
+      // Establecer el texto del mensaje actual como subtítulo
+      setCurrentSubtitle(message.text);
+      console.log("📝 Subtítulo actualizado:", message.text);
+    } else {
+      // Limpiar subtítulo si no hay mensaje
+      setCurrentSubtitle("");
+    }
+  }, [message]);
   
   // Función para manejar la entrada del usuario y capturar imagen anticipadamente
   const handleInputChange = (e) => {
@@ -387,14 +401,6 @@ export const SimpleUI = ({ hidden, ...props }) => {
             </div>
           )}
           
-          {/* Botón para mostrar/ocultar el video de depuración */}
-         <button 
-            onClick={toggleDebugVideo} 
-            className="ml-3 p-2 rounded-md bg-gray-200 text-gray-700 pointer-events-auto"
-          >
-            <Camera size={16} />
-          </button> 
-          
           {/* Información de depuración sobre la cámara */}
           {showDebugVideo && debugInfo && (
             <div className="ml-3 text-xs text-gray-700">
@@ -403,82 +409,82 @@ export const SimpleUI = ({ hidden, ...props }) => {
           )}
         </div>
 
-        {/* Response area */}
-        {displayResponses && displayResponses.length > 0 && (
-          <div className="w-full max-w-2xl mx-auto my-4 pointer-events-auto">
-            <div className="backdrop-blur-md bg-white bg-opacity-70 p-4 rounded-lg shadow-lg">
-              {displayResponses.map((text, index) => (
-                <p key={index} className="mb-2">{text}</p>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Function Results Display */}
         <FunctionResultsDisplay functionResults={functionResults} />
 
-        {/* Input area */}
-        <div className="flex items-center gap-2 pointer-events-auto max-w-screen-sm w-full mx-auto">
-          <textarea
-            className="w-full h-12 placeholder:text-gray-500 p-3 rounded-md bg-opacity-80 bg-white backdrop-blur-md resize-none"
-            placeholder="Escribe un mensaje..."
-            ref={input}
-            onKeyDown={handleKeyDown}
-            onChange={handleInputChange}
-            disabled={isAvatarResponding || inputDisabled}
-            rows={1}
-          />
-          
-          {/* Botón de modo continuo */}
-          <button
-            onClick={toggleContinuousMode}
-            className={`p-3 rounded-md flex-shrink-0 ${
-              continuousMode 
-                ? "bg-green-900 hover:bg-green-950 text-white" 
-                : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-            }`}
-            title={continuousMode ? "Desactivar modo continuo" : "Activar modo continuo"}
-          >
-            <RefreshCw className={`w-5 h-5 ${continuousMode ? "animate-spin" : ""}`} />
-          </button>
-          
-          {/* Botón de micrófono */}
-          <button
-            onClick={toggleListening}
-            className={`p-3 rounded-md flex-shrink-0 ${
-              isListening 
-                ? "bg-red-900 hover:bg-red-950 text-white" 
-                : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-            } ${(isAvatarResponding || inputDisabled) ? "cursor-not-allowed opacity-75" : ""}`}
-            disabled={isAvatarResponding || inputDisabled}
-            title={isListening ? "Detener y enviar" : "Iniciar reconocimiento"}
-          >
-            {isListening ? 
-              <MicOff className="w-5 h-5" /> : 
-              <Mic className="w-5 h-5" />
-            }
-          </button>
-          
-          {/* Botón de enviar */}
-          <button
-            disabled={isAvatarResponding || inputDisabled}
-            onClick={() => sendMessage()}
-            className={`bg-blue-950 hover:bg-blue-900 text-white p-3 rounded-md flex-shrink-0 ${
-              (isAvatarResponding || inputDisabled) ? "cursor-not-allowed opacity-50" : ""
-            }`}
-            title="Enviar mensaje"
-          >
-            {loading ? <Loader className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-          </button>
-          
-          {/* Botón de zoom */}
-          <button
-            onClick={() => setCameraZoomed(!cameraZoomed)}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-700 p-3 rounded-md flex-shrink-0"
-            title={cameraZoomed ? "Alejar" : "Acercar"}
-          >
-            {cameraZoomed ? "Alejar" : "Acercar"}
-          </button>
+        <div className="flex flex-col">
+          {/* Subtitles area - Positioned higher to leave space for ElegantSubtitles */}
+          {currentSubtitle && (
+            <div className="w-full max-w-2xl mx-auto pointer-events-auto mb-12">
+              <div className="backdrop-blur-md bg-white bg-opacity-70 p-4 rounded-lg shadow-lg">
+                <p className="mb-0">{currentSubtitle}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Input area */}
+          <div className="flex items-center gap-2 pointer-events-auto max-w-screen-sm w-full mx-auto">
+            <textarea
+              className="w-full h-12 placeholder:text-gray-500 p-3 rounded-md bg-opacity-80 bg-white backdrop-blur-md resize-none"
+              placeholder="Escribe un mensaje..."
+              ref={input}
+              onKeyDown={handleKeyDown}
+              onChange={handleInputChange}
+              disabled={isAvatarResponding || inputDisabled}
+              rows={1}
+            />
+            
+            {/* Botón de modo continuo */}
+            <button
+              onClick={toggleContinuousMode}
+              className={`p-3 rounded-md flex-shrink-0 ${
+                continuousMode 
+                  ? "bg-green-900 hover:bg-green-950 text-white" 
+                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+              }`}
+              title={continuousMode ? "Desactivar modo continuo" : "Activar modo continuo"}
+            >
+              <RefreshCw className={`w-5 h-5 ${continuousMode ? "animate-spin" : ""}`} />
+            </button>
+            
+            {/* Botón de micrófono */}
+            <button
+              onClick={toggleListening}
+              className={`p-3 rounded-md flex-shrink-0 ${
+                isListening 
+                  ? "bg-red-900 hover:bg-red-950 text-white" 
+                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+              } ${(isAvatarResponding || inputDisabled) ? "cursor-not-allowed opacity-75" : ""}`}
+              disabled={isAvatarResponding || inputDisabled}
+              title={isListening ? "Detener y enviar" : "Iniciar reconocimiento"}
+            >
+              {isListening ? 
+                <MicOff className="w-5 h-5" /> : 
+                <Mic className="w-5 h-5" />
+              }
+            </button>
+            
+            {/* Botón de enviar */}
+            <button
+              disabled={isAvatarResponding || inputDisabled}
+              onClick={() => sendMessage()}
+              className={`bg-blue-950 hover:bg-blue-900 text-white p-3 rounded-md flex-shrink-0 ${
+                (isAvatarResponding || inputDisabled) ? "cursor-not-allowed opacity-50" : ""
+              }`}
+              title="Enviar mensaje"
+            >
+              {loading ? <Loader className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+            </button>
+            
+            {/* Botón de zoom */}
+            <button
+              onClick={() => setCameraZoomed(!cameraZoomed)}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 p-3 rounded-md flex-shrink-0"
+              title={cameraZoomed ? "Alejar" : "Acercar"}
+            >
+              {cameraZoomed ? "Alejar" : "Acercar"}
+            </button>
+          </div>
         </div>
       </div>
     </>
