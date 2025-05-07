@@ -26,7 +26,8 @@ function App() {
     delayBeforeShow: 7000,        // Mostrar después de 7 segundos
     showTimerActive: false,       // Si hay un temporizador activo
     showTimerId: null,            // ID del temporizador
-    lastStatus: null              // Último estado procesado
+    lastStatus: null,             // Último estado procesado
+    latestStatus: ""              // Estado más reciente recibido durante el período de retraso
   });
   
   // Efecto para rastrear cambios en el polling habilitado/deshabilitado
@@ -47,9 +48,10 @@ function App() {
     if (pollingEnabled && !pollingInfoRef.current.showTimerActive) {
       console.log(`💡 Polling activado en tiempo: ${Date.now()}`);
       
-      // Registrar tiempo de inicio
+      // Registrar tiempo de inicio y resetear estado más reciente
       pollingInfoRef.current.sessionStartTime = Date.now();
       pollingInfoRef.current.showTimerActive = true;
+      pollingInfoRef.current.latestStatus = "";
       
       // Ocultar durante el período inicial
       setShowSubtitles(false);
@@ -59,14 +61,15 @@ function App() {
         console.log(`⏱️ Retraso de ${pollingInfoRef.current.delayBeforeShow}ms completado, ahora se mostrarán los estados`);
         pollingInfoRef.current.showTimerActive = false;
         
-        // Solo mostrar si tenemos un processingStatus válido en este punto
-        if (processingStatus) {
+        // Mostrar el estado MÁS RECIENTE que hayamos recibido durante el período de retraso
+        if (pollingInfoRef.current.latestStatus) {
+          console.log(`✅ Mostrando el estado más reciente: "${pollingInfoRef.current.latestStatus}"`);
+          setCurrentText(pollingInfoRef.current.latestStatus);
           setShowSubtitles(true);
-          setCurrentText(processingStatus);
         }
       }, pollingInfoRef.current.delayBeforeShow);
     }
-  }, [pollingEnabled, processingStatus]);
+  }, [pollingEnabled]);
   
   // Efecto para rastrear cambios en la sesión de polling
   useEffect(() => {
@@ -84,9 +87,10 @@ function App() {
       setShowSubtitles(false);
       setCurrentText("");
       
-      // Actualizar ID de sesión
+      // Actualizar ID de sesión y resetear estado más reciente
       pollingInfoRef.current.sessionId = pollingSessionId;
       pollingInfoRef.current.showTimerActive = false;
+      pollingInfoRef.current.latestStatus = "";
     }
   }, [pollingSessionId]);
   
@@ -103,17 +107,20 @@ function App() {
     // Calcular tiempo desde inicio de sesión
     const timeSinceSessionStart = Date.now() - pollingInfoRef.current.sessionStartTime;
     
-    // Actualizar texto si es diferente
+    // Actualizar último estado procesado y el estado más reciente
     if (processingStatus !== pollingInfoRef.current.lastStatus) {
       pollingInfoRef.current.lastStatus = processingStatus;
-      setCurrentText(processingStatus);
+      
+      // Siempre actualizar el estado más reciente, incluso durante el período de retraso
+      pollingInfoRef.current.latestStatus = processingStatus;
       
       // Solo mostrar si ha pasado el tiempo de retraso
       if (timeSinceSessionStart >= pollingInfoRef.current.delayBeforeShow) {
-        console.log(`✅ Mostrando estado: "${processingStatus}"`);
+        console.log(`✅ Mostrando estado inmediatamente: "${processingStatus}"`);
+        setCurrentText(processingStatus);
         setShowSubtitles(true);
       } else {
-        console.log(`⏳ Estado recibido pero aún en período de retraso: "${processingStatus}"`);
+        console.log(`⏳ Estado recibido durante período de retraso (guardado como más reciente): "${processingStatus}"`);
       }
     }
   }, [processingStatus, pollingEnabled]);
@@ -125,6 +132,7 @@ function App() {
         `🔍 Estado de UI: pollingEnabled=${pollingEnabled}, ` +
         `processingStatus=${processingStatus || 'null'}, ` +
         `mostrar=${showSubtitles}, texto="${currentText}", ` +
+        `latestStatus="${pollingInfoRef.current.latestStatus}", ` +
         `tiempoDesdeInicio=${Date.now() - pollingInfoRef.current.sessionStartTime}ms`
       );
     }
@@ -147,7 +155,7 @@ function App() {
             <Experience />
           </Canvas>
           
-          {/* Subtítulos con retraso fijo */}
+          {/* Subtítulos con retraso fijo y usando estado más reciente */}
           <ElegantSubtitles 
             text={currentText || 'Procesando'} 
             isActive={showSubtitles && pollingEnabled}

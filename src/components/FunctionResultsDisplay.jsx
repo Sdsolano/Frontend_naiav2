@@ -1,14 +1,19 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Download, FileText, ChevronLeft, ChevronRight, X, BarChart2, Search } from 'lucide-react';
 import { useNotification } from '../components/NotificationContext';
 
 // Component to render graph HTML content in an iframe with universal compatibility
-const GraphRenderer = ({ htmlContent }) => {
+const GraphRenderer = forwardRef(({ htmlContent }, ref) => {
   const iframeRef = useRef(null);
   const contentRef = useRef("");
   
   // Generate a unique key for the iframe whenever content changes
   const [iframeKey, setIframeKey] = useState(1);
+  
+  // Expose ref methods to parent component
+  useImperativeHandle(ref, () => ({
+    getIframeRef: () => iframeRef
+  }));
   
   useEffect(() => {
     if (!htmlContent) return;
@@ -63,7 +68,6 @@ const GraphRenderer = ({ htmlContent }) => {
     }
     
     // Add universal responsive styles AND fix download functionality
-    // We'll modify any download button to use postMessage instead of direct download
     cleanHtml = cleanHtml.replace('<head>', 
       `<head>
       <style id="graph-renderer-universal-fix">
@@ -121,88 +125,7 @@ const GraphRenderer = ({ htmlContent }) => {
           margin-top: 5px !important;
           margin-bottom: 10px !important;
         }
-      </style>
-      <script>
-        // Fix for download functionality - override the button click handler
-        window.addEventListener('DOMContentLoaded', () => {
-          // Find download button(s) - common patterns
-          const downloadButtons = [
-            ...document.querySelectorAll('#downloadButton, .download-button, button[id*="download"], button[class*="download"]'),
-            ...document.querySelectorAll('button:not([id]):not([class])') // Fallback for unnamed buttons
-          ];
-          
-          downloadButtons.forEach(button => {
-            // Replace any existing click listeners with our postMessage implementation
-            button.addEventListener('click', (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              
-              // Get the chart element - try several common patterns
-              const chartElement = 
-                document.getElementById('chartContainer') || 
-                document.getElementById('chart-container') || 
-                document.querySelector('div[id*="chart"]') ||
-                document.querySelector('canvas').parentElement;
-              
-              if (!chartElement) {
-                console.error('Chart container not found');
-                return;
-              }
-              
-              // Show processing state on button
-              const originalText = button.textContent;
-              button.disabled = true;
-              button.textContent = "Processing...";
-              button.style.opacity = "0.7";
-              
-              // Use html2canvas to capture the chart
-              if (window.html2canvas) {
-                html2canvas(chartElement, {
-                  backgroundColor: '#fff',
-                  scale: 2, // for higher resolution
-                  logging: false,
-                  allowTaint: true,
-                  useCORS: true
-                }).then(canvas => {
-                  try {
-                    // Get image data URL
-                    const dataUrl = canvas.toDataURL('image/png');
-                    
-                    // Send to parent window for download
-                    window.parent.postMessage({
-                      type: 'download-image',
-                      dataUrl: dataUrl,
-                      filename: 'chart-' + new Date().getTime() + '.png'
-                    }, '*');
-                    
-                    // Restore button state
-                    setTimeout(() => {
-                      button.disabled = false;
-                      button.textContent = originalText;
-                      button.style.opacity = "1";
-                    }, 500);
-                  } catch (error) {
-                    console.error('Error creating data URL:', error);
-                    button.disabled = false;
-                    button.textContent = originalText;
-                    button.style.opacity = "1";
-                  }
-                }).catch(error => {
-                  console.error('Error capturing chart:', error);
-                  button.disabled = false;
-                  button.textContent = originalText;
-                  button.style.opacity = "1";
-                });
-              } else {
-                console.error('html2canvas not available');
-                button.disabled = false;
-                button.textContent = originalText;
-                button.style.opacity = "1";
-              }
-            }, true); // Use capture phase to ensure our handler runs first
-          });
-        });
-      </script>`);
+      </style>`);
     
     try {
       // Use srcdoc to set the content directly
@@ -230,6 +153,69 @@ const GraphRenderer = ({ htmlContent }) => {
       />
     </div>
   );
+});
+
+// Función para capturar un iframe como imagen
+const captureIframeAsImage = async (iframeRef, filename = 'chart.png') => {
+  try {
+    // Importar html2canvas dinámicamente
+    const html2canvasModule = await import('html2canvas');
+    const html2canvas = html2canvasModule.default;
+    
+    if (!iframeRef || !iframeRef.current) {
+      throw new Error('No se pudo acceder al iframe');
+    }
+    
+    // Acceder al documento dentro del iframe
+    const iframeDocument = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
+    const container = iframeDocument.body;
+    
+    // Si no hay contenido, salir
+    if (!container) {
+      throw new Error('No se pudo acceder al contenido del iframe');
+    }
+    
+    // Mostrar retroalimentación visual durante la captura
+    const captureOverlay = document.createElement('div');
+    captureOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.7);display:flex;justify-content:center;align-items:center;z-index:9999;';
+    captureOverlay.innerHTML = '<div style="background:white;padding:20px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.2);font-family:sans-serif;">Capturando gráfica...</div>';
+    document.body.appendChild(captureOverlay);
+    
+    // Configurar opciones de captura
+    const options = {
+      backgroundColor: '#FFFFFF',
+      scale: 2, // Mayor resolución
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      windowWidth: container.scrollWidth,
+      windowHeight: container.scrollHeight
+    };
+    
+    // Capturar el contenido
+    const canvas = await html2canvas(container, options);
+    
+    // Convertir a DataURL
+    const dataUrl = canvas.toDataURL('image/png');
+    
+    // Crear un enlace de descarga
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename || 'chart.png';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Quitar el overlay
+    document.body.removeChild(captureOverlay);
+    
+    return true;
+  } catch (error) {
+    console.error('Error al capturar imagen:', error);
+    alert('Hubo un problema al capturar la gráfica. Por favor intente nuevamente.');
+    return false;
+  }
 };
 
 const FunctionResultsDisplay = ({ functionResults }) => {
@@ -238,13 +224,14 @@ const FunctionResultsDisplay = ({ functionResults }) => {
   const [displayResults, setDisplayResults] = useState([]);
   const [pdfResults, setPdfResults] = useState([]);
   const [graphResults, setGraphResults] = useState([]);
-  const [searchResults, setSearchResults] = useState([]); // Nuevo estado para resultados de búsqueda
+  const [searchResults, setSearchResults] = useState([]);
   const [activeGraphModal, setActiveGraphModal] = useState(null);
   
   // Use refs to track state without triggering re-renders
   const processedResultsRef = useRef(new Set());
   const resultsRef = useRef(null);
   const modalRef = useRef(null);
+  const graphRendererRef = useRef(null);
   const lastFunctionResultsRef = useRef(null);
   
   const { addNotification } = useNotification();
@@ -266,7 +253,7 @@ const FunctionResultsDisplay = ({ functionResults }) => {
     let newDisplayResults = [];
     let newPdfResults = [];
     let newGraphResults = [];
-    let newSearchResults = []; // Nuevo array para resultados de búsqueda
+    let newSearchResults = [];
     let firstNewGraph = null;
     
     resultsArray.forEach((result, index) => {
@@ -319,7 +306,7 @@ const FunctionResultsDisplay = ({ functionResults }) => {
         }
       }
       
-      // Process search results - NUEVO
+      // Process search results
       if (result.search_results) {
         newSearchResults.push({
           id: resultId,
@@ -359,7 +346,7 @@ const FunctionResultsDisplay = ({ functionResults }) => {
       }
     }
     
-    // Manejar resultados de búsqueda - NUEVO
+    // Manejar resultados de búsqueda
     if (newSearchResults.length > 0) {
       setSearchResults(prev => [...prev, ...newSearchResults]);
       if (displayResults.length === 0 && pdfResults.length === 0 && graphResults.length === 0 &&
@@ -412,6 +399,36 @@ const FunctionResultsDisplay = ({ functionResults }) => {
   const hasAnyResults = displayResults.length > 0 || pdfResults.length > 0 || graphResults.length > 0 || searchResults.length > 0;
   if (!hasAnyResults) return null;
 
+  // Función para descargar la gráfica activa
+  const downloadActiveGraph = () => {
+    if (!activeGraphModal) return;
+    
+    // Generar un nombre de archivo único basado en el título y timestamp
+    const timestamp = new Date().toISOString().replace(/[:.-]/g, '_');
+    const filename = `${activeGraphModal.title.replace(/\s+/g, '_')}_${timestamp}.png`;
+    
+    // Verificar que tenemos acceso al iframe
+    if (graphRendererRef.current && graphRendererRef.current.getIframeRef) {
+      const iframeRef = graphRendererRef.current.getIframeRef();
+      
+      // Capturar el iframe como imagen
+      captureIframeAsImage(iframeRef, filename)
+        .then(success => {
+          if (success) {
+            addNotification('Gráfica descargada correctamente', 'success');
+          } else {
+            addNotification('No se pudo descargar la gráfica', 'error');
+          }
+        })
+        .catch(err => {
+          console.error('Error al descargar la gráfica:', err);
+          addNotification('Error al descargar la gráfica', 'error');
+        });
+    } else {
+      addNotification('No se pudo acceder a la gráfica para descargar', 'error');
+    }
+  };
+
   return (
     <>
       {/* Floating graph modal without affecting the background */}
@@ -428,16 +445,33 @@ const FunctionResultsDisplay = ({ functionResults }) => {
           >
             <div className="flex justify-between items-center p-4 border-b border-sky-100 bg-white/90">
               <h3 className="font-bold text-lg text-gray-800">{activeGraphModal.title}</h3>
-              <button 
-                onClick={() => setActiveGraphModal(null)}
-                className="p-1 rounded-full hover:bg-gray-200 transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation(); // Evitar que el clic cierre el modal
+                    downloadActiveGraph();
+                  }}
+                  className="p-2 rounded-md bg-blue-950 text-white hover:bg-blue-900 transition-colors flex items-center"
+                  aria-label="Descargar gráfica"
+                  title="Descargar gráfica como PNG"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="ml-1 text-sm font-medium">Descargar</span>
+                </button>
+                <button 
+                  onClick={() => setActiveGraphModal(null)}
+                  className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
             </div>
             
             <div className="p-4 h-[calc(100%-65px)]">
-              <GraphRenderer htmlContent={activeGraphModal.content} />
+              <GraphRenderer 
+                ref={graphRendererRef}
+                htmlContent={activeGraphModal.content} 
+              />
             </div>
           </div>
         </div>
@@ -515,7 +549,7 @@ const FunctionResultsDisplay = ({ functionResults }) => {
                 </div>
               )}
               
-              {/* Search results tab - NUEVO */}
+              {/* Search results tab */}
               {activeTab === 'search' && (
                 <div className="space-y-4">
                   {searchResults.map((result) => (
@@ -664,20 +698,33 @@ const FunctionResultsDisplay = ({ functionResults }) => {
                   {graphResults.map((graph) => (
                     <div 
                       key={graph.id} 
-                      className="flex flex-col p-4 bg-white bg-opacity-70 rounded-lg shadow mb-4 hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => setActiveGraphModal(graph)}
+                      className="flex flex-col p-4 bg-white bg-opacity-70 rounded-lg shadow mb-4 hover:shadow-md transition-shadow"
                     >
                       <div className="w-full flex justify-between items-center mb-2">
                         <p className="text-xs text-gray-500">{graph.timestamp}</p>
                       </div>
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mr-3">
-                          <BarChart2 className="h-6 w-6 text-blue-950" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center cursor-pointer" onClick={() => setActiveGraphModal(graph)}>
+                          <div className="flex-shrink-0 w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mr-3">
+                            <BarChart2 className="h-6 w-6 text-blue-950" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-800">{graph.title || 'Gráfica'}</h3>
+                            <p className="text-sm text-gray-600">Haz clic para visualizar</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium text-gray-800">{graph.title || 'Gráfica'}</h3>
-                          <p className="text-sm text-gray-600">Haz clic para visualizar</p>
-                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveGraphModal(graph);
+                            // Usar setTimeout para asegurar que el modal esté listo
+                            setTimeout(() => downloadActiveGraph(), 300);
+                          }}
+                          className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center"
+                          title="Descargar gráfica"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   ))}
