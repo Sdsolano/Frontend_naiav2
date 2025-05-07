@@ -11,67 +11,124 @@ import ElegantSubtitles from "./components/ElegantSubtitles";
 
 function App() {
   const [subtitles, setSubtitles] = useState('');
-  // Obtener pollingSessionId del contexto
-  const { loading, isThinking, processingStatus, pollingSessionId } = useChat();
   
-  // Estado para controlar la visibilidad del indicador
-  const [showProcessingIndicator, setShowProcessingIndicator] = useState(false);
-  // Estado para el texto que se mostrará
-  const [displayText, setDisplayText] = useState('');
+  // Obtener estados del contexto
+  const { processingStatus, pollingEnabled, pollingSessionId } = useChat();
   
-  // Seguimiento de la sesión actual para sincronización
-  const currentSessionRef = useRef(pollingSessionId);
+  // Estado para controlar la visibilidad y texto
+  const [showSubtitles, setShowSubtitles] = useState(false);
+  const [currentText, setCurrentText] = useState("");
   
-  // Efecto para actualizar el texto mostrado basado en los cambios de processingStatus
+  // Referencia para rastrear información de polling
+  const pollingInfoRef = useRef({
+    sessionId: null,              // ID de la sesión actual
+    sessionStartTime: 0,          // Timestamp de inicio de la sesión
+    delayBeforeShow: 7000,        // Mostrar después de 7 segundos
+    showTimerActive: false,       // Si hay un temporizador activo
+    showTimerId: null,            // ID del temporizador
+    lastStatus: null              // Último estado procesado
+  });
+  
+  // Efecto para rastrear cambios en el polling habilitado/deshabilitado
   useEffect(() => {
-    // Actualizar nuestra referencia de la sesión actual
-    currentSessionRef.current = pollingSessionId;
-    
-    // Función para verificar si estamos en un estado de carga
-    const isLoading = loading || isThinking;
-    
-    if (!isLoading) {
-      // Si no estamos cargando, no mostrar nada
-      setDisplayText('');
+    // Si el polling se desactiva, cancelar cualquier temporizador y ocultar
+    if (!pollingEnabled) {
+      if (pollingInfoRef.current.showTimerId) {
+        clearTimeout(pollingInfoRef.current.showTimerId);
+        pollingInfoRef.current.showTimerId = null;
+        pollingInfoRef.current.showTimerActive = false;
+      }
+      setShowSubtitles(false);
+      setCurrentText("");
       return;
     }
     
-    // Si estamos cargando y hay un estado de procesamiento, mostrarlo
-    if (processingStatus) {
-      console.log(`📝 Actualizando texto a mostrar: "${processingStatus}"`);
-      setDisplayText(processingStatus);
-    } else {
-      // Si no hay estado específico, mostrar el genérico
-      setDisplayText('Respondiendo');
+    // Si el polling se activa, registrar tiempo e iniciar temporizador
+    if (pollingEnabled && !pollingInfoRef.current.showTimerActive) {
+      console.log(`💡 Polling activado en tiempo: ${Date.now()}`);
+      
+      // Registrar tiempo de inicio
+      pollingInfoRef.current.sessionStartTime = Date.now();
+      pollingInfoRef.current.showTimerActive = true;
+      
+      // Ocultar durante el período inicial
+      setShowSubtitles(false);
+      
+      // Programar para mostrar después del retraso
+      pollingInfoRef.current.showTimerId = setTimeout(() => {
+        console.log(`⏱️ Retraso de ${pollingInfoRef.current.delayBeforeShow}ms completado, ahora se mostrarán los estados`);
+        pollingInfoRef.current.showTimerActive = false;
+        
+        // Solo mostrar si tenemos un processingStatus válido en este punto
+        if (processingStatus) {
+          setShowSubtitles(true);
+          setCurrentText(processingStatus);
+        }
+      }, pollingInfoRef.current.delayBeforeShow);
     }
-  }, [processingStatus, loading, isThinking, pollingSessionId]);
+  }, [pollingEnabled, processingStatus]);
   
-  // Efecto para controlar la visibilidad del indicador
+  // Efecto para rastrear cambios en la sesión de polling
   useEffect(() => {
-    let timer = null;
-    
-    if (loading || isThinking) {
-      // Mostrar inmediatamente si estamos cargando
-      setShowProcessingIndicator(true);
-    } else {
-      // Pequeño retraso para ocultar y evitar parpadeos
-      timer = setTimeout(() => {
-        setShowProcessingIndicator(false);
-      }, 300);
+    // Si cambió la sesión, resetear todo
+    if (pollingSessionId !== pollingInfoRef.current.sessionId) {
+      console.log(`💡 Nueva sesión de polling detectada: ${pollingSessionId}`);
+      
+      // Cancelar cualquier temporizador existente
+      if (pollingInfoRef.current.showTimerId) {
+        clearTimeout(pollingInfoRef.current.showTimerId);
+        pollingInfoRef.current.showTimerId = null;
+      }
+      
+      // Ocultar subtítulos y resetear estado
+      setShowSubtitles(false);
+      setCurrentText("");
+      
+      // Actualizar ID de sesión
+      pollingInfoRef.current.sessionId = pollingSessionId;
+      pollingInfoRef.current.showTimerActive = false;
+    }
+  }, [pollingSessionId]);
+  
+  // Efecto para manejar cambios en processingStatus
+  useEffect(() => {
+    // Si no hay polling activo o no hay estado, no hacer nada
+    if (!pollingEnabled || processingStatus === null) {
+      if (processingStatus === null) {
+        setShowSubtitles(false);
+      }
+      return;
     }
     
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [loading, isThinking]);
-
-  // Añadir logs para depuración
+    // Calcular tiempo desde inicio de sesión
+    const timeSinceSessionStart = Date.now() - pollingInfoRef.current.sessionStartTime;
+    
+    // Actualizar texto si es diferente
+    if (processingStatus !== pollingInfoRef.current.lastStatus) {
+      pollingInfoRef.current.lastStatus = processingStatus;
+      setCurrentText(processingStatus);
+      
+      // Solo mostrar si ha pasado el tiempo de retraso
+      if (timeSinceSessionStart >= pollingInfoRef.current.delayBeforeShow) {
+        console.log(`✅ Mostrando estado: "${processingStatus}"`);
+        setShowSubtitles(true);
+      } else {
+        console.log(`⏳ Estado recibido pero aún en período de retraso: "${processingStatus}"`);
+      }
+    }
+  }, [processingStatus, pollingEnabled]);
+  
+  // Log para depuración
   useEffect(() => {
-    console.log(
-      `🔍 Estado de UI: loading=${loading}, isThinking=${isThinking}, ` +
-      `sesión=${pollingSessionId}, texto="${displayText}", mostrar=${showProcessingIndicator}`
-    );
-  }, [loading, isThinking, pollingSessionId, displayText, showProcessingIndicator]);
+    if (processingStatus !== pollingInfoRef.current.lastStatus) {
+      console.log(
+        `🔍 Estado de UI: pollingEnabled=${pollingEnabled}, ` +
+        `processingStatus=${processingStatus || 'null'}, ` +
+        `mostrar=${showSubtitles}, texto="${currentText}", ` +
+        `tiempoDesdeInicio=${Date.now() - pollingInfoRef.current.sessionStartTime}ms`
+      );
+    }
+  }, [pollingEnabled, processingStatus, showSubtitles, currentText]);
   
   return (
     <div className="overflow-hidden fixed inset-0 w-screen h-screen">
@@ -90,10 +147,10 @@ function App() {
             <Experience />
           </Canvas>
           
-          {/* Indicador de estado elegante */}
+          {/* Subtítulos con retraso fijo */}
           <ElegantSubtitles 
-            text={displayText}
-            isActive={showProcessingIndicator}
+            text={currentText || 'Procesando'} 
+            isActive={showSubtitles && pollingEnabled}
           />
           
           <ChatEventListener />

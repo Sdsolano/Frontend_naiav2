@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
 const ElegantSubtitles = ({ text, isActive }) => {
-  const [displayText, setDisplayText] = useState('');
   const [dots, setDots] = useState('');
   
   // Efecto para gestionar los puntos animados
@@ -15,11 +14,7 @@ const ElegantSubtitles = ({ text, isActive }) => {
     return () => clearInterval(interval);
   }, [isActive]);
   
-  // Efecto para actualizar el texto mostrado
-  useEffect(() => {
-    setDisplayText(text || '');
-  }, [text]);
-  
+  // Si no está activo, no renderizar nada
   if (!isActive) return null;
   
   return (
@@ -29,7 +24,7 @@ const ElegantSubtitles = ({ text, isActive }) => {
           <div className="flex items-center justify-center space-x-2">
             <div className="h-2 w-2 rounded-full bg-blue-950 animate-pulse" />
             <p className="text-center font-medium">
-              {displayText ? `${displayText}${dots}` : `Procesando${dots}`}
+              {text ? `${text}${dots}` : `Procesando${dots}`}
             </p>
           </div>
         </div>

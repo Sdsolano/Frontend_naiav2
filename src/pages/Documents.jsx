@@ -29,7 +29,8 @@ const Documents = () => {
   const [uploadProgress, setUploadProgress] = useState({});
   const [apiError, setApiError] = useState(null);
   const [apiAvailable, setApiAvailable] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0); // Nuevo estado para forzar recargas
+  const [refreshKey, setRefreshKey] = useState(0); // Estado para forzar recargas
+  const [initialSyncAttempted, setInitialSyncAttempted] = useState(false); // Nuevo estado para controlar si ya se intentó la sincronización inicial
   
   // Normalmente este ID vendría del contexto de autenticación
   // Por ahora lo hardcodeamos para propósitos de ejemplo
@@ -41,10 +42,64 @@ const Documents = () => {
 
   // Cargar documentos cuando el componente se monta o refreshKey cambia
   useEffect(() => {
-    fetchDocuments();
-  }, [refreshKey]); // Dependencia a refreshKey para forzar recarga
-
-
+    const initializeDocuments = async () => {
+      setIsLoading(true);
+      
+      try {
+        // 1. Intentar cargar documentos normalmente primero
+        await fetchDocuments();
+        
+        // 2. Si no hay documentos y no hemos intentado la sincronización inicial,
+        // intentar forzar una sincronización completa
+        if (documents.length === 0 && !initialSyncAttempted) {
+          console.log("⚠️ Lista de documentos vacía en carga inicial, forzando sincronización...");
+          setInitialSyncAttempted(true);
+          
+          // Hacer una llamada a save_changes para forzar la sincronización del sistema
+          try {
+            const timestamp = Date.now();
+            const randomString = Math.random().toString(36).substring(7);
+            const syncUrl = `${API_BASE_URL}save_changes/?_t=${timestamp}&_r=${randomString}`;
+            
+            console.log(`🔄 Forzando sincronización inicial: ${syncUrl}`);
+            
+            const syncResponse = await fetch(syncUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ 
+                user_id: userId,
+                _t: timestamp,
+                _r: randomString 
+              })
+            });
+            
+            if (syncResponse.ok) {
+              console.log("✅ Sincronización inicial exitosa");
+              addNotification('Sincronizando documentos del servidor...', 'info');
+            } else {
+              console.log(`⚠️ Error en sincronización inicial: ${syncResponse.status}`);
+            }
+            
+            // Esperar un momento para que el servidor procese la sincronización
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Intentar nuevamente con forceRefresh
+            await forceRefresh();
+          } catch (syncError) {
+            console.error("Error en sincronización inicial:", syncError);
+          }
+        }
+      } catch (error) {
+        console.error("Error en inicialización:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    initializeDocuments();
+  }, [refreshKey]); // Mantener la dependencia a refreshKey para forzar recargas
 
   // Función mejorada para refrescar forzadamente
   const forceRefresh = async () => {
@@ -96,9 +151,6 @@ const Documents = () => {
       setApiError(error.message);
       setApiAvailable(false);
       addNotification('Error al actualizar documentos. Intente de nuevo.', 'error');
-      
-      // Usar datos de ejemplo si falla
-      setDocuments(getExampleDocuments());
     } finally {
       setIsLoading(false);
       // Incrementar refreshKey para asegurar que se detecten cambios
@@ -113,9 +165,6 @@ const Documents = () => {
     try {
       // Añadir timestamp a la URL para evitar caché
       const timestamp = new Date().getTime();
-      
-      // Ya no enviamos headers de caché que pueden causar problemas CORS
-      // El timestamp en la URL es suficiente para evitar el uso de caché
       
       // URL con parámetro de timestamp para forzar una petición fresca
       const url = `${API_BASE_URL}?user_id=${userId}&_t=${timestamp}`;
@@ -147,8 +196,6 @@ const Documents = () => {
       // Guardar el error para mostrarlo en la interfaz
       setApiError(error.message);
       setApiAvailable(false);
-      
-     
       
       addNotification(`Error al cargar documentos: ${error.message}. Usando datos de ejemplo.`, 'warning');
     } finally {
@@ -726,7 +773,7 @@ const Documents = () => {
               className={`flex items-center px-6 py-3 rounded-md font-medium ${
                 (!pendingFiles.length && !pendingDeletions.length) || isSaving
                   ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-sky-600 hover:bg-sky-700 text-white shadow-md hover:shadow-lg'
+                  : 'bg-slate-800 hover:bg-slate-700 text-white shadow-md hover:shadow-lg'
               } transition-all`}
             >
               {isSaving ? (

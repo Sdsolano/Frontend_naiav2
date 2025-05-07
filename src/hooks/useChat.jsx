@@ -130,7 +130,7 @@ class OpenAIAPI {
           model: 'gpt-4o-mini-tts',
           input: text,
           voice: VOICE_TYPE,
-          instructions: "Habla claro y natural y con la mejor entonación posible, utiliza un acento colombiano costeño muy muy marcado y barranquillero, añade jerga costeña como <eche> o <nojoda> para que suene más natural, u tono alegre y relajado, aspiración de la <s> al final de sílabas, omisión de la <d> intervocálica, y entonación musical. Ignora los signos que no conozcas",
+          instructions: "Habla claro y natural y con la mejor entonación posible, utiliza un acento colombiano costeño pero de la alta sociedad y educada, con un tono alegre, aspiración de la <s> al final de sílabas. Ignora los signos que no conozcas",
           speed: 1.0
         }),
         signal
@@ -753,6 +753,7 @@ export const ChatProvider = ({ children }) => {
         setFunctionResults,
         processingStatus,
         pollingSessionId,
+        pollingEnabled, // Exportamos este estado para que esté disponible
         // Para compatibilidad
         messages: message ? [message] : []
       }}
@@ -773,7 +774,7 @@ export const ChatProvider = ({ children }) => {
       {children}
     </ChatContext.Provider>
   );
-};
+}
 
 export const useChat = () => {
   const context = useContext(ChatContext);
