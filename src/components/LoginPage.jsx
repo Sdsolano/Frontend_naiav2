@@ -1,13 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from '../authConfig';
 import { useNotification } from './NotificationContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Uninorte_logo from '../assets/Uninorte_logo.png';
 import NaiaGreeting from '../assets/NAIA_greeting.png';
+
 const LoginPage = () => {
   const { instance } = useMsal();
   const { addNotification } = useNotification();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Obtener la URL de retorno si existe
+  const returnUrl = location.state?.returnUrl || '/';
+
+  useEffect(() => {
+    // Si ya hay sesión, redirigir automáticamente
+    const accounts = instance.getAllAccounts();
+    if (accounts.length > 0) {
+      navigate(returnUrl);
+    }
+  }, [instance, navigate, returnUrl]);
 
   const handleLogin = async () => {
     if (isLoggingIn) return;
@@ -16,7 +31,9 @@ const LoginPage = () => {
     
     try {
       await instance.loginPopup(loginRequest);
-      // Login successful - UI will update automatically via AuthenticatedTemplate
+      // Login successful - redirigir a la URL de retorno
+      addNotification("Sesión iniciada correctamente", "success");
+      navigate(returnUrl);
     } catch (error) {
       console.error('Login error:', error);
       addNotification(
@@ -34,8 +51,6 @@ const LoginPage = () => {
           <img src={Uninorte_logo} alt="Logo" className="w-auto h-14 mx-auto mb-6" />
           <h1 className="text-2xl font-black">NAIA</h1>
         </div>
-        
-        {/*<h2 className="text-l font-bold text-center">Bienvenido</h2>*/}
         
         <div className="flex justify-center">
           <img src={NaiaGreeting} alt="" className="w-auto h-44" />

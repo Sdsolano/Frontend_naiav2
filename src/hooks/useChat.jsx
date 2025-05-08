@@ -128,7 +128,6 @@ class OpenAIAPI {
       if (tts_prompt) {
         instructions = `Utiliza un acento colombiano costeño pero de la alta sociedad y educada, con un tono alegre, aspiración de la <s> al final de sílabas. Ignora los signos que no conozcas, para este caso habla de esta manera: ${tts_prompt}`;
       }
-      console.log(`Prompt: ${instructions}`);
 
       const response = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',

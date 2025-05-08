@@ -1,13 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { NavLink, useLocation } from "react-router-dom"
-import { Home, FileText, Menu, X, Layers } from "lucide-react"
+import { NavLink, useLocation, useNavigate } from "react-router-dom"
+import { Home, FileText, Menu, X, Layers, LogIn, LogOut } from "lucide-react"
+import { useIsAuthenticated, useMsal } from "@azure/msal-react"
+import { useAuth } from "./AuthContext";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
   const isNaiaRoute = location.pathname === "/naia"
+  const { instance } = useMsal()
+  const { isAuthenticated, handleLogout, openLoginModal } = useAuth();
 
   // Close sidebar when clicking outside
   useEffect(() => {
@@ -45,6 +50,7 @@ const Sidebar = () => {
   const toggleSidebar = () => {
     setIsOpen(!isOpen)
   }
+
 
   // Add a special z-index for the toggle button when on the NAIA route
   const toggleButtonZIndex = isNaiaRoute ? "z-[1000]" : "z-50"
@@ -128,6 +134,35 @@ const Sidebar = () => {
                   <span>NAIA</span>
                 </NavLink>
               </li>
+              
+              {/* Botón de inicio o cierre de sesión según el estado de autenticación */}
+              {!isAuthenticated ? (
+                <li>
+                  <button
+                    onClick={() => {
+                      openLoginModal();
+                      setIsOpen(false);
+                    }}
+                    className="w-full flex items-center p-4 rounded-xl transition-all text-gray-600 hover:bg-gray-50"
+                  >
+                    <LogIn className="mr-3" size={20} />
+                    <span>Iniciar sesión</span>
+                  </button>
+                </li>
+              ) : (
+                <li>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsOpen(false);
+                    }}
+                    className="w-full flex items-center p-4 rounded-xl transition-all text-gray-600 hover:bg-gray-50"
+                  >
+                    <LogOut className="mr-3" size={20} />
+                    <span>Cerrar sesión</span>
+                  </button>
+                </li>
+              )}
             </ul>
           </nav>
 

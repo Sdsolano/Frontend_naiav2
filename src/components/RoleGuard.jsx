@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader } from 'lucide-react';
+import AuthGuard from './AuthGuard'; // Importamos el AuthGuard
 
 const RoleGuard = ({ children }) => {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ const RoleGuard = ({ children }) => {
   useEffect(() => {
     // Check if the user has selected a role
     const selectedRole = localStorage.getItem('naia_selected_role');
-    console.log("Rol seleccionado encontrado:", selectedRole);
+    
     if (selectedRole) {
       setHasRole(true);
     } else {
@@ -32,7 +33,8 @@ const RoleGuard = ({ children }) => {
     );
   }
 
-  return hasRole ? children : null;
+  // Envolvemos el children con AuthGuard para verificar ambas condiciones
+  return hasRole ? <AuthGuard>{children}</AuthGuard> : null;
 };
 
 export default RoleGuard;
