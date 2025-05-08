@@ -5,6 +5,7 @@ import App from "./App"
 import Layout from "./components/Layout"
 import Home from "./pages/Home"
 import Documents from "./pages/Documents"
+import RoleSelection from "./components/RoleSelection"
 import { NotificationProvider } from "./components/NotificationContext"
 import { ChatProvider } from "./hooks/useChat"
 import "./index.css"
@@ -33,7 +34,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
                 <Route path="documents" element={<Documents />} />
-                <Route path="naia" element={<App />} />
+                
+                {/* New routes for NAIA */}
+                <Route path="naia" element={<RoleSelection />} />
+                <Route path="naia/interface" element={<App />} />
+                
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>

@@ -4,12 +4,21 @@ import { useSimpleVoice } from "../hooks/useSimpleVoice";
 import { useUserImage } from "../hooks/useUserImage"; 
 import { Send, Loader, Mic, MicOff, RefreshCw, Camera } from "lucide-react";
 import FunctionResultsDisplay from "./FunctionResultsDisplay";
-
+import { useNavigate } from "react-router-dom";
 // Variable global para evitar envíos duplicados
 let lastSentMessage = '';
 let lastSentTime = 0;
 
 export const SimpleUI = ({ hidden, ...props }) => {
+  const navigate = useNavigate(); // Añadir esto para manejar la navegación
+  
+  // Función para cambiar de rol
+  const handleChangeRole = () => {
+    // Quitar el rol de localStorage
+    localStorage.removeItem('naia_selected_role');
+    // Redirigir a la página de selección de rol
+    navigate('/naia');
+  }
   const input = useRef();
   const hiddenVideoRef = useRef(null);
   const { chat, 
@@ -357,6 +366,20 @@ export const SimpleUI = ({ hidden, ...props }) => {
       <div className="fixed top-0 left-0 right-0 bottom-0 z-10 flex justify-between p-4 pl-20 flex-col pointer-events-none">
         <div className="self-start backdrop-blur-md bg-white bg-opacity-50 p-4 rounded-lg flex items-center">
           <h1 className="font-black text-xl">NAIA</h1>
+          
+          <button
+            onClick={handleChangeRole}
+            className="ml-4 px-3 py-1 rounded-md bg-blue-950 text-white text-sm font-medium pointer-events-auto hover:bg-blue-900 transition-colors flex items-center gap-1"
+            title="Cambiar el rol actual"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-refresh-cw">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+              <path d="M21 3v5h-5"/>
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+              <path d="M3 21v-5h5"/>
+            </svg>
+            <span>Cambiar rol</span>
+          </button>
 
           {pendingMessages && (
               <div className="ml-3 flex items-center">

@@ -8,10 +8,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChatEventListener, useChat } from './hooks/useChat';
 import { UserProvider } from "./components/UserContext";
 import ElegantSubtitles from "./components/ElegantSubtitles";
+import RoleGuard from "./components/RoleGuard";
 
 function App() {
   const [subtitles, setSubtitles] = useState('');
-  
+  const [currentRole, setCurrentRole] = useState(null);
+  useEffect(() => {
+    const roleId = localStorage.getItem('naia_selected_role');
+    
+    if (roleId) {
+      setCurrentRole(roleId);
+      console.log("Rol activo:", roleId);
+    }
+  }, []);
   // Obtener estados del contexto
   const { processingStatus, pollingEnabled, pollingSessionId } = useChat();
   
@@ -138,33 +147,36 @@ function App() {
     }
   }, [pollingEnabled, processingStatus, showSubtitles, currentText]);
   
+  // Envolver el contenido en RoleGuard para verificar la selección de rol
   return (
-    <div className="overflow-hidden fixed inset-0 w-screen h-screen">
-      <UserProvider>
-        <SubtitlesContext.Provider value={{ subtitles, setSubtitles }}>
-          <Leva hidden />
-          <Loader />
-          <SimpleUI hidden={false} />
-          
-          {/* Canvas para el mundo 3D */}
-          <Canvas 
-            shadows 
-            camera={{ position: [0, 0, 1], fov: 30 }}
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-          >
-            <Experience />
-          </Canvas>
-          
-          {/* Subtítulos con retraso fijo y usando estado más reciente */}
-          <ElegantSubtitles 
-            text={currentText || 'Procesando'} 
-            isActive={showSubtitles && pollingEnabled}
-          />
-          
-          <ChatEventListener />
-        </SubtitlesContext.Provider>
-      </UserProvider>
-    </div>
+    <RoleGuard>
+      <div className="overflow-hidden fixed inset-0 w-screen h-screen">
+        <UserProvider>
+          <SubtitlesContext.Provider value={{ subtitles, setSubtitles }}>
+            <Leva hidden />
+            <Loader />
+            <SimpleUI hidden={false} />
+            
+            {/* Canvas para el mundo 3D */}
+            <Canvas 
+              shadows 
+              camera={{ position: [0, 0, 1], fov: 30 }}
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+            >
+              <Experience />
+            </Canvas>
+            
+            {/* Subtítulos con retraso fijo y usando estado más reciente */}
+            <ElegantSubtitles 
+              text={currentText || 'Procesando'} 
+              isActive={showSubtitles && pollingEnabled}
+            />
+            
+            <ChatEventListener />
+          </SubtitlesContext.Provider>
+        </UserProvider>
+      </div>
+    </RoleGuard>
   );
 }
 

@@ -95,7 +95,8 @@ class OpenAIAPI {
       const formattedMessages = messages.map(msg => ({
         text: cleanText(msg.text) || "No se pudo obtener una respuesta clara.",
         facialExpression: msg.facialExpression || "default",
-        animation: msg.animation || "Talking_1"
+        animation: msg.animation || "Talking_1",
+        tts_prompt: msg.tts_prompt || "default"
       }));
       
       // Devolver un objeto que contiene tanto los mensajes formateados como la respuesta completa
@@ -116,10 +117,19 @@ class OpenAIAPI {
     }
   }
 
-  async getAudio(text) {
+  async getAudio(text, tts_prompt=null) {
     const signal = this.abortController ? this.abortController.signal : null;
     
     try {
+
+      let instructions = "Utiliza un acento colombiano costeño pero de la alta sociedad y educada, con un tono alegre, aspiración de la <s> al final de sílabas. Ignora los signos que no conozcas.";
+    
+      // Si el mensaje tiene un tts_prompt específico, usarlo
+      if (tts_prompt) {
+        instructions = `Utiliza un acento colombiano costeño pero de la alta sociedad y educada, con un tono alegre, aspiración de la <s> al final de sílabas. Ignora los signos que no conozcas, para este caso habla de esta manera: ${tts_prompt}`;
+      }
+      console.log(`Prompt: ${instructions}`);
+
       const response = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: {
@@ -130,7 +140,7 @@ class OpenAIAPI {
           model: 'gpt-4o-mini-tts',
           input: text,
           voice: VOICE_TYPE,
-          instructions: "Habla claro y natural y con la mejor entonación posible, utiliza un acento colombiano costeño pero de la alta sociedad y educada, con un tono alegre, aspiración de la <s> al final de sílabas. Ignora los signos que no conozcas",
+          instructions: instructions,
           speed: 1.0
         }),
         signal
@@ -395,7 +405,7 @@ export const ChatProvider = ({ children }) => {
       
       console.log(`🔄 Precargando audio para mensaje ${index+1}: "${textToPreload.substring(0, 20)}..."`);
       
-      const audioData = await apiRef.current.getAudio(textToPreload);
+      const audioData = await apiRef.current.getAudio(textToPreload, messageData.tts_prompt);
       
       // Verificar si la sesión cambió durante la precarga
       if (currentSession !== sessionIdRef.current) {
@@ -413,6 +423,7 @@ export const ChatProvider = ({ children }) => {
           audioData,
           facialExpression: messageData.facialExpression,
           animation: messageData.animation,
+          tts_prompt: messageData.tts_prompt,
           originalIndex: index
         };
       }
@@ -469,7 +480,8 @@ export const ChatProvider = ({ children }) => {
           facialExpression: audioMessage.facialExpression,
           animation: audioMessage.animation,
           lipsync: defaultLipsync,
-          audio: base64Audio
+          audio: base64Audio,
+          tts_prompt: audioMessage.tts_prompt,
         };
         
         console.log(`▶️ Reproduciendo mensaje: "${audioMessage.text.substring(0, 30)}..."`);
