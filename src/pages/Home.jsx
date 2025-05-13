@@ -16,12 +16,12 @@ const Home = () => {
       textColor: "text-blue-950",
       bgColor: "bg-blue-50",
       features: [
-        "Leer y extraer información de PDFs (hasta 1GB)",
-        "Buscar artículos científicos con Google Scholar",
-        "Proporcionar fragmentos de texto copiables",
-        "Generar textos extendidos sobre archivos PDF",
-        "Búsqueda web de cualquier información",
-        "Generación de gráficas a partir de datos complejos"
+        "Leer y extraer información de PDFs (hasta 1GB).",
+        "Buscar artículos científicos con Google Scholar.",
+        "Proporcionar fragmentos de texto copiables.",
+        "Generar textos extendidos sobre archivos PDF.",
+        "Búsqueda web de cualquier información.",
+        "Generación de gráficas a partir de datos complejos."
       ]
     },
     {
@@ -32,10 +32,10 @@ const Home = () => {
       textColor: "text-emerald-600",
       bgColor: "bg-emerald-50",
       features: [
-        "Notificar a residentes vía WhatsApp sobre visitantes",
-        "Enviar anuncios a todos los residentes",
-        "Gestionar reservas de áreas comunes",
-        "Recomendar lugares, restaurantes y eventos cercanos"
+        "Notificar a residentes vía WhatsApp sobre visitantes.",
+        "Enviar anuncios a todos los residentes.",
+        "Gestionar reservas de áreas comunes.",
+        "Recomendar lugares, restaurantes y eventos cercanos."
       ]
     },
     {
@@ -46,9 +46,9 @@ const Home = () => {
       textColor: "text-amber-600",
       bgColor: "bg-amber-50",
       features: [
-        "Simulaciones de escenarios reales (entrevistas, negociaciones)",
-        "Práctica para exámenes de idiomas con componentes orales",
-        "Recomendaciones sobre interacciones sociales y presentación"
+        "Simulaciones de escenarios reales (entrevistas, negociaciones).",
+        "Práctica para exámenes de idiomas con componentes orales.",
+        "Recomendaciones sobre interacciones sociales y presentación."
       ]
     },
     {
@@ -59,10 +59,10 @@ const Home = () => {
       textColor: "text-purple-600", 
       bgColor: "bg-purple-50",
       features: [
-        "Envío de correos a contactos preregistrados",
-        "Recordatorios usando Google Calendar",
-        "Informes sobre visitantes en tu ausencia",
-        "Información de agenda, clima y noticias"
+        "Envío de correos a contactos preregistrados.",
+        "Recordatorios usando Google Calendar.",
+        "Informes sobre visitantes en tu ausencia.",
+        "Información de agenda, clima y noticias."
       ]
     },
     {
@@ -73,10 +73,10 @@ const Home = () => {
       textColor: "text-red-600",
       bgColor: "bg-red-50",
       features: [
-        "Información sobre calendarios y fechas académicas",
-        "Guía en procesos académicos clave (matrícula, progreso)",
-        "Acceso a servicios de apoyo estudiantil",
-        "Envío de información sobre recursos universitarios"
+        "Información sobre calendarios y fechas académicas.",
+        "Guía en procesos académicos clave (matrícula, progreso).",
+        "Acceso a servicios de apoyo estudiantil.",
+        "Envío de información sobre recursos universitarios."
       ]
     }
   ];
@@ -90,7 +90,7 @@ const Home = () => {
       lightColor: "bg-blue-50",
       textColor: "text-blue-950",
       borderColor: "border-blue-200",
-      description: "Optimiza NAIA para tus necesidades de investigación y análisis de información",
+      description: "Optimiza NAIA para tus necesidades de investigación y análisis de información.",
       steps: [
         {
           title: "Documentos",
@@ -229,7 +229,7 @@ const Home = () => {
               </h1>
               
               <p className="text-lg text-sky-100">
-                Un avatar avanzado impulsado por inteligencia artificial diseñado para mejorar tu productividad y eficiencia con asistencia personalizada basada en roles.
+                Un avatar digital animado potencializado con inteligencia artificial para ayudarte en tu productividad y eficiencia a través de una asistencia virtual personalizada basada en roles.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
@@ -278,8 +278,7 @@ const Home = () => {
           Descripción General del Proyecto NAIA
         </h2>
         <p className="text-lg text-gray-600">
-          NAIA es un avatar avanzado impulsado por inteligencia artificial diseñado para mejorar tu productividad y eficiencia.
-          Ofrece asistencia personalizada a través de un versátil sistema basado en roles, adaptándose perfectamente a tus necesidades específicas.
+          NAIA es un avatar digital animado potencializado con inteligencia artificial diseñado para ayudarte a mejorar tu productividad y eficiencia. Ofrece asistencia virtual personalizada a través de una versátil sistema basado en roles, adaptándose a tus necesidades específicas.
         </p>
       </section>
       
