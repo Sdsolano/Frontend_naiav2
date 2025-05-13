@@ -71,6 +71,92 @@ export const AuthProvider = ({ children }) => {
     setIsLoginModalOpen(false);
     setPendingAction(null);
   };
+
+useEffect(() => {
+  // Verificar si venimos de una redirección MSAL
+  const isRedirectCallback = window.location.hash.includes("id_token") || 
+                            window.location.hash.includes("access_token") ||
+                            window.location.hash.includes("code=");
+                            
+  // Si no es una redirección, resetear la bandera para permitir futuras redirecciones
+  if (!isRedirectCallback) {
+    redirectHandledRef.current = false;
+  }
+}, []);
+
+  // Añadir este useEffect al AuthProvider
+const redirectHandledRef = useRef(false);
+
+// Reemplazar el useEffect existente por este:
+useEffect(() => {
+  // Función para manejar el resultado de la redirección
+  const handleRedirectResult = async () => {
+    // Solo procesar una vez por sesión
+    if (redirectHandledRef.current) {
+      return;
+    }
+    
+    // Solo procesar cuando no hay ninguna interacción en curso
+    if (inProgress !== InteractionStatus.None) {
+      return;
+    }
+    
+    try {
+      // Marcar como procesado antes de hacer nada más
+      redirectHandledRef.current = true;
+      
+      console.log("Procesando resultado de redirección...");
+      
+      // Intentar procesar el resultado de la redirección
+      const result = await instance.handleRedirectPromise();
+      
+      if (result) {
+        console.log("Login exitoso mediante redirect", result);
+        
+        // Si hay una cuenta, establecerla como activa
+        if (result.account) {
+          instance.setActiveAccount(result.account);
+          console.log("Cuenta activa establecida:", result.account.name);
+          
+          // Cerrar modal de login si está abierto
+          setIsLoginModalOpen(false);
+          
+          // Verificar si hay una acción pendiente
+          const hasPendingAction = localStorage.getItem('naia_auth_pending');
+          
+          if (hasPendingAction) {
+            localStorage.removeItem('naia_auth_pending');
+            
+            // Verificar si hay una ruta guardada
+            const savedRoute = localStorage.getItem('naia_auth_route');
+            if (savedRoute) {
+              localStorage.removeItem('naia_auth_route');
+              // Usar history.push en lugar de window.location para evitar recarga
+              // Si estás usando react-router-dom
+              // history.push(savedRoute);
+            } else if (pendingAction && typeof pendingAction === 'function') {
+              // Ejecutar la función pendiente si existe
+              setTimeout(() => {
+                pendingAction();
+                setPendingAction(null);
+              }, 100);
+            }
+          }
+          
+          addNotification("Sesión iniciada correctamente", "success");
+        }
+      }
+    } catch (error) {
+      console.error("Error al manejar redirección:", error);
+      addNotification("Error al procesar la autenticación", "error");
+    } 
+  };
+  
+  // Llamar a la función de manejo de redirección
+  handleRedirectResult();
+  
+  // Este efecto debe ejecutarse solo una vez al montar
+}, []); 
   
   // Función para limpiar datos de autenticación
 // Función mejorada para limpiar datos de autenticación
@@ -178,135 +264,128 @@ const clearAllAuthData = () => {
   return true;
 };
   // Iniciar el proceso de login
-  const handleLogin = async () => {
-    // Evitar múltiples intentos simultáneos
-    if (isLoggingIn || inProgress !== InteractionStatus.None) {
-      console.log("Login ya en progreso, ignorando solicitud");
-      return;
-    }
-    
-    // Limpiar cualquier temporizador de seguridad previo
-    if (safetyTimeoutRef.current) {
-      clearTimeout(safetyTimeoutRef.current);
-    }
-    
+const handleLogin = async () => {
+  // Evitar múltiples intentos simultáneos
+  if (isLoggingIn || inProgress !== InteractionStatus.None) {
+    console.log("Login ya en progreso, ignorando solicitud");
+    return;
+  }
+  
+  try {
     // Incrementar contador de intentos
     setLoginAttempts(prev => prev + 1);
     setIsLoggingIn(true);
     
-    // Configurar temporizador de seguridad para resetear estado
-    safetyTimeoutRef.current = setTimeout(() => {
-      console.log("Temporizador de seguridad: reseteando estado de login");
-      setIsLoggingIn(false);
-    }, 20000); // 20 segundos máximo
-    
-    try {
-      console.log("Iniciando login con popup...");
+    // Guardar información de pendingAction en localStorage si existe
+    if (pendingAction) {
+      // Podemos guardar un indicador simple o serializar la ruta/acción si es necesario
+      localStorage.setItem('naia_auth_pending', 'true');
       
-      // Intentar login con popup
-      const result = await instance.loginPopup({
-        ...loginRequest,
-        redirectUri: window.location.origin,
-        prompt: loginAttempts > 0 ? "select_account" : undefined
-      });
-      
-      console.log("Login exitoso");
-      
-      // Limpiar el temporizador de seguridad
-      if (safetyTimeoutRef.current) {
-        clearTimeout(safetyTimeoutRef.current);
-        safetyTimeoutRef.current = null;
-      }
-      
-      // Si el login fue exitoso, establecer la cuenta activa
-      if (result?.account) {
-        instance.setActiveAccount(result.account);
-        console.log("Cuenta activa establecida:", result.account.name);
-      }
-      
-      addNotification("Sesión iniciada correctamente", "success");
-    } catch (error) {
-      console.error("Error en login:", error);
-      
-      // Mensaje amigable para el usuario
-      addNotification(
-        "Error al iniciar sesión. Por favor inténtalo de nuevo.", 
-        "error"
-      );
-    } finally {
-      setIsLoggingIn(false);
-      // Limpiar el temporizador de seguridad
-      if (safetyTimeoutRef.current) {
-        clearTimeout(safetyTimeoutRef.current);
-        safetyTimeoutRef.current = null;
+      // Si necesitamos guardar la ruta a la que redirigir después:
+      if (window.location.pathname.includes('/naia')) {
+        localStorage.setItem('naia_auth_route', window.location.pathname);
       }
     }
-  };
+    
+    console.log("Iniciando login con redirect...");
+    
+    // Usar loginRedirect en lugar de loginPopup
+    await instance.loginRedirect({
+      ...loginRequest,
+      redirectUri: window.location.origin,
+      prompt: loginAttempts > 0 ? "select_account" : undefined
+    });
+    
+    // NOTA: El código después de loginRedirect no se ejecutará inmediatamente
+    // ya que el navegador será redirigido a Microsoft para autenticación
+    
+  } catch (error) {
+    console.error("Error al iniciar redirección:", error);
+    
+    // Mensaje amigable para el usuario
+    addNotification(
+      "Error al iniciar sesión. Por favor inténtalo de nuevo.", 
+      "error"
+    );
+    
+    // Restablecer estado
+    setIsLoggingIn(false);
+  }
+};
   
   // Método mejorado para cerrar sesión y limpiar datos
-  const handleLogout = async () => {
-    try {
-      // Primero, intentamos hacer logout normal con MSAL
-      console.log("Iniciando proceso de cierre de sesión...");
-      
-      // Guardar referencia al account actual antes de logout
-      const currentAccount = instance.getActiveAccount();
-      
-      // Realizar una limpieza completa antes del logout oficial
-      clearAllAuthData();
-      
-      // Mostrar un overlay de "Cerrando sesión" para evitar interacciones durante el proceso
-      const logoutOverlay = document.createElement('div');
-      logoutOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;font-family:system-ui;';
-      logoutOverlay.innerHTML = `
-        <div style="background:white;padding:20px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.1);text-align:center;max-width:400px;">
-          <h3 style="margin-top:0;color:#333;">Cerrando sesión...</h3>
-          <p style="margin-bottom:20px;">Por favor, espere mientras se cierra la sesión.</p>
-          <div style="width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #3498db;border-radius:50%;margin:0 auto;animation:spin 1s linear infinite;"></div>
-        </div>
-        <style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>
-      `;
-      document.body.appendChild(logoutOverlay);
-      
-      // Solo intentar el logout de MSAL si hay una cuenta activa
-      if (currentAccount) {
-        try {
-          // Intentar logout pero con un timeout para no quedarnos esperando indefinidamente
-          const logoutPromise = instance.logout({
-            account: currentAccount,
-            postLogoutRedirectUri: window.location.origin
-          });
-          
-          // Establecer un tiempo máximo de espera para el logout
-          await Promise.race([
-            logoutPromise,
-            new Promise(resolve => setTimeout(resolve, 3000)) // 3 segundos máximo
-          ]);
-        } catch (logoutError) {
-          console.warn("Error en logout de MSAL, continuando con limpieza manual:", logoutError);
-        }
-      } else {
-        console.log("No hay cuenta activa, realizando solo limpieza local");
+const handleLogout = async () => {
+  try {
+    // Marcar como manejado para evitar bucles de redirección
+    redirectHandledRef.current = true;
+    
+    console.log("Iniciando proceso de cierre de sesión...");
+    
+    // Guardar referencia al account actual antes de logout
+    const currentAccount = instance.getActiveAccount();
+    
+    // Realizar una limpieza completa antes del logout oficial
+    clearAllAuthData();
+    
+    // Mostrar el overlay actual para feedback visual
+    const logoutOverlay = document.createElement('div');
+    logoutOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;font-family:system-ui;';
+    logoutOverlay.innerHTML = `
+      <div style="background:white;padding:20px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.1);text-align:center;max-width:400px;">
+        <h3 style="margin-top:0;color:#333;">Cerrando sesión...</h3>
+        <p style="margin-bottom:20px;">Por favor, espere mientras se cierra la sesión.</p>
+        <div style="width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #3498db;border-radius:50%;margin:0 auto;animation:spin 1s linear infinite;"></div>
+      </div>
+      <style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>
+    `;
+    document.body.appendChild(logoutOverlay);
+    
+    // Solo intentar el logout de MSAL si hay una cuenta activa
+    if (currentAccount) {
+      try {
+        // Usar logoutRedirect en lugar de logout para consistencia con el enfoque de redirección
+        await instance.logoutRedirect({
+          account: currentAccount,
+          postLogoutRedirectUri: window.location.origin,
+          onRedirectNavigate: () => {
+            // Prevenir la navegación automática del SDK para manejarla nosotros
+            // Esto nos permite hacer limpieza y mostrar feedback
+            return false;
+          }
+        });
+      } catch (logoutError) {
+        console.warn("Error en logout de MSAL, continuando con limpieza manual:", logoutError);
       }
-      
-      // SOLUCIÓN CLAVE: Reinicio completo forzado - genera una URL única para evitar caché
-      const timestamp = Date.now();
-      const cleanUrl = window.location.origin + window.location.pathname.split('?')[0]; // URL sin parámetros
-      const reloadUrl = `${cleanUrl}?reload=${timestamp}`; // Añadir parámetro único
-      
-      console.log(`Redirigiendo a: ${reloadUrl} para reinicio completo`);
-      
-      // Este es el cambio clave - usar una redirección completa con parámetro timestamp
-      window.location.href = reloadUrl;
-    } catch (error) {
-      console.error("Error general en cierre de sesión:", error);
-      addNotification("Error al cerrar sesión. Recargando página...", "error");
-      
-      // Recargar de todas formas con timestamp para forzar recarga
-      const timestamp = Date.now();
-      window.location.href = `${window.location.origin}?reload=${timestamp}`;
+    } else {
+      console.log("No hay cuenta activa, realizando solo limpieza local");
     }
-  };
+    
+    // Asegurarnos de que cualquier estado pendiente se limpie
+    setPendingAction(null);
+    localStorage.removeItem('naia_auth_pending');
+    localStorage.removeItem('naia_auth_route');
+    
+    // SOLUCIÓN CLAVE: Reinicio completo forzado - genera una URL única para evitar caché
+    const timestamp = Date.now();
+    const cleanUrl = window.location.origin + window.location.pathname.split('?')[0]; // URL sin parámetros
+    const reloadUrl = `${cleanUrl}?reload=${timestamp}`; // Añadir parámetro único
+    
+    console.log(`Redirigiendo a: ${reloadUrl} para reinicio completo`);
+    
+    // Esperar un momento para que el usuario vea el overlay
+    setTimeout(() => {
+      window.location.href = reloadUrl;
+    }, 1500);
+    
+  } catch (error) {
+    console.error("Error general en cierre de sesión:", error);
+    addNotification("Error al cerrar sesión. Recargando página...", "error");
+    
+    // Recargar de todas formas con timestamp para forzar recarga
+    const timestamp = Date.now();
+    window.location.href = `${window.location.origin}?reload=${timestamp}`;
+  }
+};
 
   useEffect(() => {
     // Verificar si estamos cargando después de un cierre de sesión (parámetro reload)
