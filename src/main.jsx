@@ -13,11 +13,9 @@ import LoginModal from "./components/LoginModal";
 import "./index.css";
 
 // MSAL imports
-import { PublicClientApplication } from "@azure/msal-browser";
+import { PublicClientApplication, EventType } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./authConfig";
-
-
 
 // Crear el root una sola vez
 const root = ReactDOM.createRoot(document.getElementById("root"));
@@ -126,14 +124,41 @@ const initializeApp = async () => {
     console.log("Inicializando MSAL...");
     const msalInstance = new PublicClientApplication(msalConfig);
     
+    // Registrar eventos para depuración
+    msalInstance.addEventCallback(event => {
+      console.log(`MSAL Evento: ${event.eventType}`);
+      
+      if (event.eventType === EventType.LOGIN_SUCCESS) {
+        console.log("🟢 Login exitoso:", event);
+      } else if (event.eventType === EventType.LOGIN_FAILURE) {
+        console.error("🔴 Error de login:", event.error);
+      } else if (event.eventType === EventType.HANDLE_REDIRECT_START) {
+        console.log("🟡 Inicio del manejo de redirección");
+      } else if (event.eventType === EventType.HANDLE_REDIRECT_END) {
+        console.log("🟡 Fin del manejo de redirección");
+      }
+    });
+    
     // IMPORTANTE: Esperar a que MSAL se inicialice completamente
     await msalInstance.initialize();
     console.log("✅ MSAL inicializado correctamente");
     
+    // SOLUCIÓN CLAVE: Procesar la redirección de autenticación
+    console.log("Verificando redirección de autenticación...");
+    const redirectResponse = await msalInstance.handleRedirectPromise();
+    if (redirectResponse) {
+      console.log("✅ Redirección procesada con éxito:", redirectResponse);
+    } else {
+      console.log("No hay datos de redirección para procesar");
+    }
+    
     // Establecer cuenta activa si existe
     const accounts = msalInstance.getAllAccounts();
     if (accounts.length > 0) {
+      console.log("Cuenta encontrada:", accounts[0].username);
       msalInstance.setActiveAccount(accounts[0]);
+    } else {
+      console.log("No hay cuentas guardadas");
     }
     
     // Renderizar la aplicación
