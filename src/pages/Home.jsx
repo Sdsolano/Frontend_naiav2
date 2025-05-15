@@ -1,7 +1,107 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, Search, Video, MessageSquare, Brain, ChevronRight, Building, UserCheck, User, GraduationCap, Mail, Calendar, Globe, Check, Settings, MapPin, Users, FileText, Image, GanttChart, Sparkles, BrainCircuit } from "lucide-react";
-import Thinking_naia from "../assets/Thinking_naia.png";
+import { motion, AnimatePresence } from "framer-motion";
+import Personal_Assistant_AF from "../assets/Personal_Assistant_AF.jpeg";
+import Personal_Trainer_AF from "../assets/Personal_Trainer_AF.jpeg";
+import Research_AF from "../assets/Research_AF.jpeg";
+import Receptionist_AF from "../assets/Receptionist_AF.jpeg";
+import University_Guide_AF from "../assets/University_guide_AF.jpeg";
+
+const HeroCarousel = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const images = [
+    { src: Research_AF, alt: "Investigador NAIA", role: "Investigador" },
+    { src: Receptionist_AF, alt: "Recepcionista NAIA", role: "Recepcionista" },
+    { src: Personal_Trainer_AF, alt: "Entrenador NAIA", role: "Entrenador" },
+    { src: Personal_Assistant_AF, alt: "Asistente Personal NAIA", role: "Asistente" },
+    { src: University_Guide_AF, alt: "Guía Universitario NAIA", role: "Guía" }
+  ];
+
+  // Avanzar automáticamente cada 5 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  return (
+    <div className="relative h-[340px] sm:h-[400px] md:h-[480px] lg:h-[520px] w-full max-w-full overflow-hidden">
+      {/* Sutil efecto de resplandor */}
+      <div className="absolute inset-0 rounded-full opacity-20 blur-3xl"></div>
+      
+      {/* Carrusel de imágenes */}
+      <div className="relative h-full w-full flex items-center justify-center">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <div className="relative h-full max-h-full w-auto flex items-center justify-center">
+              <motion.img 
+                src={images[currentIndex].src}
+                alt={images[currentIndex].alt}
+                className="h-full w-auto max-w-full object-contain drop-shadow-2xl"
+                animate={{ 
+                  scale: [1, 1.02, 1],
+                }}
+                transition={{ 
+                  duration: 6, 
+                  repeat: Infinity, 
+                  ease: "easeInOut" 
+                }}
+              />
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+      
+      {/* Indicadores del carrusel */}
+      <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2">
+        {images.map((image, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentIndex(index)}
+            className={`flex flex-col items-center transition-all duration-300 ${
+              index === currentIndex
+                ? "transform scale-110"
+                : "opacity-70 hover:opacity-100"
+            }`}
+            aria-label={`Ver ${image.role}`}
+          >
+            <div className={`w-2 h-2 rounded-full ${
+              index === currentIndex
+                ? "w-6 bg-white"
+                : "bg-white/50 hover:bg-white/80"
+            }`}></div>
+            {index === currentIndex && (
+              <motion.span 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-white text-xs mt-2 font-medium"
+              >
+                {image.role}
+              </motion.span>
+            )}
+          </button>
+        ))}
+      </div>
+      
+      {/* Etiqueta de IA con estilo minimalista */}
+      <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm border border-white/10">
+        IA
+      </div>
+    </div>
+  );
+};
+
 const Home = () => {
   const [activeRole, setActiveRole] = useState(0);
   const [selectedConfig, setSelectedConfig] = useState(0);
@@ -211,66 +311,50 @@ const Home = () => {
       {/* Hero Section */}
 
 <section className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-950 to-blue-900 text-white">
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]"></div>
-        <div className="absolute right-0 top-0 -translate-y-1/4 translate-x-1/4 w-96 h-96 rounded-full bg-sky-400 opacity-20 blur-3xl"></div>
-        <div className="absolute left-0 bottom-0 translate-y-1/4 -translate-x-1/4 w-96 h-96 rounded-full bg-blue-300 opacity-20 blur-3xl"></div>
-        
-        <div className="relative px-8 py-12 md:py-16 max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center gap-8">
-            <div className="flex-1 space-y-6">
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm text-sm font-medium">
-                <span className="w-2 h-2 rounded-full bg-sky-400 mr-2 animate-pulse"></span>
-                Universidad del Norte
-              </div>
-              
-              <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-                Conoce a NAIA, <br />
-                <span className="text-sky-300">tu asistente AI</span> multifuncional
-              </h1>
-              
-              <p className="text-lg text-sky-100">
-                Un avatar digital animado potencializado con inteligencia artificial para ayudarte en tu productividad y eficiencia a través de una asistencia virtual personalizada basada en roles.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                <Link
-                  to="/naia"
-                  className="flex items-center justify-center gap-2 bg-white text-blue-950 hover:bg-sky-50 px-6 py-3 rounded-xl font-medium transition-all shadow-lg shadow-blue-950/20 hover:shadow-xl hover:shadow-blue-950/30"
-                >
-                  Comenzar ahora
-                  <ArrowRight size={18} />
-                </Link>
-                
-                <button className="flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm hover:bg-white/15 px-6 py-3 rounded-xl font-medium transition-all border border-white/20">
-                  <Video size={18} />
-                  Ver demostración
-                </button>
-              </div>
+      <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]"></div>
+      <div className="absolute right-0 top-0 -translate-y-1/4 translate-x-1/4 w-96 h-96 rounded-full bg-sky-400 opacity-20 blur-3xl"></div>
+      <div className="absolute left-0 bottom-0 translate-y-1/4 -translate-x-1/4 w-96 h-96 rounded-full bg-blue-300 opacity-20 blur-3xl"></div>
+      
+      <div className="relative px-8 py-12 md:py-16 max-w-5xl mx-auto">
+        <div className="flex flex-col md:flex-row items-center gap-8">
+          <div className="flex-1 space-y-6">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm text-sm font-medium">
+              <span className="w-2 h-2 rounded-full bg-sky-400 mr-2 animate-pulse"></span>
+              Universidad del Norte
             </div>
             
-            {/* Improved image container - much taller and with better positioning */}
-            <div className="flex-1 flex items-center justify-center py-6">
-              <div className="relative h-[340px] sm:h-[400px] md:h-[480px] lg:h-[520px] w-auto max-w-full">
-                {/* Enhanced glow effect */}
-                <div className="absolute inset-0 scale-125 bg-gradient-to-br from-sky-400 to-blue-600 rounded-full opacity-20 blur-2xl"></div>
-                
-                {/* Container for the image with improved sizing */}
-                <div className="relative z-10 h-full w-auto flex items-center justify-center">
-                  <img 
-                    src={Thinking_naia}
-                    alt="NAIA Virtual Assistant" 
-                    className="h-full w-auto max-w-full object-contain drop-shadow-2xl"
-                  />
-                </div>
-                
-                <div className="absolute top-4 right-4 bg-sky-400 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                  IA
-                </div>
-              </div>
+            <h1 className="text-4xl md:text-5xl font-bold leading-tight">
+              Conoce a NAIA, <br />
+              <span className="text-sky-300">tu asistente AI</span> multifuncional
+            </h1>
+            
+            <p className="text-lg text-sky-100">
+              Un avatar digital animado potencializado con inteligencia artificial para ayudarte en tu productividad y eficiencia a través de una asistencia virtual personalizada basada en roles.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 pt-2">
+              <Link
+                to="/naia"
+                className="flex items-center justify-center gap-2 bg-white text-blue-950 hover:bg-sky-50 px-6 py-3 rounded-xl font-medium transition-all shadow-lg shadow-blue-950/20 hover:shadow-xl hover:shadow-blue-950/30"
+              >
+                Comenzar ahora
+                <ArrowRight size={18} />
+              </Link>
+              
+              <button className="flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm hover:bg-white/15 px-6 py-3 rounded-xl font-medium transition-all border border-white/20">
+                <Video size={18} />
+                Ver demostración
+              </button>
             </div>
           </div>
+          
+          {/* Reemplazar la imagen estática con el carrusel */}
+          <div className="flex-1 flex items-center justify-center py-6">
+            <HeroCarousel />
+          </div>
         </div>
-      </section>
+      </div>
+    </section>
       
       {/* About NAIA Section */}
       <section className="text-center max-w-3xl mx-auto px-4">
