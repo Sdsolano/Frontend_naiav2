@@ -1,14 +1,15 @@
 // authConfig.js
 // Determinar la URL de redirección basada en el entorno
 const isProduction = window.location.hostname === 'naia.uninorte.edu.co';
+console.log("Entorno de producción:", isProduction);
 const redirectUri = isProduction 
   ? "https://naia.uninorte.edu.co" 
-  : window.location.origin;
+  : "https://naia.uninorte.edu.co" ;
 
 // Determinar el clientId basado en el entorno
 const clientId = isProduction
   ? "71d031dd-5709-4ca1-84a6-d5f622f1a6c8" 
-  : "716c96e0-113d-4d95-af42-7ee4dc266e43";
+  : "71d031dd-5709-4ca1-84a6-d5f622f1a6c8";
 
 // authConfig.js
 export const msalConfig = {
