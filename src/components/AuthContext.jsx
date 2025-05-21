@@ -107,9 +107,30 @@ useEffect(() => {
       
       console.log("Procesando resultado de redirección...");
       
+        const urlParams = new URLSearchParams(window.location.hash.substring(1));
+        const code = urlParams.get('code');
+        console.log("Token request parameters:", {
+          clientId: msalConfig.auth.clientId,
+          redirectUri: msalConfig.auth.redirectUri,
+          code: code ? code.substring(0, 20) + '...' : 'No code found',
+          codeExists: !!code,
+          hash: window.location.hash ? window.location.hash.substring(0, 30) + '...' : 'No hash'
+        });
+
+
       // Intentar procesar el resultado de la redirección
       const result = await instance.handleRedirectPromise();
       
+      console.log("Resultado de handleRedirectPromise:", {
+        success: !!result,
+        account: result?.account ? {
+          name: result.account.name,
+          username: result.account.username,
+          tenantId: result.account.tenantId
+        } : 'No account info',
+        errorCode: result?.error || 'No error'
+      });
+
       if (result) {
         console.log("Login exitoso mediante redirect", result);
         
@@ -155,7 +176,6 @@ useEffect(() => {
   // Llamar a la función de manejo de redirección
   handleRedirectResult();
   
-  // Este efecto debe ejecutarse solo una vez al montar
 }, []); 
   
 const checkAndEstablishSession = async () => {
@@ -164,8 +184,14 @@ const checkAndEstablishSession = async () => {
     try {
       console.log("Encontrada sesión existente, configurando...");
       instance.setActiveAccount(accounts[0]);
-      
-      // Verificar si podemos obtener token silenciosamente
+
+      console.log("Token request parameters:", {
+      clientId,
+      redirectUri,
+      code,
+      codeVerifier
+    });
+          // Verificar si podemos obtener token silenciosamente
       await instance.acquireTokenSilent({
         ...loginRequest,
         account: accounts[0]
@@ -317,7 +343,6 @@ const handleLogin = async () => {
     // Usar loginRedirect en lugar de loginPopup
     await instance.loginRedirect({
       ...loginRequest,
-      redirectUri: window.location.origin,
       prompt: loginAttempts > 0 ? "select_account" : undefined
     });
     
