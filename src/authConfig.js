@@ -20,9 +20,8 @@ export const msalConfig = {
   },
   cache: {
     cacheLocation: "localStorage",
-    storeAuthStateInCookie: false, // CAMBIADO: desactivar cookies para autenticación
-    secureCookies: false // AÑADIDO: desactivar cookies seguras
-  },
+    storeAuthStateInCookie: false, 
+ },
   system: {
     allowRedirectInIframe: true,
     iframeHashTimeout: 6000,

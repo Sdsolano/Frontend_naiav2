@@ -44,6 +44,8 @@ const LoginPage = () => {
     }
   };
 
+  
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-r from-white-500 to-white">
       <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">

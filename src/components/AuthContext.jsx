@@ -158,6 +158,31 @@ useEffect(() => {
   // Este efecto debe ejecutarse solo una vez al montar
 }, []); 
   
+const checkAndEstablishSession = async () => {
+  const accounts = instance.getAllAccounts();
+  if (accounts.length > 0) {
+    try {
+      console.log("Encontrada sesión existente, configurando...");
+      instance.setActiveAccount(accounts[0]);
+      
+      // Verificar si podemos obtener token silenciosamente
+      await instance.acquireTokenSilent({
+        ...loginRequest,
+        account: accounts[0]
+      });
+      
+      // Si llegamos aquí sin error, la sesión está activa
+      addNotification("Sesión recuperada", "success");
+    } catch (error) {
+      console.warn("Error verificando sesión existente:", error);
+    }
+  }
+};
+
+// Usar en useEffect
+useEffect(() => {
+  checkAndEstablishSession();
+}, []);
   // Función para limpiar datos de autenticación
 // Función mejorada para limpiar datos de autenticación
 const clearAllAuthData = () => {

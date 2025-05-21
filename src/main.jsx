@@ -128,7 +128,31 @@ const initializeApp = async () => {
     
     // IMPORTANTE: Esperar a que MSAL se inicialice completamente
     await msalInstance.initialize();
-    console.log("✅ MSAL inicializado correctamente");
+      try {
+    console.log("✅ MSAL inicializado correctamente, intentando autenticación silenciosa");
+    const accounts = msalInstance.getAllAccounts();
+    
+    if (accounts.length > 0) {
+      console.log("🔑 Cuenta encontrada, estableciendo cuenta activa", accounts[0].username);
+      msalInstance.setActiveAccount(accounts[0]);
+      
+      // Intenta adquirir token silenciosamente
+      const silentRequest = {
+        scopes: ["User.Read", "profile", "openid", "email"],
+        account: accounts[0]
+      };
+      
+      await msalInstance.acquireTokenSilent(silentRequest)
+        .then(response => {
+          console.log("🎉 Autenticación silenciosa exitosa");
+        })
+        .catch(error => {
+          console.warn("⚠️ No se pudo hacer autenticación silenciosa:", error);
+        });
+    }
+  } catch (e) {
+    console.warn("⚠️ Error durante la verificación de autenticación silenciosa:", e);
+  }
     
     // Establecer cuenta activa si existe
     const accounts = msalInstance.getAllAccounts();
