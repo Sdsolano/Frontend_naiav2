@@ -2,7 +2,7 @@
 // Determinar la URL de redirección basada en el entorno
 const isProduction = window.location.hostname === 'naia.uninorte.edu.co';
 const redirectUri = isProduction 
-  ? "https://naia.uninorte.edu.co" 
+  ? "https://naia.uninorte.edu.co/" 
   : window.location.origin;
 
 // Determinar el clientId basado en el entorno
