@@ -4,6 +4,7 @@ import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { InteractionStatus } from '@azure/msal-browser';
 import { loginRequest } from '../authConfig';
 import { useNotification } from './NotificationContext';
+import { msalConfig } from '../authConfig';
 
 const AuthContext = createContext();
 
@@ -176,7 +177,7 @@ useEffect(() => {
   // Llamar a la función de manejo de redirección
   handleRedirectResult();
   
-}, []); 
+}, [instance, inProgress, pendingAction, addNotification]); 
   
 const checkAndEstablishSession = async () => {
   const accounts = instance.getAllAccounts();
@@ -184,14 +185,7 @@ const checkAndEstablishSession = async () => {
     try {
       console.log("Encontrada sesión existente, configurando...");
       instance.setActiveAccount(accounts[0]);
-
-      console.log("Token request parameters:", {
-      clientId,
-      redirectUri,
-      code,
-      codeVerifier
-    });
-          // Verificar si podemos obtener token silenciosamente
+      // Verificar si podemos obtener token silenciosamente
       await instance.acquireTokenSilent({
         ...loginRequest,
         account: accounts[0]
@@ -316,49 +310,51 @@ const clearAllAuthData = () => {
 };
   // Iniciar el proceso de login
 const handleLogin = async () => {
-  // Evitar múltiples intentos simultáneos
   if (isLoggingIn || inProgress !== InteractionStatus.None) {
     console.log("Login ya en progreso, ignorando solicitud");
     return;
   }
   
   try {
-    // Incrementar contador de intentos
     setLoginAttempts(prev => prev + 1);
     setIsLoggingIn(true);
     
-    // Guardar información de pendingAction en localStorage si existe
-    if (pendingAction) {
-      // Podemos guardar un indicador simple o serializar la ruta/acción si es necesario
-      localStorage.setItem('naia_auth_pending', 'true');
-      
-      // Si necesitamos guardar la ruta a la que redirigir después:
-      if (window.location.pathname.includes('/naia')) {
-        localStorage.setItem('naia_auth_route', window.location.pathname);
-      }
-    }
+    console.log("Iniciando login con popup en lugar de redirect...");
     
-    console.log("Iniciando login con redirect...");
-    
-    // Usar loginRedirect en lugar de loginPopup
-    await instance.loginRedirect({
+    // CAMBIO: Usar loginPopup en lugar de loginRedirect
+    const result = await instance.loginPopup({
       ...loginRequest,
       prompt: loginAttempts > 0 ? "select_account" : undefined
     });
     
-    // NOTA: El código después de loginRedirect no se ejecutará inmediatamente
-    // ya que el navegador será redirigido a Microsoft para autenticación
-    
+    // Procesar el resultado directamente
+    if (result) {
+      console.log("Login exitoso mediante popup", result);
+      
+      if (result.account) {
+        instance.setActiveAccount(result.account);
+        console.log("Cuenta activa establecida:", result.account.name);
+        
+        // Cerrar modal si estaba abierto
+        setIsLoginModalOpen(false);
+        
+        // Ejecutar acción pendiente si existe
+        if (pendingAction && typeof pendingAction === 'function') {
+          setTimeout(() => {
+            pendingAction();
+            setPendingAction(null);
+          }, 100);
+        }
+        
+        addNotification("Sesión iniciada correctamente", "success");
+      }
+    }
   } catch (error) {
-    console.error("Error al iniciar redirección:", error);
-    
-    // Mensaje amigable para el usuario
+    console.error("Error en login popup:", error);
     addNotification(
-      "Error al iniciar sesión. Por favor inténtalo de nuevo.", 
+      `Error al iniciar sesión: ${error.message}`, 
       "error"
     );
-    
-    // Restablecer estado
     setIsLoggingIn(false);
   }
 };
