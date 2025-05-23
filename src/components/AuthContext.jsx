@@ -88,9 +88,7 @@ useEffect(() => {
   // Añadir este useEffect al AuthProvider
 const redirectHandledRef = useRef(false);
 
-// Reemplazar el useEffect existente por este:
 useEffect(() => {
-  // Función para manejar el resultado de la redirección
   const handleRedirectResult = async () => {
     // Solo procesar una vez por sesión
     if (redirectHandledRef.current) {
@@ -106,58 +104,42 @@ useEffect(() => {
       // Marcar como procesado antes de hacer nada más
       redirectHandledRef.current = true;
       
-      console.log("Procesando resultado de redirección...");
+      console.log("🔄 Procesando resultado de redirección...");
       
-        const urlParams = new URLSearchParams(window.location.hash.substring(1));
-        const code = urlParams.get('code');
-        console.log("Token request parameters:", {
-          clientId: msalConfig.auth.clientId,
-          redirectUri: msalConfig.auth.redirectUri,
-          code: code ? code.substring(0, 20) + '...' : 'No code found',
-          codeExists: !!code,
-          hash: window.location.hash ? window.location.hash.substring(0, 30) + '...' : 'No hash'
-        });
-
-
       // Intentar procesar el resultado de la redirección
       const result = await instance.handleRedirectPromise();
       
-      console.log("Resultado de handleRedirectPromise:", {
-        success: !!result,
-        account: result?.account ? {
-          name: result.account.name,
-          username: result.account.username,
-          tenantId: result.account.tenantId
-        } : 'No account info',
-        errorCode: result?.error || 'No error'
-      });
-
+      console.log("📋 Resultado de handleRedirectPromise:", result);
+      
       if (result) {
-        console.log("Login exitoso mediante redirect", result);
+        console.log("✅ Login exitoso mediante redirect", result);
         
         // Si hay una cuenta, establecerla como activa
         if (result.account) {
           instance.setActiveAccount(result.account);
-          console.log("Cuenta activa establecida:", result.account.name);
+          console.log("👤 Cuenta activa establecida:", result.account.name);
           
           // Cerrar modal de login si está abierto
           setIsLoginModalOpen(false);
           
-          // Verificar si hay una acción pendiente
+          // Verificar si hay una acción pendiente guardada en localStorage
           const hasPendingAction = localStorage.getItem('naia_auth_pending');
           
           if (hasPendingAction) {
+            console.log("📦 Acción pendiente encontrada en localStorage");
             localStorage.removeItem('naia_auth_pending');
             
             // Verificar si hay una ruta guardada
             const savedRoute = localStorage.getItem('naia_auth_route');
             if (savedRoute) {
+              console.log("🚀 Navegando a ruta guardada:", savedRoute);
               localStorage.removeItem('naia_auth_route');
-              // Usar history.push en lugar de window.location para evitar recarga
-              // Si estás usando react-router-dom
-              // history.push(savedRoute);
+              
+              // Navegar a la ruta guardada sin recargar
+              window.history.replaceState({}, '', savedRoute);
             } else if (pendingAction && typeof pendingAction === 'function') {
               // Ejecutar la función pendiente si existe
+              console.log("🎯 Ejecutando acción pendiente");
               setTimeout(() => {
                 pendingAction();
                 setPendingAction(null);
@@ -166,18 +148,39 @@ useEffect(() => {
           }
           
           addNotification("Sesión iniciada correctamente", "success");
+          
+          // Limpiar la URL de parámetros de autenticación
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
         }
+      } else {
+        console.log("ℹ️ No hay resultado de redirect - primera carga normal");
       }
     } catch (error) {
-      console.error("Error al manejar redirección:", error);
-      addNotification("Error al procesar la autenticación", "error");
-    } 
+      console.error("❌ Error al manejar redirección:", error);
+      
+      // Solo mostrar error si realmente parece ser un problema de autenticación
+      if (error.message && (
+          error.message.includes("AADSTS") || 
+          error.message.includes("authentication") ||
+          error.message.includes("login"))) {
+        addNotification("Error al procesar la autenticación: " + error.message, "error");
+      } else {
+        console.log("ℹ️ Error menor en redirect handling, ignorando:", error.message);
+      }
+    }
   };
   
-  // Llamar a la función de manejo de redirección
-  handleRedirectResult();
-  
-}, [instance, inProgress, pendingAction, addNotification]); 
+  // Solo ejecutar si estamos en el navegador
+  if (typeof window !== 'undefined') {
+    // Pequeño delay para asegurar que MSAL esté completamente inicializado
+    const timeoutId = setTimeout(handleRedirectResult, 100);
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }
+}, [inProgress, pendingAction, addNotification]); 
   
 const checkAndEstablishSession = async () => {
   const accounts = instance.getAllAccounts();
@@ -319,42 +322,38 @@ const handleLogin = async () => {
     setLoginAttempts(prev => prev + 1);
     setIsLoggingIn(true);
     
-    console.log("Iniciando login con popup en lugar de redirect...");
+    console.log("🔄 Usando redirect para autenticación...");
     
-    // CAMBIO: Usar loginPopup en lugar de loginRedirect
-    const result = await instance.loginPopup({
+    // Guardar información de pendingAction en localStorage
+    if (pendingAction) {
+      localStorage.setItem('naia_auth_pending', 'true');
+      if (window.location.pathname.includes('/naia')) {
+        localStorage.setItem('naia_auth_route', window.location.pathname);
+      }
+    }
+    
+    // Mostrar notificación al usuario
+    addNotification("Redirigiendo para autenticación...", "info");
+    
+    // Usar redirect siempre (funciona tanto con aplicaciones SPA como Web)
+    await instance.loginRedirect({
       ...loginRequest,
+      redirectUri: window.location.origin,
       prompt: loginAttempts > 0 ? "select_account" : undefined
     });
     
-    // Procesar el resultado directamente
-    if (result) {
-      console.log("Login exitoso mediante popup", result);
-      
-      if (result.account) {
-        instance.setActiveAccount(result.account);
-        console.log("Cuenta activa establecida:", result.account.name);
-        
-        // Cerrar modal si estaba abierto
-        setIsLoginModalOpen(false);
-        
-        // Ejecutar acción pendiente si existe
-        if (pendingAction && typeof pendingAction === 'function') {
-          setTimeout(() => {
-            pendingAction();
-            setPendingAction(null);
-          }, 100);
-        }
-        
-        addNotification("Sesión iniciada correctamente", "success");
-      }
-    }
+    // El código después de loginRedirect no se ejecutará
+    
   } catch (error) {
-    console.error("Error en login popup:", error);
-    addNotification(
-      `Error al iniciar sesión: ${error.message}`, 
-      "error"
-    );
+    console.error("❌ Error en login redirect:", error);
+    
+    let errorMessage = "Error al iniciar sesión. Por favor inténtalo de nuevo.";
+    
+    if (error.message && error.message.includes("AADSTS")) {
+      errorMessage = `Error de autenticación: ${error.message}`;
+    }
+    
+    addNotification(errorMessage, "error");
     setIsLoggingIn(false);
   }
 };
