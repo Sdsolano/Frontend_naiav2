@@ -1,3 +1,4 @@
+// main.jsx - Versión con autenticación al inicio
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -17,13 +18,11 @@ import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./authConfig";
 
-
-
 // Crear el root una sola vez
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
-// Mostrar loader mientras se inicializa
-root.render(
+// Componente de loading mejorado
+const LoadingScreen = ({ message = "Iniciando NAIA" }) => (
   <div style={{
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -43,21 +42,15 @@ root.render(
         justifyContent: 'center'
       }}>
         <div style={{
-          width: '2rem',
-          height: '2rem',
+          width: '2rem', height: '2rem',
           background: 'linear-gradient(to bottom right, #172554, #1e3a8a)',
           borderRadius: '0.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontWeight: 'bold',
-          fontSize: '0.875rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'white', fontWeight: 'bold', fontSize: '0.875rem',
           marginRight: '0.75rem'
         }}>N</div>
         <span style={{
-          fontSize: '1.5rem',
-          fontWeight: '900',
+          fontSize: '1.5rem', fontWeight: '900',
           background: 'linear-gradient(to right, #172554, #0c4a6e)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
@@ -65,50 +58,28 @@ root.render(
       </div>
       
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
         margin: '0.5rem 0 1.5rem'
       }}>
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           gap: '0.5rem'
         }}>
-          <div style={{
-            width: '0.5rem',
-            height: '0.5rem',
-            borderRadius: '50%',
-            backgroundColor: '#172554',
-            animation: 'loadingDot 1.5s infinite ease-in-out',
-            animationDelay: '0s'
-          }}></div>
-          <div style={{
-            width: '0.5rem',
-            height: '0.5rem',
-            borderRadius: '50%',
-            backgroundColor: '#172554',
-            animation: 'loadingDot 1.5s infinite ease-in-out',
-            animationDelay: '0.2s'
-          }}></div>
-          <div style={{
-            width: '0.5rem',
-            height: '0.5rem',
-            borderRadius: '50%',
-            backgroundColor: '#172554',
-            animation: 'loadingDot 1.5s infinite ease-in-out',
-            animationDelay: '0.4s'
-          }}></div>
+          {[0, 0.2, 0.4].map((delay, i) => (
+            <div key={i} style={{
+              width: '0.5rem', height: '0.5rem', borderRadius: '50%',
+              backgroundColor: '#172554',
+              animation: `loadingDot 1.5s infinite ease-in-out`,
+              animationDelay: `${delay}s`
+            }}></div>
+          ))}
         </div>
       </div>
       
       <p style={{
         fontFamily: 'system-ui, -apple-system, sans-serif',
-        fontSize: '0.9rem', 
-        color: '#64748b',
-        margin: 0
-      }}>Iniciando NAIA</p>
+        fontSize: '0.9rem', color: '#64748b', margin: 0
+      }}>{message}</p>
       
       <style>{`
         @keyframes loadingDot {
@@ -120,141 +91,138 @@ root.render(
   </div>
 );
 
-// Inicialización asíncrona
+// Inicialización con verificación de autenticación PRIMERO
 const initializeApp = async () => {
   try {
-    console.log("Inicializando MSAL...");
+    console.log("🔄 Inicializando MSAL...");
+    
+    // Mostrar loading inicial
+    root.render(<LoadingScreen message="Configurando autenticación..." />);
+    
     const msalInstance = new PublicClientApplication(msalConfig);
     
-    // IMPORTANTE: Esperar a que MSAL se inicialice completamente
+    // CRÍTICO: Esperar inicialización completa
     await msalInstance.initialize();
-      try {
-    console.log("✅ MSAL inicializado correctamente, intentando autenticación silenciosa");
-    const accounts = msalInstance.getAllAccounts();
+    console.log("✅ MSAL inicializado");
     
-    if (accounts.length > 0) {
-      console.log("🔑 Cuenta encontrada, estableciendo cuenta activa", accounts[0].username);
-      msalInstance.setActiveAccount(accounts[0]);
-      
-      // Intenta adquirir token silenciosamente
-      const silentRequest = {
-        scopes: ["User.Read", "profile", "openid", "email"],
-        account: accounts[0]
-      };
-      
-      await msalInstance.acquireTokenSilent(silentRequest)
-        .then(response => {
-          console.log("🎉 Autenticación silenciosa exitosa");
-        })
-        .catch(error => {
-          console.warn("⚠️ No se pudo hacer autenticación silenciosa:", error);
-        });
-    }
-  } catch (e) {
-    console.warn("⚠️ Error durante la verificación de autenticación silenciosa:", e);
-  }
+    // CRÍTICO: Manejar redirect ANTES de renderizar la app
+    console.log("🔄 Procesando resultados de autenticación...");
+    root.render(<LoadingScreen message="Verificando sesión..." />);
     
-    // Establecer cuenta activa si existe
-    const accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
-      msalInstance.setActiveAccount(accounts[0]);
-    }
-    
-    // Renderizar la aplicación
-    root.render(
-      <React.StrictMode>
-        <MsalProvider instance={msalInstance}>
-          <NotificationProvider>
-            <ChatProvider>
-              <AuthProvider>
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Layout />}>
-                      <Route index element={<Home />} />
-                      <Route path="documents" element={<Documents />} />
-                      <Route path="naia" element={<RoleSelection />} />
-                      <Route path="naia/interface" element={<App />} />
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Route>
-                  </Routes>
-                  <LoginModal />
-                </BrowserRouter>
-              </AuthProvider>
-            </ChatProvider>
-          </NotificationProvider>
-        </MsalProvider>
-      </React.StrictMode>
-    );
-  } catch (error) {
-    console.error("Error al inicializar la aplicación:", error);
-    
-    // Si hay error en la inicialización, limpiar el almacenamiento y recargar
     try {
-      console.log("Limpiando almacenamiento por error de inicialización...");
+      const redirectResult = await msalInstance.handleRedirectPromise();
       
-      // Limpiar localStorage y sessionStorage
-      const storageTypes = [localStorage, sessionStorage];
-      
-      storageTypes.forEach(storage => {
-        const keysToRemove = [];
+      if (redirectResult) {
+        console.log("✅ Autenticación por redirect exitosa:", redirectResult.account?.name);
         
-        for (let i = 0; i < storage.length; i++) {
-          const key = storage.key(i);
-          if (key && (
-              key.startsWith('msal.') || 
-              key.includes('login') || 
-              key.includes('microsoft') ||
-              key.includes('auth')
-          )) {
-            keysToRemove.push(key);
+        // Establecer cuenta activa inmediatamente
+        if (redirectResult.account) {
+          msalInstance.setActiveAccount(redirectResult.account);
+        }
+      } else {
+        console.log("ℹ️ No hay resultado de redirect - verificando sesión existente...");
+        
+        // Verificar si hay cuentas existentes
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) {
+          console.log("🔑 Sesión existente encontrada:", accounts[0].name);
+          msalInstance.setActiveAccount(accounts[0]);
+          
+          // Verificar que la sesión sigue válida
+          try {
+            await msalInstance.acquireTokenSilent({
+              scopes: ["User.Read"],
+              account: accounts[0]
+            });
+            console.log("✅ Sesión válida confirmada");
+          } catch (silentError) {
+            console.warn("⚠️ Sesión existente no válida:", silentError);
+            // Limpiar cuenta inválida
+            await msalInstance.clearCache();
           }
         }
-        
-        keysToRemove.forEach(key => {
-          console.log(`Eliminando: ${key}`);
-          storage.removeItem(key);
-        });
-      });
+      }
+    } catch (error) {
+      console.error("❌ Error procesando autenticación:", error);
       
-      // Mostrar mensaje de error
-      root.render(
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'white', padding: '20px'
-        }}>
-          <div style={{
-            maxWidth: '500px', textAlign: 'center', background: '#fff', 
-            padding: '20px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-          }}>
-            <h2 style={{color: '#d32f2f', marginBottom: '16px'}}>
-              Error al inicializar la aplicación
-            </h2>
-            <p style={{marginBottom: '16px'}}>
-              Hubo un problema al iniciar sesión. Se han limpiado los datos de sesión.
-            </p>
-            <button 
-              onClick={() => window.location.reload()}
-              style={{
-                background: '#2196f3', color: 'white', border: 'none',
-                padding: '8px 16px', borderRadius: '4px', cursor: 'pointer'
-              }}
-            >
-              Recargar página
-            </button>
-          </div>
-        </div>
-      );
-    } catch (cleanupError) {
-      console.error("Error al limpiar almacenamiento:", cleanupError);
-      
-      // Recargar de todos modos
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      // Si hay errores de autenticación, limpiar y continuar
+      if (error.message?.includes("AADSTS")) {
+        console.log("🧹 Limpiando datos de autenticación por error AADSTS");
+        await msalInstance.clearCache();
+      }
     }
+    
+    // AHORA renderizar la aplicación completa
+    console.log("🚀 Renderizando aplicación principal...");
+    root.render(<LoadingScreen message="Cargando aplicación..." />);
+    
+    // Pequeño delay para smooth transition
+    setTimeout(() => {
+      root.render(
+        <React.StrictMode>
+          <MsalProvider instance={msalInstance}>
+            <NotificationProvider>
+              <ChatProvider>
+                <AuthProvider>
+                  <BrowserRouter>
+                    <Routes>
+                      <Route path="/" element={<Layout />}>
+                        <Route index element={<Home />} />
+                        <Route path="documents" element={<Documents />} />
+                        <Route path="naia" element={<RoleSelection />} />
+                        <Route path="naia/interface" element={<App />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Route>
+                    </Routes>
+                    <LoginModal />
+                  </BrowserRouter>
+                </AuthProvider>
+              </ChatProvider>
+            </NotificationProvider>
+          </MsalProvider>
+        </React.StrictMode>
+      );
+    }, 300);
+    
+  } catch (error) {
+    console.error("❌ Error fatal en inicialización:", error);
+    
+    // Mostrar error y opción de reload
+    root.render(
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'white', padding: '20px'
+      }}>
+        <div style={{
+          maxWidth: '500px', textAlign: 'center', background: '#fff', 
+          padding: '20px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+        }}>
+          <h2 style={{color: '#d32f2f', marginBottom: '16px'}}>
+            Error al inicializar
+          </h2>
+          <p style={{marginBottom: '16px'}}>
+            Hubo un problema al inicializar NAIA. 
+          </p>
+          <button 
+            onClick={() => {
+              // Limpiar todo y recargar
+              localStorage.clear();
+              sessionStorage.clear();
+              window.location.reload();
+            }}
+            style={{
+              background: '#2196f3', color: 'white', border: 'none',
+              padding: '8px 16px', borderRadius: '4px', cursor: 'pointer'
+            }}
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
   }
 };
 
-// Iniciar la aplicación
+// Iniciar la aplicación con el nuevo flujo
 initializeApp();
