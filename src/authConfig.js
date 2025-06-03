@@ -6,8 +6,8 @@ const redirectUri = isProduction
   : window.location.origin;
 
 const clientId = isProduction
-  ? "716c96e0-113d-4d95-af42-7ee4dc266e43" 
-  : "716c96e0-113d-4d95-af42-7ee4dc266e43";
+  ? "71d031dd-5709-4ca1-84a6-d5f622f1a6c8" 
+  : "71d031dd-5709-4ca1-84a6-d5f622f1a6c8";
 
 export const msalConfig = {
   auth: {
