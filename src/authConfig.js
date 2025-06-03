@@ -1,13 +1,13 @@
-// authConfig.js - Configuración alternativa para Web Application
+// authConfig.js - Configuración CORRECTA para Single-Page Application
 const isProduction = window.location.hostname === 'naia.uninorte.edu.co';
 
 const redirectUri = isProduction 
   ? "https://naia.uninorte.edu.co/" 
-  : window.location.origin;
+  : window.location.origin + "/";
 
 const clientId = isProduction
   ? "71d031dd-5709-4ca1-84a6-d5f622f1a6c8" 
-  : "71d031dd-5709-4ca1-84a6-d5f622f1a6c8";
+  : "716c96e0-113d-4d95-af42-7ee4dc266e43";
 
 export const msalConfig = {
   auth: {
@@ -16,22 +16,20 @@ export const msalConfig = {
     redirectUri: redirectUri,
     navigateToLoginRequestUrl: true,
     postLogoutRedirectUri: redirectUri,
-    // Configuración para Web Application
-    knownAuthorities: ["login.microsoftonline.com"],
-    cloudDiscoveryMetadata: "",
-    authorityMetadata: ""
+    // Configuración para SPA - SIN knownAuthorities ni metadata vacíos
+    knownAuthorities: ["login.microsoftonline.com"]
   },
   cache: {
-    cacheLocation: "localStorage", // Cambiar a localStorage para Web Apps
-    storeAuthStateInCookie: true,
-    secureCookies: isProduction // Solo cookies seguras en prod
+    cacheLocation: "sessionStorage", // ← SPA usa sessionStorage, NO localStorage
+    storeAuthStateInCookie: false,   // ← SPA NO usa cookies para auth state
+    secureCookies: false             // ← SPA NO depende de cookies
   },
   system: {
     allowRedirectInIframe: false,
     iframeHashTimeout: 10000,
     tokenRenewalOffsetSeconds: 300,
     navigateFrameWait: 0,
-    // Configuración específica para Web Application
+    // Configuración específica para SPA
     allowNativeBroker: false,
     windowHashTimeout: 60000,
     loggerOptions: {
@@ -46,12 +44,11 @@ export const msalConfig = {
   }
 };
 
-// Solicitud de login modificada para Web Application
+// Solicitud de login para SPA
 export const loginRequest = {
   scopes: ["User.Read", "profile", "email", "openid"],
   extraScopesToConsent: [],
   forceRefresh: false,
-  // Parámetros adicionales para Web Application
   prompt: "select_account",
-  domainHint: "uninorte.edu.co" // Si todos los usuarios son de Uninorte
+  domainHint: "uninorte.edu.co"
 };
