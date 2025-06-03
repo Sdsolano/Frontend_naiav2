@@ -5,12 +5,17 @@ import { useUserImage } from "../hooks/useUserImage";
 import { Send, Loader, Mic, MicOff, RefreshCw, Camera } from "lucide-react";
 import FunctionResultsDisplay from "./FunctionResultsDisplay";
 import { useNavigate } from "react-router-dom";
+import { getCurrentRoleName } from "../utils/roleUtils"; // ← NUEVO: Importar utilidad
+
 // Variable global para evitar envíos duplicados
 let lastSentMessage = '';
 let lastSentTime = 0;
 
 export const SimpleUI = ({ hidden, ...props }) => {
   const navigate = useNavigate(); // Añadir esto para manejar la navegación
+  const [currentRoleName, setCurrentRoleName] = useState('Investigador');
+
+
   
   // Función para cambiar de rol
   const handleChangeRole = () => {
@@ -53,6 +58,38 @@ export const SimpleUI = ({ hidden, ...props }) => {
     debugInfo
   } = useUserImage();
   
+    // ← NUEVO: Detectar cambios de rol
+  useEffect(() => {
+    const updateRoleName = () => {
+      const roleName = getCurrentRoleName();
+      setCurrentRoleName(roleName);
+      console.log(`🎭 SimpleUI: Rol actualizado a ${roleName}`);
+    };
+
+    // Actualizar rol inicial
+    updateRoleName();
+
+    // Escuchar cambios de rol
+    const handleRoleChange = () => {
+      updateRoleName();
+    };
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'naia_selected_role') {
+        updateRoleName();
+      }
+    };
+
+    window.addEventListener('role-changed', handleRoleChange);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('role-changed', handleRoleChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+
   // Determinar si el avatar está respondiendo
   const isAvatarResponding = loading || !!message;
   

@@ -5,9 +5,10 @@ import { OPENAI_API_KEY } from "../../config";
 import SubtitlesContext from '../components/subtitles';
 import { BACKEND_URL } from "../../config";
 import PollingManager from "../components/PollingManager";
+import { getCurrentRoleId } from "../utils/roleUtils"; // ← IMPORTAR UTILIDAD
 
 // Constantes para configuración del chat
-const VOICE_TYPE = "nova";
+const VOICE_TYPE = getCurrentRoleId() == 1? "nova": "echo";
 const POLLING_INTERVAL = 2000; // 2 segundos
 const POLLING_START_DELAY = 5000; // 5 segundos
 
@@ -49,6 +50,8 @@ class OpenAIAPI {
     
     try {
       // Usar la API local en lugar de OpenAI
+      const currentRoleId = getCurrentRoleId();
+
       const response = await fetch(`${BACKEND_URL}/api/v1/chat/`, {
         method: 'POST',
         headers: {
@@ -57,7 +60,7 @@ class OpenAIAPI {
         body: JSON.stringify({
           user_input: message,
           user_id: 1,
-          role_id: 1,
+          role_id: currentRoleId,
         }),
         signal
       });
@@ -245,9 +248,10 @@ export const ChatProvider = ({ children }) => {
   };
   
   // Manejo de advertencias de tokens
-  const handleTokenWarning = async (userId = 1, roleId = 1) => {
+  const handleTokenWarning = async () => {
     console.log("🔄 Detectado warning de tokens, solicitando resumen automático");
-    
+    const currentRoleId = getCurrentRoleId();
+
     try {
       const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/resume/`, {
         method: 'POST',
@@ -256,7 +260,7 @@ export const ChatProvider = ({ children }) => {
         },
         body: JSON.stringify({
           user_id: userId,
-          role_id: roleId
+          role_id: currentRoleId
         })
       });
   
@@ -275,7 +279,8 @@ export const ChatProvider = ({ children }) => {
   // Función para guardar la conversación en el backend
   const saveConversation = async () => {
     console.log("💾 Guardando conversación en el backend...");
-    
+    const currentRoleId = getCurrentRoleId();
+
     try {
       const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/`, {
         method: 'POST',
@@ -284,7 +289,7 @@ export const ChatProvider = ({ children }) => {
         },
         body: JSON.stringify({
           user_id: 1, 
-          role_id: 1
+          role_id: currentRoleId
         })
       });
   
@@ -306,9 +311,10 @@ export const ChatProvider = ({ children }) => {
     
     // Limpiar subtítulos antes de cargar la conversación
     clearSubtitles();
-    
+    const currentRoleId = getCurrentRoleId();
+
     try {
-      const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/?user_id=1&role_id=1`, {
+      const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/?user_id=1&role_id=${currentRoleId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'

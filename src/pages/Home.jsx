@@ -167,16 +167,16 @@ const Home = () => {
     },
     {
       icon: GraduationCap,
-      title: "Guía Universitario",
-      description: "Navegar la vida académica y recursos.",
-      color: "bg-red-600",
-      textColor: "text-red-600",
-      bgColor: "bg-red-50",
-      features: [
-        "Información sobre calendarios y fechas académicas.",
-        "Guía en procesos académicos clave (matrícula, progreso).",
-        "Acceso a servicios de apoyo estudiantil.",
-        "Envío de información sobre recursos universitarios."
+    title: "Guía Universitario", // ← YA DISPONIBLE
+    description: "Navegar la vida académica y recursos.",
+    color: "bg-red-600",
+    textColor: "text-red-600",
+    bgColor: "bg-red-50",
+    features: [
+      "Información sobre calendarios y fechas académicas.",
+      "Guía en procesos académicos clave (matrícula, progreso).",
+      "Acceso a servicios de apoyo estudiantil.",
+      "Envío de información sobre recursos universitarios."
       ]
     }
   ];
@@ -277,32 +277,32 @@ const Home = () => {
         }
       ]
     },
-    {
-      role: "Guía Universitario",
-      icon: GraduationCap,
-      color: "bg-red-600",
-      lightColor: "bg-red-50",
-      textColor: "text-red-600",
-      borderColor: "border-red-200",
-      description: "Configura tu experiencia académica con información de la Universidad del Norte",
-      steps: [
-        {
-          title: "Correo institucional",
-          description: "Conecta tu cuenta de correo universitario para recibir notificaciones",
-          icon: Mail
-        },
-        {
-          title: "Programa académico",
-          description: "Selecciona tu carrera, semestre y materias actuales",
-          icon: BookOpen
-        },
-        {
-          title: "Recursos académicos",
-          description: "Configura tus recursos favoritos y espacios de estudio",
-          icon: FileText
-        }
-      ]
-    }
+      {
+    role: "Guía Universitario",
+    icon: GraduationCap,
+    color: "bg-red-600",
+    lightColor: "bg-red-50",
+    textColor: "text-red-600",
+    borderColor: "border-red-200",
+    description: "Configura tu experiencia académica con información de la Universidad del Norte",
+    steps: [
+      {
+        title: "Correo institucional",
+        description: "Conecta tu cuenta de correo universitario para recibir notificaciones",
+        icon: Mail
+      },
+      {
+        title: "Programa académico",
+        description: "Selecciona tu carrera, semestre y materias actuales",
+        icon: BookOpen
+      },
+      {
+        title: "Recursos académicos",
+        description: "Configura tus recursos favoritos y espacios de estudio",
+        icon: FileText
+      }
+    ]
+  }
     
   ];
 

@@ -11,6 +11,8 @@ import Research_AF from "../assets/Research_AF.jpeg";
 import Receptionist_AF from "../assets/Receptionist_AF.jpeg";
 import University_Guide_AF from "../assets/University_guide_AF.jpeg";
 import { useAuth } from './AuthContext';
+import { isRoleAvailable, ROLE_NAMES } from '../utils/roleUtils';
+
 
 // Roles data - utilizando correctamente las imágenes importadas
 const roles = [
@@ -23,7 +25,7 @@ const roles = [
     textColor: "text-blue-950",
     bgColor: "bg-blue-50",
     borderColor: "border-blue-200",
-    available: true,
+    available: true, // ← Completamente implementado
     image: Research_AF,
     features: [
       "Leer y extraer información de PDFs (hasta 1GB)",
@@ -43,14 +45,15 @@ const roles = [
     textColor: "text-emerald-600",
     bgColor: "bg-emerald-50",
     borderColor: "border-emerald-200",
-    available: false,
+    available: isRoleAvailable('receptionist'), // ← Verificación dinámica
     image: Receptionist_AF,
     features: [
       "Notificar a residentes vía WhatsApp sobre visitantes",
       "Enviar anuncios a todos los residentes",
       "Gestionar reservas de áreas comunes",
       "Recomendar lugares, restaurantes y eventos cercanos"
-    ]
+    ],
+    developmentStatus: "En desarrollo - funcionalidad básica disponible"
   },
   {
     id: "trainer",
@@ -61,13 +64,14 @@ const roles = [
     textColor: "text-amber-600",
     bgColor: "bg-amber-50",
     borderColor: "border-amber-200",
-    available: false,
+    available: isRoleAvailable('trainer'), // ← Verificación dinámica
     image: Personal_Trainer_AF,
     features: [
       "Simulaciones de escenarios reales (entrevistas, negociaciones)",
       "Práctica para exámenes de idiomas con componentes orales",
       "Recomendaciones sobre interacciones sociales y presentación"
-    ]
+    ],
+    developmentStatus: "Próximamente - en fase de planificación"
   },
   {
     id: "assistant",
@@ -78,14 +82,15 @@ const roles = [
     textColor: "text-purple-600",
     bgColor: "bg-purple-50",
     borderColor: "border-purple-200",
-    available: false,
+    available: isRoleAvailable('assistant'), // ← Verificación dinámica
     image: Personal_Assistant_AF,
     features: [
       "Envío de correos a contactos preregistrados",
       "Recordatorios usando Google Calendar",
       "Informes sobre visitantes en tu ausencia",
       "Información de agenda, clima y noticias"
-    ]
+    ],
+    developmentStatus: "Próximamente - integraciones en desarrollo"
   },
   {
     id: "guide",
@@ -96,7 +101,7 @@ const roles = [
     textColor: "text-red-600",
     bgColor: "bg-red-50",
     borderColor: "border-red-200",
-    available: false,
+    available: true, // ← Cambiado a true
     image: University_Guide_AF,
     features: [
       "Información sobre calendarios y fechas académicas",
@@ -135,22 +140,20 @@ const RoleSelection = () => {
       return;
     }
     
-    // Simplemente mostrar los detalles, sin verificar autenticación
     setSelectedRole(role);
     setShowDetails(true);
   };
 
-  // Handle role confirmation and navigation
+  // Handle role confirmation and navigation - ACTUALIZADO
   const handleConfirmRole = () => {
     if (selectedRole && selectedRole.available) {
       // Si no está autenticado, mostrar modal de login
       if (!isAuthenticated) {
-        // Cerrar el diálogo de detalles para evitar confusión visual
         setShowDetails(false);
         
-        // Abrir modal de login con la acción a ejecutar después
         openLoginModal(() => {
           localStorage.setItem('naia_selected_role', selectedRole.id);
+          console.log(`🎭 Rol seleccionado: ${selectedRole.title} (${selectedRole.id})`);
           navigate('/naia/interface');
         });
         return;
@@ -158,6 +161,13 @@ const RoleSelection = () => {
       
       // Si está autenticado, proceder normalmente
       localStorage.setItem('naia_selected_role', selectedRole.id);
+      console.log(`🎭 Rol seleccionado: ${selectedRole.title} (${selectedRole.id})`);
+      
+      // Emitir evento para que otros componentes se enteren del cambio
+      window.dispatchEvent(new CustomEvent('role-changed', { 
+        detail: { roleId: selectedRole.id, roleName: selectedRole.title }
+      }));
+      
       navigate('/naia/interface');
     }
   };
@@ -277,19 +287,52 @@ const RoleSelection = () => {
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
                 <AlertTriangle size={16} className="sm:w-5 sm:h-5" />
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-gray-800">Rol no disponible</h3>
+              <h3 className="text-base sm:text-lg font-bold text-gray-800">Rol en desarrollo</h3>
             </div>
             
-            <p className="text-sm sm:text-base text-gray-600 mb-6">
-              El rol de <span className="font-medium">{selectedUnavailableRole.title}</span> aún no está disponible en esta versión de NAIA. Estamos trabajando para implementarlo pronto. Por favor, selecciona el rol de Investigador para continuar.
-            </p>
+            <div className="mb-4">
+              <h4 className="font-semibold text-gray-800 mb-2">{selectedUnavailableRole.title}</h4>
+              <p className="text-sm sm:text-base text-gray-600 mb-3">
+                {selectedUnavailableRole.developmentStatus}
+              </p>
+              
+              {/* Mostrar características planeadas */}
+              <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                <p className="text-xs text-gray-500 mb-2">Características planeadas:</p>
+                <ul className="text-xs text-gray-700 space-y-1">
+                  {selectedUnavailableRole.features.slice(0, 3).map((feature, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <p className="text-sm text-gray-600">
+                Mientras tanto, puedes usar el rol de <strong>Investigador</strong> que está completamente funcional.
+              </p>
+            </div>
             
-            <div className="flex justify-end">
+            <div className="flex gap-2">
               <button 
                 onClick={() => setUnavailableModalOpen(false)}
-                className="px-4 sm:px-5 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm sm:text-base"
+                className="flex-1 px-4 sm:px-5 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm sm:text-base"
               >
                 Entendido
+              </button>
+              <button 
+                onClick={() => {
+                  setUnavailableModalOpen(false);
+                  // Seleccionar automáticamente el rol de investigador
+                  const researcherRole = roles.find(r => r.id === 'researcher');
+                  if (researcherRole) {
+                    handleSelectRole(researcherRole);
+                  }
+                }}
+                className="flex-1 px-4 sm:px-5 py-2 bg-blue-950 text-white rounded-lg font-medium hover:bg-blue-900 transition-colors text-sm sm:text-base"
+              >
+                Usar Investigador
               </button>
             </div>
           </div>

@@ -2,8 +2,8 @@
 const isProduction = window.location.hostname === 'naia.uninorte.edu.co';
 
 const redirectUri = isProduction 
-  ? "https://naia.uninorte.edu.co" 
-  : window.location.origin.replace(/\/$/, "");
+  ? "https://naia.uninorte.edu.co/" 
+  : window.location.origin;
 
 const clientId = isProduction
   ? "71d031dd-5709-4ca1-84a6-d5f622f1a6c8" 
