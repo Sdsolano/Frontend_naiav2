@@ -11,7 +11,7 @@ import { getCurrentRoleId } from "../utils/roleUtils"; // ← IMPORTAR UTILIDAD
 const VOICE_TYPE = [1, 6].includes(getCurrentRoleId()) ? "nova" : "echo";
 const POLLING_INTERVAL = 2000; // 2 segundos
 const POLLING_START_DELAY = 5000; // 5 segundos
-
+const ROLE_ID = getCurrentRoleId();
 // Transiciones y muletillas para hacer el habla más natural
 const SPEECH_TRANSITIONS = [" "];
 
@@ -782,9 +782,9 @@ export const ChatProvider = ({ children }) => {
         enabled={pollingEnabled}
         interval={POLLING_INTERVAL}
         startDelay={POLLING_START_DELAY}
-        debug={true} // Activar logs para depuración
+        debug={true}
         userId={1}
-        roleId={1}
+        roleId={getCurrentRoleId()}
         sessionId={pollingSessionId}
       />
       
