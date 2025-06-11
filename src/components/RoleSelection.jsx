@@ -127,7 +127,6 @@ const roles = [
       "Acompañamiento emocional personalizado y comprensivo",
       "Análisis de patrones de bienestar basado en conversaciones",
       "Técnicas de relajación y manejo del estrés",
-      "Asesoría psicológica de apoyo y orientación",
       "Seguimiento del estado anímico y progreso personal",
       "Recursos y ejercicios para el desarrollo del bienestar"
     ]
@@ -494,7 +493,7 @@ const RoleSelection = () => {
                           />
                           
                           {/* Overlays y gradientes */}
-                          <div className={`absolute inset-x-0 top-0 h-32 sm:h-40 bg-gradient-to-b ${role.available ? `from-${role.color.split('-')[1]}-800` : 'from-gray-800'} to-transparent opacity-60`}></div>
+                          <div className={`absolute inset-x-0 top-0 h-32 sm:h-40 bg-gradient-to-b ${role.available ? 'from-gray-900' : 'from-gray-800'} to-transparent opacity-60`}></div>
                           <div className="absolute inset-x-0 bottom-0 h-64 sm:h-80 bg-gradient-to-t from-black to-transparent"></div>
                           
                           {/* Indicador de disponibilidad */}
