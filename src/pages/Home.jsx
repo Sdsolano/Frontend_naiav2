@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpen, Search, Video, MessageSquare, Brain, ChevronRight, Building, UserCheck, User, GraduationCap, Mail, Calendar, Globe, Check, Settings, MapPin, Users, FileText, Image, GanttChart, Sparkles, BrainCircuit } from "lucide-react";
+import { ArrowRight, BookOpen, Search, Video, MessageSquare, Brain, ChevronRight, Building, UserCheck, User, GraduationCap, Mail, Calendar, Globe, Check, Settings, MapPin, Users, FileText, Image, GanttChart, Sparkles, BrainCircuit, Heart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Personal_Assistant_AF from "../assets/Personal_Assistant_AF.jpeg";
 import Personal_Trainer_AF from "../assets/Personal_Trainer_AF.jpeg";
 import Research_AF from "../assets/Research_AF.jpeg";
 import Receptionist_AF from "../assets/Receptionist_AF.jpeg";
 import University_Guide_AF from "../assets/University_guide_AF.jpeg";
-
+import Companion_AF from "../assets/Companion_AF.jpeg"; 
 const HeroCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   
@@ -16,7 +16,9 @@ const HeroCarousel = () => {
     { src: Receptionist_AF, alt: "Recepcionista NAIA", role: "Recepcionista" },
     { src: Personal_Trainer_AF, alt: "Entrenador NAIA", role: "Entrenador" },
     { src: Personal_Assistant_AF, alt: "Asistente Personal NAIA", role: "Asistente" },
-    { src: University_Guide_AF, alt: "Guía Universitario NAIA", role: "Guía" }
+    { src: University_Guide_AF, alt: "Guía Universitario NAIA", role: "Guía" },
+    { src: Companion_AF, alt: "Compañero de bienestar NAIA", role: "Compañero" }  // ← NUEVA IMAGEN
+
   ];
 
   // Avanzar automáticamente cada 5 segundos
@@ -178,6 +180,22 @@ const Home = () => {
       "Acceso a servicios de apoyo estudiantil.",
       "Envío de información sobre recursos universitarios."
       ]
+    },
+    {
+      icon: Heart,
+      title: "Compañero de bienestar",
+      description: "Acompañamiento emocional y bienestar mental.",
+      color: "bg-pink-600",
+      textColor: "text-pink-600",
+      bgColor: "bg-pink-50",
+      features: [
+        "Acompañamiento emocional personalizado y comprensivo.",
+        "Análisis de patrones de bienestar basado en conversaciones.",
+        "Técnicas de relajación y manejo del estrés.",
+        "Asesoría psicológica de apoyo y orientación.",
+        "Seguimiento del estado anímico y progreso personal.",
+        "Recursos y ejercicios para el desarrollo del bienestar."
+      ]
     }
   ];
 
@@ -302,7 +320,34 @@ const Home = () => {
         icon: FileText
       }
     ]
-  }
+  },
+  {
+      role: "Compañero de bienestar",
+      icon: Heart,
+      color: "bg-pink-600",
+      lightColor: "bg-pink-50",
+      textColor: "text-pink-600",
+      borderColor: "border-pink-200",
+      description: "Personaliza tu experiencia de bienestar para obtener el mejor acompañamiento emocional",
+      steps: [
+        {
+          title: "Perfil de bienestar",
+          description: "Comparte tus objetivos de bienestar y áreas de interés personal",
+          icon: User
+        },
+        {
+          title: "Preferencias de comunicación",
+          description: "Define cómo prefieres recibir apoyo y el tono de las conversaciones",
+          icon: MessageSquare
+        },
+        {
+          title: "Recordatorios de bienestar",
+          description: "Configura notificaciones para ejercicios de relajación y check-ins",
+          icon: Calendar
+        }
+      ]
+    }
+
     
   ];
 
@@ -370,7 +415,7 @@ const Home = () => {
       <section className="py-10">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-gray-800 mb-3">
-            Cinco roles especializados
+            Seis roles especializados
           </h2>
           <p className="mt-3 text-lg text-gray-600 max-w-2xl mx-auto">
             NAIA adapta sus capacidades a tus necesidades específicas

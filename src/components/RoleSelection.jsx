@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
-  BookOpen, Building, UserCheck, User, GraduationCap,
+  BookOpen, Building, UserCheck, User, GraduationCap, Heart,
   ArrowRight, Info, AlertTriangle, ChevronLeft, ChevronRight, X
 } from "lucide-react";
 import Thinking_naia from "../assets/NAIA_greeting.png";
@@ -10,6 +10,7 @@ import Personal_Trainer_AF from "../assets/Personal_Trainer_AF.jpeg";
 import Research_AF from "../assets/Research_AF.jpeg";
 import Receptionist_AF from "../assets/Receptionist_AF.jpeg";
 import University_Guide_AF from "../assets/University_guide_AF.jpeg";
+import Companion_AF from "../assets/Companion_AF.jpeg";  // ← NUEVA IMAGEN
 import { useAuth } from './AuthContext';
 import { isRoleAvailable, ROLE_NAMES } from '../utils/roleUtils';
 
@@ -25,7 +26,7 @@ const roles = [
     textColor: "text-blue-950",
     bgColor: "bg-blue-50",
     borderColor: "border-blue-200",
-    available: true, // ← Completamente implementado
+    available: true,
     image: Research_AF,
     features: [
       "Leer y extraer información de PDFs (hasta 1GB)",
@@ -45,7 +46,7 @@ const roles = [
     textColor: "text-emerald-600",
     bgColor: "bg-emerald-50",
     borderColor: "border-emerald-200",
-    available: isRoleAvailable('receptionist'), // ← Verificación dinámica
+    available: isRoleAvailable('receptionist'),
     image: Receptionist_AF,
     features: [
       "Notificar a residentes vía WhatsApp sobre visitantes",
@@ -64,7 +65,7 @@ const roles = [
     textColor: "text-amber-600",
     bgColor: "bg-amber-50",
     borderColor: "border-amber-200",
-    available: isRoleAvailable('trainer'), // ← Verificación dinámica
+    available: isRoleAvailable('trainer'),
     image: Personal_Trainer_AF,
     features: [
       "Simulaciones de escenarios reales (entrevistas, negociaciones)",
@@ -82,7 +83,7 @@ const roles = [
     textColor: "text-purple-600",
     bgColor: "bg-purple-50",
     borderColor: "border-purple-200",
-    available: isRoleAvailable('assistant'), // ← Verificación dinámica
+    available: isRoleAvailable('assistant'),
     image: Personal_Assistant_AF,
     features: [
       "Envío de correos a contactos preregistrados",
@@ -101,13 +102,34 @@ const roles = [
     textColor: "text-red-600",
     bgColor: "bg-red-50",
     borderColor: "border-red-200",
-    available: true, // ← Cambiado a true
+    available: true,
     image: University_Guide_AF,
     features: [
       "Información sobre calendarios y fechas académicas",
       "Guía en procesos académicos clave (matrícula, progreso)",
       "Acceso a servicios de apoyo estudiantil",
       "Envío de información sobre recursos universitarios"
+    ]
+  },
+  // ← NUEVO ROL: Compañero de bienestar
+  {
+    id: "companion",
+    icon: Heart,
+    title: "Compañero de bienestar",
+    description: "Brinda acompañamiento personalizado para tu bienestar emocional y mental.",
+    color: "bg-pink-600",      
+    textColor: "text-pink-600", 
+    bgColor: "bg-pink-50",
+    borderColor: "border-pink-200",
+    available: true,
+    image: Companion_AF,
+    features: [
+      "Acompañamiento emocional personalizado y comprensivo",
+      "Análisis de patrones de bienestar basado en conversaciones",
+      "Técnicas de relajación y manejo del estrés",
+      "Asesoría psicológica de apoyo y orientación",
+      "Seguimiento del estado anímico y progreso personal",
+      "Recursos y ejercicios para el desarrollo del bienestar"
     ]
   }
 ];

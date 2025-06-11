@@ -8,7 +8,7 @@ import PollingManager from "../components/PollingManager";
 import { getCurrentRoleId } from "../utils/roleUtils"; // ← IMPORTAR UTILIDAD
 
 // Constantes para configuración del chat
-const VOICE_TYPE = getCurrentRoleId() == 1? "nova": "echo";
+const VOICE_TYPE = [1, 6].includes(getCurrentRoleId()) ? "nova" : "echo";
 const POLLING_INTERVAL = 2000; // 2 segundos
 const POLLING_START_DELAY = 5000; // 5 segundos
 
@@ -99,7 +99,7 @@ class OpenAIAPI {
         text: cleanText(msg.text) || "No se pudo obtener una respuesta clara.",
         facialExpression: msg.facialExpression || "default",
         animation: msg.animation || "Talking_1",
-        tts_prompt: msg.tts_prompt || "default"
+        tts_prompt: (msg.tts_prompt + 'be aware of the language it can be either spanish or english but for now just answer IN ENGLISH') || "default"
       }));
       
       // Devolver un objeto que contiene tanto los mensajes formateados como la respuesta completa

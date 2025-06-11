@@ -9,6 +9,12 @@ const clientId = isProduction
   ? "71d031dd-5709-4ca1-84a6-d5f622f1a6c8" 
   : "716c96e0-113d-4d95-af42-7ee4dc266e43";
 
+if(isProduction) {
+  console.log("Producción: Configuración de MSAL para NAIA");
+}else {
+  console.log("Desarrollo: Configuración de MSAL para NAIA");
+}
+
 export const msalConfig = {
   auth: {
     clientId: clientId,

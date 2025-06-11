@@ -102,6 +102,18 @@ const corresponding = {
 
 let setupMode = false;
 
+// ← NUEVO: Función para determinar el modelo basado en el rol
+const getModelPathForRole = (roleId) => {
+  switch (roleId) {
+    case 'guide':
+      return "/models/uni.glb";
+    case 'companion':
+      return "/models/companion.glb";  // ← NUEVO modelo
+    default:
+      return "/models/investigator.glb";
+  }
+};
+
 export function Avatar(props) {
   // ← SIMPLIFICADO: Estado de rol y modelo más directo
   const [currentRole, setCurrentRole] = useState(() => {
@@ -111,7 +123,7 @@ export function Avatar(props) {
   
   const [modelPath, setModelPath] = useState(() => {
     const roleConfig = getCurrentRoleConfig();
-    return roleConfig.id === 'guide' ? "/models/uni.glb" : "/models/investigator.glb";
+    return getModelPathForRole(roleConfig.id);  // ← ACTUALIZADO: usar nueva función
   });
 
   // ← SIMPLIFICADO: Efecto único para cambios de rol
@@ -124,7 +136,7 @@ export function Avatar(props) {
         console.log(`🎭 Avatar: Cambiando rol de ${currentRole} a ${newRole}`);
         setCurrentRole(newRole);
         
-        const newModelPath = newRole === 'guide' ? "/models/uni.glb" : "/models/investigator.glb";
+        const newModelPath = getModelPathForRole(newRole);  // ← ACTUALIZADO: usar nueva función
         console.log(`📦 Avatar: Cambiando modelo a ${newModelPath}`);
         setModelPath(newModelPath);
       }
@@ -629,7 +641,7 @@ export function Avatar(props) {
           return null;
         }
       })()}
-
+      
       <skinnedMesh
         name="Wolf3D_Hair"
         geometry={nodes.Wolf3D_Hair.geometry}
@@ -672,6 +684,8 @@ export function Avatar(props) {
   );
 }
 
+// ← ACTUALIZADO: Precargar todos los modelos
 useGLTF.preload("/models/investigator.glb");
 useGLTF.preload("/models/animations.glb");
 useGLTF.preload("/models/uni.glb");
+useGLTF.preload("/models/companion.glb");  // ← NUEVO: Precargar modelo companion
