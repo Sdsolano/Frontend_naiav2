@@ -295,7 +295,7 @@ const FunctionResultsDisplay = ({ functionResults }) => {
           id: resultId,
           content: result.graph,
           timestamp: new Date().toLocaleTimeString(),
-          title: result.title || `Gráfica ${graphResults.length + newGraphResults.length + 1}`
+          title: result.title || `Imagen ${graphResults.length + newGraphResults.length + 1}`
         };
         
         newGraphResults.push(graphResult);
@@ -415,17 +415,17 @@ const FunctionResultsDisplay = ({ functionResults }) => {
       captureIframeAsImage(iframeRef, filename)
         .then(success => {
           if (success) {
-            addNotification('Gráfica descargada correctamente', 'success');
+            addNotification('Imagen descargada correctamente', 'success');
           } else {
-            addNotification('No se pudo descargar la gráfica', 'error');
+            addNotification('No se pudo descargar la imagen', 'error');
           }
         })
         .catch(err => {
-          console.error('Error al descargar la gráfica:', err);
-          addNotification('Error al descargar la gráfica', 'error');
+          console.error('Error al descargar la imagen:', err);
+          addNotification('Error al descargar la imagen', 'error');
         });
     } else {
-      addNotification('No se pudo acceder a la gráfica para descargar', 'error');
+      addNotification('No se pudo acceder a la imagen para descargar', 'error');
     }
   };
 
@@ -433,15 +433,10 @@ const FunctionResultsDisplay = ({ functionResults }) => {
     <>
       {/* Floating graph modal without affecting the background */}
       {activeGraphModal && (
-        <div className="fixed left-0 top-0 bottom-0 z-50 pointer-events-none flex items-center sm:pl-16 md:pl-20">
+        <div className="fixed left-0 top-0 bottom-0 z-50 pointer-events-none flex items-center pl-2 sm:pl-16 md:pl-20 lg:pl-24">
           <div 
             ref={modalRef}
-            className="pointer-events-auto relative bg-white/95 rounded-2xl shadow-lg border border-sky-100 overflow-hidden ml-4"
-            style={{ 
-              width: 'min(90vw, 600px)', 
-              height: 'min(90vh, 600px)',
-              aspectRatio: '1 / 1'
-            }}
+            className="pointer-events-auto relative bg-white/95 rounded-2xl shadow-lg border border-sky-100 overflow-hidden ml-2 sm:ml-4 w-[85vw] h-[85vh] sm:w-96 sm:h-96 md:w-[500px] md:h-[500px] lg:w-[600px] lg:h-[600px]"
           >
             <div className="flex justify-between items-center p-4 border-b border-sky-100 bg-white/90">
               <h3 className="font-bold text-lg text-gray-800">{activeGraphModal.title}</h3>
@@ -452,8 +447,8 @@ const FunctionResultsDisplay = ({ functionResults }) => {
                     downloadActiveGraph();
                   }}
                   className="p-2 rounded-md bg-blue-950 text-white hover:bg-blue-900 transition-colors flex items-center"
-                  aria-label="Descargar gráfica"
-                  title="Descargar gráfica como PNG"
+                  aria-label="Descargar imagen"
+                  title="Descargar imagen como PNG"
                 >
                   <Download className="w-4 h-4" />
                   <span className="ml-1 text-sm font-medium">Descargar</span>
@@ -478,11 +473,11 @@ const FunctionResultsDisplay = ({ functionResults }) => {
       )}
     
       {/* Main sidebar panel */}
-      <div className={`fixed top-0 right-0 bottom-0 z-20 pointer-events-auto transition-all duration-300 ease-in-out ${isCollapsed ? 'w-5' : 'w-96'}`}>
+      <div className={`fixed top-0 right-0 bottom-0 z-20 pointer-events-auto transition-all duration-300 ease-in-out ${isCollapsed ? 'w-5' : 'w-[85vw] sm:w-80 md:w-96 lg:w-[32rem]'}`}>
         {/* Collapse/expand button */}
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute top-1/2 -translate-y-1/2 -left-4 w-8 h-8 bg-white bg-opacity-50 shadow-md rounded-full flex items-center justify-center z-10"
+          className="absolute top-1/2 -translate-y-1/2 -left-4 w-8 h-8 bg-white bg-opacity-50 shadow-md rounded-full flex items-center justify-center z-10  sm:flex"
         >
           {isCollapsed ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
         </button>
@@ -490,8 +485,16 @@ const FunctionResultsDisplay = ({ functionResults }) => {
         {!isCollapsed && (
           <div className="h-full flex flex-col m-4 rounded-2xl bg-white bg-opacity-50 backdrop-blur-md shadow-2xl overflow-hidden border border-sky-100">
             {/* Header */}
-            <div className="p-4 border-b border-sky-100">
+            <div className="p-4 border-b border-sky-100 flex justify-between items-center">
               <h2 className="font-bold text-lg text-gray-800">Información adicional</h2>
+              {/* Close button for mobile */}
+              <button 
+                onClick={() => setIsCollapsed(true)}
+                className="sm:hidden w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-700 transition-colors"
+                aria-label="Cerrar panel"
+              >
+                <X size={20} />
+              </button>
             </div>
             
             {/* Tabs */}
@@ -501,7 +504,7 @@ const FunctionResultsDisplay = ({ functionResults }) => {
                   className={`flex-1 py-3 px-2 text-sm font-medium ${activeTab === 'display' ? 'text-blue-950 border-b-2 border-blue-950' : 'text-gray-500 hover:text-gray-700'}`}
                   onClick={() => setActiveTab('display')}
                 >
-                  Bibliografía ({displayResults.length})
+                  Resultados ({displayResults.length})
                 </button>
               )}
               {searchResults.length > 0 && (
@@ -525,7 +528,7 @@ const FunctionResultsDisplay = ({ functionResults }) => {
                   className={`flex-1 py-3 px-2 text-sm font-medium ${activeTab === 'graphs' ? 'text-blue-950 border-b-2 border-blue-950' : 'text-gray-500 hover:text-gray-700'}`}
                   onClick={() => setActiveTab('graphs')}
                 >
-                  Gráficas ({graphResults.length})
+                  Imágenes ({graphResults.length})
                 </button>
               )}
             </div>
@@ -709,7 +712,7 @@ const FunctionResultsDisplay = ({ functionResults }) => {
                             <BarChart2 className="h-6 w-6 text-blue-950" />
                           </div>
                           <div>
-                            <h3 className="font-medium text-gray-800">{graph.title || 'Gráfica'}</h3>
+                            <h3 className="font-medium text-gray-800">{graph.title || 'Imagen'}</h3>
                             <p className="text-sm text-gray-600">Haz clic para visualizar</p>
                           </div>
                         </div>
@@ -721,7 +724,7 @@ const FunctionResultsDisplay = ({ functionResults }) => {
                             setTimeout(() => downloadActiveGraph(), 300);
                           }}
                           className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center"
-                          title="Descargar gráfica"
+                          title="Descargar imagen"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -779,9 +782,9 @@ const FunctionResultsDisplay = ({ functionResults }) => {
               >
                 <X className="mr-2 h-4 w-4" />
                 Limpiar {
-                  activeTab === 'display' ? 'referencias' : 
+                  activeTab === 'display' ? 'resultados' : 
                   activeTab === 'pdf' ? 'documentos' : 
-                  activeTab === 'search' ? 'búsquedas' : 'gráficas'
+                  activeTab === 'search' ? 'búsquedas' : 'imágenes'
                 }
               </button>
             </div>
