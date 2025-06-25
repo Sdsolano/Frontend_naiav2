@@ -6,6 +6,8 @@ import SubtitlesContext from '../components/subtitles';
 import { BACKEND_URL } from "../../config";
 import PollingManager from "../components/PollingManager";
 import { getCurrentRoleId } from "../utils/roleUtils"; // ← IMPORTAR UTILIDAD
+import { useUser } from '../components/UserContext';
+import { use } from "react";
 
 // Constantes para configuración del chat
 const VOICE_TYPE = [1, 6].includes(getCurrentRoleId()) ? "nova" : "echo";
@@ -45,11 +47,13 @@ class OpenAIAPI {
     return this.abortController.signal;
   }
 
-  async getResponse(message) {
+  async getResponse(message,userId) {
     const signal = this.reset();
     
     try {
-      // Usar la API local en lugar de OpenAI
+      if (!userId) {
+        throw new Error('Usuario no identificado. Por favor, inicie sesión nuevamente.');
+      }
       const currentRoleId = getCurrentRoleId();
 
       const response = await fetch(`${BACKEND_URL}/api/v1/chat/`, {
@@ -59,7 +63,7 @@ class OpenAIAPI {
         },
         body: JSON.stringify({
           user_input: message,
-          user_id: 1,
+          user_id: userId,
           role_id: currentRoleId,
         }),
         signal
@@ -202,6 +206,7 @@ function arrayBufferToBase64(buffer) {
 // Provider component
 export const ChatProvider = ({ children }) => {
   // Estado principal
+  const { userId, isUserReady } = useUser(); // Obtener userId dinámico
   const [pendingMessages, setPendingMessages] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -278,6 +283,11 @@ export const ChatProvider = ({ children }) => {
   
   // Función para guardar la conversación en el backend
   const saveConversation = async () => {
+     if (!userId) {
+      console.log("⚠️ No se puede guardar conversación: userId no disponible");
+      addNotification("Error: Usuario no identificado", "error");
+      return;
+    }
     console.log("💾 Guardando conversación en el backend...");
     const currentRoleId = getCurrentRoleId();
 
@@ -288,7 +298,7 @@ export const ChatProvider = ({ children }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: 1, 
+          user_id: userId, 
           role_id: currentRoleId
         })
       });
@@ -307,6 +317,11 @@ export const ChatProvider = ({ children }) => {
 
   // Función para cargar una conversación previa
   const loadConversation = async () => {
+    if (!userId) {
+      console.log("⚠️ No se puede cargar conversación: userId no disponible");
+      addNotification("Error: Usuario no identificado", "error");
+      return;
+    }
     console.log("📂 Cargando conversación previa...");
     
     // Limpiar subtítulos antes de cargar la conversación
@@ -314,7 +329,7 @@ export const ChatProvider = ({ children }) => {
     const currentRoleId = getCurrentRoleId();
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/?user_id=1&role_id=${currentRoleId}`, {
+      const response = await fetch(`${BACKEND_URL}/api/v1/chat/messages/?user_id=${userId}&role_id=${currentRoleId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -640,6 +655,11 @@ export const ChatProvider = ({ children }) => {
 
   // Función principal de chat
   const chat = async (userMessage) => {
+    if (!isUserReady()) {
+      console.log("⚠️ Usuario no está listo para chat");
+      addNotification("Configurando usuario, por favor espere...", "info");
+      return;
+    }
     if (!userMessage?.trim()) {
       addNotification("Por favor, introduce un mensaje", "warning");
       return;
@@ -692,7 +712,7 @@ export const ChatProvider = ({ children }) => {
       
       // Obtener respuesta de la API
       console.log("🔄 Enviando mensaje a la API y esperando respuesta...");
-      const apiResponse = await apiRef.current.getResponse(userMessage);
+      const apiResponse = await apiRef.current.getResponse(userMessage, userId);
       
       // Desactivar polling una vez que tenemos la respuesta
       setPollingEnabled(false);
@@ -783,7 +803,7 @@ export const ChatProvider = ({ children }) => {
         interval={POLLING_INTERVAL}
         startDelay={POLLING_START_DELAY}
         debug={true}
-        userId={1}
+        userId={userId}
         roleId={getCurrentRoleId()}
         sessionId={pollingSessionId}
       />

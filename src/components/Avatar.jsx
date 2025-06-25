@@ -108,7 +108,13 @@ const getModelPathForRole = (roleId) => {
     case 'guide':
       return "/models/uni.glb";
     case 'companion':
-      return "/models/companion.glb";  // ← NUEVO modelo
+      return "/models/companion.glb";
+    case 'trainer':
+      return "/models/trainer.glb";
+    case 'assistant':
+      return "/models/personal.glb";
+    case 'receptionist':
+      return "/models/receptionist.glb";
     default:
       return "/models/investigator.glb";
   }
@@ -641,13 +647,25 @@ export function Avatar(props) {
           return null;
         }
       })()}
-      
-      <skinnedMesh
-        name="Wolf3D_Hair"
-        geometry={nodes.Wolf3D_Hair.geometry}
-        material={materials.Wolf3D_Hair}
-        skeleton={nodes.Wolf3D_Hair.skeleton}
-      />
+      {(() => {
+        try {
+          if (nodes.Wolf3D_Hair && materials.Wolf3D_Hair) {
+            return (
+               <skinnedMesh
+                name="Wolf3D_Hair"
+                geometry={nodes.Wolf3D_Hair.geometry}
+                material={materials.Wolf3D_Hair}
+                skeleton={nodes.Wolf3D_Hair.skeleton}
+              />
+            );
+          }
+          return null;
+        } catch (error) {
+          console.warn("Error loading hair mesh, skipping:", error);
+          return null;
+        }
+      })()}
+     
       <skinnedMesh
         name="EyeLeft"
         geometry={nodes.EyeLeft.geometry}
@@ -688,4 +706,6 @@ export function Avatar(props) {
 useGLTF.preload("/models/investigator.glb");
 useGLTF.preload("/models/animations.glb");
 useGLTF.preload("/models/uni.glb");
-useGLTF.preload("/models/companion.glb");  // ← NUEVO: Precargar modelo companion
+useGLTF.preload("/models/companion.glb");  
+useGLTF.preload("/models/trainer.glb");
+useGLTF.preload("/models/personal.glb"); // ← Añadido modelo de asistente

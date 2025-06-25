@@ -126,7 +126,6 @@ export const AuthProvider = ({ children }) => {
         const cookieName = cookieParts[0].trim();
         
         if (authTerms.some(term => cookieName.toLowerCase().includes(term.toLowerCase()))) {
-          console.log(`Eliminando cookie MSAL: ${cookieName}`);
           document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
           document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
           document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname};`;

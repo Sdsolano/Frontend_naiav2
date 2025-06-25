@@ -4,18 +4,18 @@
 export const ROLE_MAPPING = {
   'researcher': 1,
   'guide': 2,
-  'receptionist': 3, 
+  'assistant': 3,
   'trainer': 4,
-  'assistant': 5,
+  'receptionist': 5, 
   'companion': 6  // ← NUEVO: Compañero de bienestar
 };
 
 export const REVERSE_ROLE_MAPPING = {
   1: 'researcher',
   2: 'guide',
-  3: 'receptionist',
+  3: 'assistant',
   4: 'trainer', 
-  5: 'assistant',
+  5: 'receptionist',
   6: 'companion'  // ← NUEVO: Compañero de bienestar
 };
 
@@ -74,7 +74,7 @@ export const getCurrentRoleName = () => {
  */
 export const isRoleAvailable = (roleId) => {
   // Roles completamente implementados
-  const availableRoles = ['researcher', 'guide', 'companion']; // ← Añadido 'companion'
+  const availableRoles = ['researcher', 'guide', 'companion', 'trainer', 'assistant', 'receptionist']; // ← Añadido 'receptionist'
   return availableRoles.includes(roleId);
 };
 

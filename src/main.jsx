@@ -17,6 +17,7 @@ import "./index.css";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./authConfig";
+import { UserProvider } from "./components/UserContext";
 
 // Crear el root una sola vez
 const root = ReactDOM.createRoot(document.getElementById("root"));
@@ -103,7 +104,6 @@ const initializeApp = async () => {
     
     // CRÍTICO: Esperar inicialización completa
     await msalInstance.initialize();
-    console.log("✅ MSAL inicializado");
     
     // CRÍTICO: Manejar redirect ANTES de renderizar la app
     console.log("🔄 Procesando resultados de autenticación...");
@@ -162,6 +162,7 @@ const initializeApp = async () => {
         <React.StrictMode>
           <MsalProvider instance={msalInstance}>
             <NotificationProvider>
+              <UserProvider>
               <ChatProvider>
                 <AuthProvider>
                   <BrowserRouter>
@@ -178,6 +179,7 @@ const initializeApp = async () => {
                   </BrowserRouter>
                 </AuthProvider>
               </ChatProvider>
+              </UserProvider>
             </NotificationProvider>
           </MsalProvider>
         </React.StrictMode>

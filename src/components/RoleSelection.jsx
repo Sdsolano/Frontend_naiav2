@@ -46,7 +46,7 @@ const roles = [
     textColor: "text-emerald-600",
     bgColor: "bg-emerald-50",
     borderColor: "border-emerald-200",
-    available: isRoleAvailable('receptionist'),
+    available: false,
     image: Receptionist_AF,
     features: [
       "Notificar a residentes vía WhatsApp sobre visitantes",
@@ -65,7 +65,7 @@ const roles = [
     textColor: "text-amber-600",
     bgColor: "bg-amber-50",
     borderColor: "border-amber-200",
-    available: isRoleAvailable('trainer'),
+    available: true,
     image: Personal_Trainer_AF,
     features: [
       "Simulaciones de escenarios reales (entrevistas, negociaciones)",
@@ -83,7 +83,7 @@ const roles = [
     textColor: "text-purple-600",
     bgColor: "bg-purple-50",
     borderColor: "border-purple-200",
-    available: isRoleAvailable('assistant'),
+    available: true,
     image: Personal_Assistant_AF,
     features: [
       "Envío de correos a contactos preregistrados",

@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useNotification } from "../components/NotificationContext";
 import { BACKEND_URL } from "../../config";
+import { useUser } from '../components/UserContext';
+
 
 // URL base para las API del investigador - IMPORTANTE: debe terminar con barra diagonal (/)
 const API_BASE_URL = `${BACKEND_URL}/api/v1/researcher/document/`;
@@ -30,12 +32,9 @@ const Documents = () => {
   const [apiError, setApiError] = useState(null);
   const [apiAvailable, setApiAvailable] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0); // Estado para forzar recargas
-  const [initialSyncAttempted, setInitialSyncAttempted] = useState(false); // Nuevo estado para controlar si ya se intentó la sincronización inicial
-  
-  // Normalmente este ID vendría del contexto de autenticación
-  // Por ahora lo hardcodeamos para propósitos de ejemplo
-  const userId = 1;
-  
+  const [initialSyncAttempted, setInitialSyncAttempted] = useState(false); // Nuevo estado para controlar si ya se 
+  // intentó la sincronización inicial
+  const { userId, isUserReady } = useUser(); // Obtener userId dinámico
   const fileInputRef = useRef(null);
   const dropAreaRef = useRef(null);
   const { addNotification } = useNotification();
@@ -43,6 +42,19 @@ const Documents = () => {
   // Cargar documentos cuando el componente se monta o refreshKey cambia
   useEffect(() => {
     const initializeDocuments = async () => {
+       if (!isUserReady()) {
+        console.log("⚠️ Usuario no está listo, esperando configuración...");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!userId) {
+        console.log("⚠️ userId no disponible");
+        setApiError("Usuario no identificado");
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       
       try {
@@ -99,10 +111,14 @@ const Documents = () => {
     };
     
     initializeDocuments();
-  }, [refreshKey]); // Mantener la dependencia a refreshKey para forzar recargas
+  }, [refreshKey, userId, isUserReady]); // Mantener la dependencia a refreshKey para forzar recargas
 
   // Función mejorada para refrescar forzadamente
   const forceRefresh = async () => {
+    if (!userId) {
+      addNotification("Error: Usuario no identificado", "error");
+      return;
+    }
     console.log("🔄 Forzando actualización completa de documentos...");
     
     // Resetear todos los estados relacionados a documentos
@@ -159,6 +175,9 @@ const Documents = () => {
   };
 
   const fetchDocuments = async (bypassCache = false) => {
+    if (!userId) {
+      throw new Error('Usuario no identificado');
+    }
     setIsLoading(true);
     setApiError(null);
     
@@ -311,6 +330,11 @@ const Documents = () => {
   };
 
   const saveChanges = async () => {
+    if (!userId) {
+      addNotification("Error: Usuario no identificado", "error");
+      return;
+    }
+
     if (!pendingFiles.length && !pendingDeletions.length) {
       addNotification('No hay cambios para guardar', 'info');
       return;

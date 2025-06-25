@@ -199,8 +199,8 @@ const PollingManager = ({
   interval = 2000,
   startDelay = 5000,
   debug = false,
-  userId = 1,
-  roleId = 1,
+  userId,
+  roleId,
   sessionId = 0, // Añadimos parámetro para el ID de sesión
 }) => {
   // Mantenemos una referencia del estado anterior para comparar

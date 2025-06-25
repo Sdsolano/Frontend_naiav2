@@ -2,13 +2,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNotification } from '../components/NotificationContext';
 import { BACKEND_URL } from '../../config';
+import { useUser } from '../components/UserContext';
 
 const CAPTURE_QUALITY = 0.9;
 const MAX_IMAGE_SIZE = 640;
 const MIN_CAPTURE_INTERVAL = 2000;
 const CAMERA_INIT_DELAY = 3000;
 
-export const useUserImage = (userId = 1) => {
+export const useUserImage = () => {
+  const { userId, isUserReady } = useUser(); // Obtener userId dinámico
+
   const { addNotification } = useNotification();
   const [isCapturing, setIsCapturing] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -304,6 +307,11 @@ export const useUserImage = (userId = 1) => {
   
   // Procesar cola de imágenes
   const processImageQueue = useCallback(async () => {
+    if (!userId) {
+      console.log('📸 No se puede procesar cola de imágenes: userId no disponible');
+      isProcessingQueueRef.current = false;
+      return;
+    }
     if (isProcessingQueueRef.current || imageQueueRef.current.length === 0) {
       return;
     }
@@ -357,6 +365,11 @@ export const useUserImage = (userId = 1) => {
   
   // Subir imagen al servidor
   const uploadImage = useCallback(async (imageBlob) => {
+    if (!userId) {
+      console.log('📸 No se puede subir imagen dummy: userId no disponible');
+      return false;
+    }
+
     if (!imageBlob) return false;
     
     // Añadir a la cola
@@ -427,6 +440,10 @@ export const useUserImage = (userId = 1) => {
   // Capturar y subir
   const captureAndUpload = useCallback(async () => {
     // Solo subir si realmente podemos acceder a la cámara
+    if (!isUserReady() || !userId) {
+      console.log('📸 Usuario no está listo o userId no disponible, omitiendo captura');
+      return false;
+    }
     if (!isReady || !isCameraActuallyWorking()) {
       // No subir nada si no hay cámara disponible
       console.log('📸 Cámara no disponible, omitiendo captura');
@@ -448,13 +465,18 @@ export const useUserImage = (userId = 1) => {
       console.error('Error en captureAndUpload:', error);
       return false;
     }
-  }, [isReady, isCameraActuallyWorking, captureImage, uploadImage]);
+  }, [isReady, isCameraActuallyWorking, captureImage, uploadImage, isUserReady, userId]);
   
   // Función para captura inicial única
   const captureInitialImage = useCallback(async () => {
     // Asegurarse de que solo se ejecute una vez
     if (initialCaptureCompletedRef.current) return;
     
+    if (!isUserReady() || !userId) {
+      console.log('📸 Usuario no está listo para captura inicial, omitiendo');
+      return false;
+    }
+
     console.log('📸 Programando captura inicial...');
     
     // Marcar como completada
@@ -485,7 +507,7 @@ export const useUserImage = (userId = 1) => {
         return false;
       }
     }, 3000);
-  }, [captureImage, uploadImage, isReady, isCameraActuallyWorking]);
+  }, [captureImage, uploadImage, isReady, isCameraActuallyWorking, isUserReady, userId]);
   
   // Limpiar al desmontar
   useEffect(() => {
@@ -513,7 +535,9 @@ export const useUserImage = (userId = 1) => {
     getLastCaptureTime,
     debugInfo,
     isCameraActuallyWorking, // Nueva función
-    uploadDummyImage // Mantener para casos donde explícitamente se quiera usar
+    uploadDummyImage, // Mantener para casos donde explícitamente se quiera usar
+    userId: userId || "no disponible", // Exponer userId para uso externo
+    isUserReady: isUserReady(),
   };
 };
 

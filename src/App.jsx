@@ -6,7 +6,6 @@ import { SimpleUI } from "./components/SimpleUI";
 import SubtitlesContext from './components/subtitles';
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatEventListener, useChat } from './hooks/useChat';
-import { UserProvider } from "./components/UserContext";
 import ElegantSubtitles from "./components/ElegantSubtitles";
 import RoleGuard from "./components/RoleGuard";
 
@@ -151,7 +150,6 @@ function App() {
   return (
     <RoleGuard>
       <div className="overflow-hidden fixed inset-0 w-screen h-screen">
-        <UserProvider>
           <SubtitlesContext.Provider value={{ subtitles, setSubtitles }}>
             <Leva hidden />
             <Loader />
@@ -174,7 +172,6 @@ function App() {
             
             <ChatEventListener />
           </SubtitlesContext.Provider>
-        </UserProvider>
       </div>
     </RoleGuard>
   );

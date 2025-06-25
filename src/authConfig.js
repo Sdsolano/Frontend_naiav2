@@ -33,7 +33,6 @@ export const msalConfig = {
       logLevel: isProduction ? 1 : 3,
       loggerCallback: (level, message, containsPii) => {
         if (containsPii) return;
-        console.log(`MSAL [${level}]: ${message}`);
       },
       piiLoggingEnabled: false
     }
