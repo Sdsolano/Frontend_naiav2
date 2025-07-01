@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperat
 import { Download, FileText, ChevronLeft, ChevronRight, X, BarChart2, Search } from 'lucide-react';
 import { useNotification } from '../components/NotificationContext';
 
-// Component to render graph HTML content in an iframe with universal compatibility
 const GraphRenderer = forwardRef(({ htmlContent }, ref) => {
   const iframeRef = useRef(null);
   const contentRef = useRef("");
+  const blobUrlRef = useRef(null); // 🚨 SOLO ESTO ES NUEVO
   
   // Generate a unique key for the iframe whenever content changes
   const [iframeKey, setIframeKey] = useState(1);
@@ -58,6 +58,12 @@ const GraphRenderer = forwardRef(({ htmlContent }, ref) => {
   
   useEffect(() => {
     if (!iframeRef.current) return;
+    
+    // 🚨 NUEVO: Limpiar blob URL anterior
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
     
     // Only clean the backticks, don't modify the content itself
     let cleanHtml = contentRef.current;
@@ -128,12 +134,28 @@ const GraphRenderer = forwardRef(({ htmlContent }, ref) => {
       </style>`);
     
     try {
-      // Use srcdoc to set the content directly
-      iframeRef.current.srcdoc = cleanHtml;
+      // 🚨 CAMBIO PRINCIPAL: Usar blob URL en lugar de srcdoc
+      const blob = new Blob([cleanHtml], { type: 'text/html' });
+      const blobUrl = URL.createObjectURL(blob);
+      blobUrlRef.current = blobUrl;
+      
+      // Cambiar de srcdoc a src con blob URL
+      iframeRef.current.src = blobUrl;
     } catch (error) {
       console.error('Error setting iframe content:', error);
+      // Fallback a srcdoc si blob falla
+      iframeRef.current.srcdoc = cleanHtml;
     }
   }, [iframeKey]);
+  
+  // 🚨 NUEVO: Cleanup del blob URL
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+      }
+    };
+  }, []);
   
   return (
     <div className="iframe-container w-full" style={{ overflow: 'hidden' }}>
@@ -154,7 +176,6 @@ const GraphRenderer = forwardRef(({ htmlContent }, ref) => {
     </div>
   );
 });
-
 // Función para capturar un iframe como imagen
 const captureIframeAsImage = async (iframeRef, filename = 'chart.png') => {
   try {
