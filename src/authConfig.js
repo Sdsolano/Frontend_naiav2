@@ -40,5 +40,16 @@ export const msalConfig = {
 };
 
 export const loginRequest = {
-  scopes: ["User.Read", "profile", "email", "openid"]
+  scopes: [
+    "User.Read",
+    "Mail.Send",
+    "Mail.ReadWrite",
+    "Calendars.ReadWrite",
+    "Calendars.Read",
+    "User.ReadBasic.All",
+    "offline_access",
+    "openid",
+    "profile",
+    "email"
+  ]
 };
