@@ -8,9 +8,24 @@ import PollingManager from "../components/PollingManager";
 import { getCurrentRoleId } from "../utils/roleUtils"; // ← IMPORTAR UTILIDAD
 import { useUser } from '../components/UserContext';
 import { use } from "react";
-
+import { getRoleGender } from "../utils/animationUtils"; 
 // Constantes para configuración del chat
-const VOICE_TYPE = [1, 6].includes(getCurrentRoleId()) ? "nova" : "echo";
+const getVoiceTypeForRole = () => {
+  const currentRoleId = localStorage.getItem('naia_selected_role') || 'researcher';
+  const gender = getRoleGender(currentRoleId);
+  
+  // Voces por género
+  const VOICE_MAPPING = {
+    male: "echo",    
+    female: "nova"  
+  };
+  
+  const voice = VOICE_MAPPING[gender] || "nova";
+  console.log(`🎤 Voz seleccionada para rol ${currentRoleId} (${gender}): ${voice}`);
+  
+  return voice;
+};
+
 const POLLING_INTERVAL = 2000; // 2 segundos
 const POLLING_START_DELAY = 5000; // 5 segundos
 const ROLE_ID = getCurrentRoleId();
@@ -128,6 +143,7 @@ class OpenAIAPI {
     const signal = this.abortController ? this.abortController.signal : null;
     
     try {
+      const VOICE_TYPE = getVoiceTypeForRole();
 
       let instructions = "Utiliza un acento colombiano costeño pero de la alta sociedad y educada, con un tono alegre, aspiración de la <s> al final de sílabas. Ignora los signos que no conozcas.";
     
@@ -389,7 +405,16 @@ export const ChatProvider = ({ children }) => {
       }
     };
   }, []);
-  
+
+  useEffect(() => {
+    const currentRole = localStorage.getItem('naia_selected_role') || 'researcher';
+    const gender = getRoleGender(currentRole);
+    const voice = getVoiceTypeForRole();
+    
+    console.log(`🎭 Chat Provider: Rol actual ${currentRole}`);
+    console.log(`👤 Chat Provider: Género ${gender}`);
+    console.log(`🎤 Chat Provider: Voz ${voice}`);
+  }, []);
   // Función para detener cualquier audio reproduciéndose
   const stopAnyPlayingAudio = () => {
     if (currentAudio) {

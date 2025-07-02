@@ -1,3 +1,4 @@
+// components/Avatar.jsx - VERSIÓN ACTUALIZADA CON GÉNERO
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { button, useControls } from "leva";
@@ -6,6 +7,7 @@ import defaultLipsync from "../utils/defaultLipsync";
 import * as THREE from "three";
 import { useChat } from "../hooks/useChat";
 import { getCurrentRoleConfig } from "../utils/roleUtils";
+import { getAnimationFileForRole, getRoleGender } from "../utils/animationUtils"; // ← NUEVO IMPORT
 
 const facialExpressions = {
   default: {},
@@ -102,7 +104,7 @@ const corresponding = {
 
 let setupMode = false;
 
-// ← NUEVO: Función para determinar el modelo basado en el rol
+// Función para determinar el modelo basado en el rol
 const getModelPathForRole = (roleId) => {
   switch (roleId) {
     case 'guide':
@@ -121,18 +123,31 @@ const getModelPathForRole = (roleId) => {
 };
 
 export function Avatar(props) {
-  // ← SIMPLIFICADO: Estado de rol y modelo más directo
+  // Estado de rol actual
   const [currentRole, setCurrentRole] = useState(() => {
     const roleConfig = getCurrentRoleConfig();
     return roleConfig.id;
   });
   
+  // Estado del modelo actual
   const [modelPath, setModelPath] = useState(() => {
     const roleConfig = getCurrentRoleConfig();
-    return getModelPathForRole(roleConfig.id);  // ← ACTUALIZADO: usar nueva función
+    return getModelPathForRole(roleConfig.id);
   });
 
-  // ← SIMPLIFICADO: Efecto único para cambios de rol
+  // ← NUEVO: Estado para archivo de animaciones dinámico
+  const [animationPath, setAnimationPath] = useState(() => {
+    const roleConfig = getCurrentRoleConfig();
+    return getAnimationFileForRole(roleConfig.id);
+  });
+
+  // ← NUEVO: Estado para género actual
+  const [currentGender, setCurrentGender] = useState(() => {
+    const roleConfig = getCurrentRoleConfig();
+    return getRoleGender(roleConfig.id);
+  });
+
+  // Efecto para cambios de rol - ACTUALIZADO
   useEffect(() => {
     const handleRoleChange = () => {
       const roleConfig = getCurrentRoleConfig();
@@ -142,9 +157,17 @@ export function Avatar(props) {
         console.log(`🎭 Avatar: Cambiando rol de ${currentRole} a ${newRole}`);
         setCurrentRole(newRole);
         
-        const newModelPath = getModelPathForRole(newRole);  // ← ACTUALIZADO: usar nueva función
+        const newModelPath = getModelPathForRole(newRole);
+        const newAnimationPath = getAnimationFileForRole(newRole); // ← NUEVO
+        const newGender = getRoleGender(newRole); // ← NUEVO
+        
         console.log(`📦 Avatar: Cambiando modelo a ${newModelPath}`);
+        console.log(`🎭 Avatar: Cambiando animaciones a ${newAnimationPath}`);
+        console.log(`👤 Avatar: Género ${newGender}`);
+        
         setModelPath(newModelPath);
+        setAnimationPath(newAnimationPath); // ← NUEVO
+        setCurrentGender(newGender); // ← NUEVO
       }
     };
 
@@ -165,9 +188,9 @@ export function Avatar(props) {
     };
   }, [currentRole]);
 
-  // ← CRÍTICO: Cargar modelo dinámicamente según modelPath
+  // ← MODIFICADO: Cargar modelo y animaciones dinámicamente
   const { nodes, materials, scene } = useGLTF(modelPath, true);
-  const { animations } = useGLTF("/models/animations.glb", true);
+  const { animations } = useGLTF(animationPath, true); // ← Usar animationPath dinámico
 
   const { message, onMessagePlayed, chat, isThinking } = useChat();
 
@@ -176,16 +199,16 @@ export function Avatar(props) {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioEndTimerRef = useRef(null);
 
-  // ← SIMPLIFICADO: Referencias estáticas
+  // Referencias estáticas
   const group = useRef();
   const { actions, mixer } = useAnimations(animations, group);
 
-  // ← SIMPLIFICADO: Estado de animación
+  // Estado de animación
   const [animation, setAnimation] = useState("Idle");
 
-  // ← SIMPLIFICADO: Función para aplicar animaciones de forma segura
+  // Función para aplicar animaciones de forma segura
   const setAnimationSafely = (animName) => {
-    console.log(`🎭 setAnimationSafely: ${animName} para rol ${currentRole}`);
+    console.log(`🎭 setAnimationSafely: ${animName} para rol ${currentRole} (${currentGender})`);
     
     if (!actions || Object.keys(actions).length === 0) {
       console.warn(`⚠️ Actions no disponibles para ${currentRole}, reintentando...`);
@@ -202,7 +225,7 @@ export function Avatar(props) {
     }
     
     if (actions[animName]) {
-      console.log(`✅ Aplicando animación: ${animName} para ${currentRole}`);
+      console.log(`✅ Aplicando animación: ${animName} para ${currentRole} (${currentGender})`);
       setAnimation(animName);
     } else {
       console.warn(`❌ Animación "${animName}" no encontrada para ${currentRole}`);
@@ -220,15 +243,28 @@ export function Avatar(props) {
     }
   };
 
-  // ← SIMPLIFICADO: Resetear a Idle cuando cambie el modelo
+  // Resetear a Idle cuando cambie el modelo
   useEffect(() => {
     if (actions && Object.keys(actions).length > 0) {
-      console.log(`🔄 Modelo cargado, aplicando Idle para ${currentRole}`);
+      console.log(`🔄 Animaciones cargadas para ${currentRole} (${currentGender}), aplicando Idle`);
       setTimeout(() => {
         setAnimationSafely("Idle");
       }, 100);
     }
-  }, [actions, currentRole]);
+  }, [actions, currentRole, currentGender]);
+
+  // ← NUEVO: Precargar ambos archivos de animaciones
+  useEffect(() => {
+    console.log("🔄 Precargando archivos de animaciones...");
+    
+    // Precargar animaciones femeninas
+    useGLTF.preload("/models/animations.glb");
+    
+    // Precargar animaciones masculinas
+    useGLTF.preload("/models/male_animations.glb");
+    
+    console.log("✅ Archivos de animaciones precargados");
+  }, []);
 
   useEffect(() => {
     console.log(message);
@@ -340,7 +376,7 @@ export function Avatar(props) {
         });
     }, 100);
     
-  }, [message,isThinking]);
+  }, [message, isThinking]);
 
   // Cleanup al desmontar
   useEffect(() => {
@@ -562,11 +598,12 @@ export function Avatar(props) {
     )
   );
 
-  // ← SIMPLIFICADO: Diagnóstico una sola vez cuando cambie el rol
+  // Diagnóstico cuando cambie el rol
   useEffect(() => {
     if (nodes && scene) {
-      console.log(`🔍 DIAGNÓSTICO PARA ROL: ${currentRole}`);
+      console.log(`🔍 DIAGNÓSTICO PARA ROL: ${currentRole} (${currentGender})`);
       console.log(`📦 Modelo cargado: ${modelPath}`);
+      console.log(`🎭 Animaciones cargadas: ${animationPath}`);
       
       if (nodes.EyeLeft && nodes.EyeLeft.morphTargetDictionary) {
         console.log("  ✅ EyeLeft morph targets disponibles");
@@ -575,7 +612,7 @@ export function Avatar(props) {
       }
       
       if (actions) {
-        console.log(`  ✅ ${Object.keys(actions).length} animaciones disponibles`);
+        console.log(`  ✅ ${Object.keys(actions).length} animaciones disponibles:`, Object.keys(actions));
         if (actions.Idle) {
           console.log("  ✅ Animación 'Idle' encontrada");
         } else {
@@ -585,7 +622,7 @@ export function Avatar(props) {
         console.error("  ❌ No hay actions disponibles");
       }
     }
-  }, [nodes, scene, currentRole, modelPath, actions]);
+  }, [nodes, scene, currentRole, currentGender, modelPath, animationPath, actions]);
 
   useEffect(() => {
     let blinkTimeout;
@@ -702,10 +739,14 @@ export function Avatar(props) {
   );
 }
 
-// ← ACTUALIZADO: Precargar todos los modelos
+// ← ACTUALIZADO: Precargar todos los modelos y ambos archivos de animaciones
 useGLTF.preload("/models/investigator.glb");
-useGLTF.preload("/models/animations.glb");
 useGLTF.preload("/models/uni.glb");
 useGLTF.preload("/models/companion.glb");  
 useGLTF.preload("/models/trainer.glb");
-useGLTF.preload("/models/personal.glb"); // ← Añadido modelo de asistente
+useGLTF.preload("/models/personal.glb");
+useGLTF.preload("/models/receptionist.glb");
+
+// ← NUEVO: Precargar ambos archivos de animaciones
+useGLTF.preload("/models/animations.glb");      // Femeninas
+useGLTF.preload("/models/male_animations.glb"); // Masculinas
