@@ -1,4 +1,4 @@
-//src/hooks/useUserManagement.jsx - VERSIÓN SIN TOKEN
+//src/hooks/useUserManagement.jsx - VERSIÓN CON TOKEN INTEGRADO
 import { useState, useCallback } from 'react';
 import { BACKEND_URL } from "../../config";
 
@@ -59,6 +59,54 @@ const useUserManagement = () => {
           return newSet;
         });
       }, BLACKLIST_DURATION);
+    }
+  }, []);
+
+  /**
+   * 🆕 NUEVA FUNCIÓN: Enviar token del usuario al backend
+   */
+  const sendUserToken = useCallback(async (userId, token) => {
+    if (!userId || !token) {
+      throw new Error('User ID y token son requeridos');
+    }
+
+    try {
+      console.log(`🔐 Enviando token al backend para user ID: ${userId}`);
+      
+      const response = await fetch(`${BACKEND_URL}/api/v1/users/token/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          token: token
+        }),
+      });
+
+      if (response.status === 200) {
+        const result = await response.json();
+        console.log(`✅ Token enviado exitosamente:`, result);
+        return result;
+      } else if (response.status === 400) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = `Error 400 enviando token: ${errorData.status || 'Invalid user ID or token'}`;
+        console.log(`❌ ${errorMsg}`);
+        throw new Error(errorMsg);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = `Error ${response.status} enviando token: ${errorData.status || 'Error desconocido'}`;
+        console.log(`❌ ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+    } catch (error) {
+      console.error('❌ Error en sendUserToken:', error);
+      
+      if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+        throw new Error('No se puede conectar al servidor para enviar el token. Verifica que el backend esté ejecutándose.');
+      }
+      
+      throw error;
     }
   }, []);
 
@@ -215,6 +263,7 @@ const useUserManagement = () => {
 
   /**
    * Función principal: Obtener usuario existente o crear uno nuevo
+   * 🆕 MODIFICADA: Ahora envía automáticamente el token cuando está disponible
    */
   const getOrCreateUser = useCallback(async (userData, token = null) => {
     if (!canProcessEmail(userData.email)) {
@@ -238,6 +287,23 @@ const useUserManagement = () => {
         user = await createUser(userData, token);
       }
 
+      // 🆕 Paso 3: Si tenemos token válido, enviarlo al backend
+      if (token && user && user.id) {
+        try {
+          console.log(`🔐 Enviando token para usuario ID: ${user.id}`);
+          await sendUserToken(user.id, token);
+          console.log(`✅ Token enviado exitosamente al backend`);
+        } catch (tokenError) {
+          console.warn(`⚠️ No se pudo enviar el token al backend: ${tokenError.message}`);
+          // No interrumpir el flujo principal - el usuario se creó correctamente
+          // Solo loggear el warning
+        }
+      } else if (token && !user?.id) {
+        console.warn(`⚠️ Token disponible pero no se pudo obtener user ID`);
+      } else if (!token) {
+        console.log(`ℹ️ Sin token disponible, saltando envío de token`);
+      }
+
       console.log(`🎉 Proceso completado. User ID: ${user.id}`);
       return user;
 
@@ -248,7 +314,7 @@ const useUserManagement = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [getUserByEmail, createUser, canProcessEmail]);
+  }, [getUserByEmail, createUser, canProcessEmail, sendUserToken]);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -265,6 +331,7 @@ const useUserManagement = () => {
     getOrCreateUser,
     getUserByEmail,
     createUser,
+    sendUserToken, // 🆕 Función disponible para uso manual
     isLoading,
     error,
     clearError,
