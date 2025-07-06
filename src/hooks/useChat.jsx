@@ -9,20 +9,13 @@ import { getCurrentRoleId } from "../utils/roleUtils"; // ← IMPORTAR UTILIDAD
 import { useUser } from '../components/UserContext';
 import { use } from "react";
 import { getRoleGender } from "../utils/animationUtils"; 
+import { getVoiceForRole, getVoiceInstructions } from "../utils/voiceUtils";
 // Constantes para configuración del chat
 const getVoiceTypeForRole = () => {
   const currentRoleId = localStorage.getItem('naia_selected_role') || 'researcher';
-  const gender = getRoleGender(currentRoleId);
+  const voice = getVoiceForRole(currentRoleId);
   
-  // Voces por género
-  const VOICE_MAPPING = {
-    male: "echo",    
-    female: "nova"  
-  };
-  
-  const voice = VOICE_MAPPING[gender] || "nova";
-  console.log(`🎤 Voz seleccionada para rol ${currentRoleId} (${gender}): ${voice}`);
-  
+  console.log(`🎤 Voz única seleccionada para rol ${currentRoleId}: ${voice}`);
   return voice;
 };
 
@@ -139,18 +132,20 @@ class OpenAIAPI {
     }
   }
 
-  async getAudio(text, tts_prompt=null) {
+  async getAudio(text, tts_prompt = null) {
     const signal = this.abortController ? this.abortController.signal : null;
     
     try {
-      const VOICE_TYPE = getVoiceTypeForRole();
+      // Obtener voz específica para el rol actual
+      const currentRoleId = localStorage.getItem('naia_selected_role') || 'researcher';
+      const VOICE_TYPE = getVoiceForRole(currentRoleId);
 
-      let instructions = "Utiliza un acento colombiano costeño pero de la alta sociedad y educada, con un tono alegre, aspiración de la <s> al final de sílabas. Ignora los signos que no conozcas.";
-    
-      // Si el mensaje tiene un tts_prompt específico, usarlo
-      if (tts_prompt) {
-        instructions = `Utiliza un acento colombiano costeño pero de la alta sociedad y educada, con un tono alegre, aspiración de la <s> al final de sílabas. Ignora los signos que no conozcas, para este caso habla de esta manera: ${tts_prompt}`;
-      }
+      // Obtener instrucciones personalizadas para el rol
+      const instructions = getVoiceInstructions(currentRoleId, tts_prompt);
+
+      console.log(`🎭 Generando audio para rol: ${currentRoleId}`);
+      console.log(`🎤 Usando voz: ${VOICE_TYPE}`);
+      console.log(`📝 Instrucciones: ${instructions}`);
 
       const response = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',

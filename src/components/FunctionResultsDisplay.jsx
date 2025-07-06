@@ -356,15 +356,14 @@ const FunctionResultsDisplay = ({ functionResults }) => {
     
     if (newGraphResults.length > 0) {
       setGraphResults(prev => [...prev, ...newGraphResults]);
-      if (displayResults.length === 0 && pdfResults.length === 0 && searchResults.length === 0 &&
-          newDisplayResults.length === 0 && newPdfResults.length === 0 && newSearchResults.length === 0) {
-        setActiveTab('graphs');
-      }
-      
+    if (displayResults.length === 0 && pdfResults.length === 0 && searchResults.length === 0 &&
+        newDisplayResults.length === 0 && newPdfResults.length === 0 && newSearchResults.length === 0) {
+      setActiveTab('graphs');
+    }
       // Show the first graph in modal if this is our first graph
-      if (graphResults.length === 0) {
-        setActiveGraphModal(firstNewGraph);
-      }
+    if (firstNewGraph) {
+      setActiveGraphModal(firstNewGraph);
+    }
     }
     
     // Manejar resultados de búsqueda
@@ -449,6 +448,437 @@ const FunctionResultsDisplay = ({ functionResults }) => {
       addNotification('No se pudo acceder a la imagen para descargar', 'error');
     }
   };
+
+// Función para detectar si el contenido es HTML
+function detectHTMLContent(content) {
+  // Normalizar el contenido
+  const trimmedContent = content.trim();
+  
+  // Verificar si tiene estructura HTML básica
+  const hasHTMLStructure = (
+    trimmedContent.includes('<!DOCTYPE') ||
+    trimmedContent.includes('<html') ||
+    trimmedContent.includes('<head>') ||
+    trimmedContent.includes('<body>') ||
+    (trimmedContent.startsWith('<') && trimmedContent.endsWith('>'))
+  );
+  
+  // Verificar si tiene tags HTML comunes
+  const hasHTMLTags = /<\/?[a-z][\s\S]*>/i.test(trimmedContent);
+  
+  // Verificar si tiene atributos de estilo CSS
+  const hasCSS = (
+    trimmedContent.includes('style=') ||
+    trimmedContent.includes('<style>') ||
+    trimmedContent.includes('class=') ||
+    trimmedContent.includes('id=')
+  );
+  
+  // Verificar que NO sea markdown (sin headers markdown, sin syntax markdown)
+  const hasMarkdownSyntax = (
+    trimmedContent.includes('# ') ||
+    trimmedContent.includes('## ') ||
+    trimmedContent.includes('### ') ||
+    trimmedContent.includes('**') ||
+    trimmedContent.includes('*') && !trimmedContent.includes('<')
+  );
+  
+  // Es HTML si:
+  // 1. Tiene estructura o tags HTML Y
+  // 2. (Tiene CSS O no tiene sintaxis clara de markdown)
+  return hasHTMLTags && (hasCSS || !hasMarkdownSyntax);
+}
+
+// Función para convertir HTML a PDF como texto real (no imagen)
+function downloadAsHTML(content, resultId) {
+  try {
+    // Limpiar el contenido de markdown code blocks si los tiene
+    let cleanHTML = content;
+    if (cleanHTML.startsWith('```') && cleanHTML.endsWith('```')) {
+      cleanHTML = cleanHTML.substring(cleanHTML.indexOf('\n') + 1, cleanHTML.lastIndexOf('```'));
+    }
+    
+    // Convertir HTML a PDF con texto real
+    convertHTMLToTextPDF(cleanHTML, resultId);
+    
+  } catch (error) {
+    console.error('Error processing HTML:', error);
+    addNotification('Error al procesar el documento HTML', 'error');
+    
+    // Fallback: usar la función de markdown PDF
+    downloadAsMarkdownPDF(content, resultId);
+  }
+}
+
+// Función para convertir HTML a PDF conservando todos los estilos (como imagen)
+function downloadAsHTML(content, resultId) {
+  try {
+    // Limpiar el contenido de markdown code blocks si los tiene
+    let cleanHTML = content;
+    if (cleanHTML.startsWith('```') && cleanHTML.endsWith('```')) {
+      cleanHTML = cleanHTML.substring(cleanHTML.indexOf('\n') + 1, cleanHTML.lastIndexOf('```'));
+    }
+    
+    // Convertir HTML a PDF conservando absolutamente todos los estilos
+    convertHTMLToVisualPDF(cleanHTML, resultId);
+    
+  } catch (error) {
+    console.error('Error processing HTML:', error);
+    addNotification('Error al procesar el documento HTML', 'error');
+    
+    // Fallback: usar la función de markdown PDF
+    downloadAsMarkdownPDF(content, resultId);
+  }
+}
+
+// Función mejorada para convertir HTML a PDF visual conservando todos los estilos
+async function convertHTMLToVisualPDF(htmlContent, resultId) {
+  try {
+    // Cargar las bibliotecas necesarias
+    const [html2canvasModule, jsPDFModule] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf')
+    ]);
+    
+    const html2canvas = html2canvasModule.default;
+    const { jsPDF } = jsPDFModule;
+    
+    addNotification('Generando PDF conservando todos los estilos...', 'info');
+    
+    // Preparar el HTML completo con todos los estilos
+    let fullHTML = htmlContent;
+    
+    // Si no es un documento HTML completo, envolverlo
+    if (!fullHTML.includes('<!DOCTYPE') && !fullHTML.includes('<html')) {
+      fullHTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documento HTML</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            padding-bottom: 50px; /* Solo un poco de padding extra */
+            background: white;
+            box-sizing: border-box;
+        }
+        * { 
+            box-sizing: border-box; 
+        }
+        img { 
+            max-width: 100%; 
+            height: auto; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 10px 0;
+        }
+        th, td { 
+            padding: 8px; 
+            border: 1px solid #ddd; 
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        /* Asegurar que los elementos no se corten */
+        div, p, h1, h2, h3, h4, h5, h6, ul, ol, li {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+    </style>
+</head>
+<body>
+    ${fullHTML}
+</body>
+</html>`;
+    }
+    
+    // Crear un iframe invisible para renderizar el HTML correctamente
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-10000px';
+    iframe.style.top = '-10000px';
+    iframe.style.width = '1024px'; // Ancho estándar para PDF
+    iframe.style.height = '1400px'; // Alto inicial
+    iframe.style.border = 'none';
+    iframe.style.backgroundColor = 'white';
+    
+    document.body.appendChild(iframe);
+    
+    // Escribir el HTML en el iframe
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(fullHTML);
+    iframe.contentDocument.close();
+    
+    // Esperar a que todo se cargue completamente
+    await new Promise(resolve => {
+      iframe.onload = resolve;
+      // Fallback timeout
+      setTimeout(resolve, 2000);
+    });
+    
+    // Ajustar altura del iframe al contenido con un pequeño buffer
+    const iframeDoc = iframe.contentDocument;
+    const body = iframeDoc.body;
+    const html = iframeDoc.documentElement;
+    
+    const actualHeight = Math.max(
+      body.scrollHeight,
+      body.offsetHeight,
+      html.clientHeight,
+      html.scrollHeight,
+      html.offsetHeight
+    ) + 50; // Solo 50px de buffer extra para las últimas líneas
+    
+    iframe.style.height = actualHeight + 'px';
+    
+    // Esperar un poco más para asegurar el renderizado
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Configurar opciones para html2canvas (versión simplificada que funcionaba)
+    const options = {
+      backgroundColor: '#ffffff',
+      scale: 2, // Alta resolución
+      useCORS: true,
+      allowTaint: true,
+      letterRendering: true,
+      logging: false, // Desactivar logs molestos
+      windowWidth: 1024,
+      windowHeight: actualHeight,
+      scrollX: 0,
+      scrollY: 0,
+      width: 1024,
+      height: actualHeight,
+      ignoreElements: (element) => {
+        // Ignorar elementos que puedan causar problemas
+        return element.tagName === 'SCRIPT' || element.tagName === 'NOSCRIPT';
+      }
+    };
+    
+    // Capturar el contenido del iframe
+    const canvas = await html2canvas(body, options);
+    
+    // Crear el PDF
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new jsPDF('portrait', 'mm', 'a4');
+    
+    // Calcular dimensiones para ajustar al A4
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    
+    // Calcular la altura proporcional de la imagen
+    const imgWidth = pdfWidth - 20; // 10mm de margen a cada lado
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    let yPosition = 10; // Margen superior
+    let remainingHeight = imgHeight;
+    
+    // Si la imagen cabe en una página
+    if (imgHeight <= pdfHeight - 20) {
+      pdf.addImage(imgData, 'JPEG', 10, yPosition, imgWidth, imgHeight);
+    } else {
+      // Dividir en múltiples páginas
+      const pageContentHeight = pdfHeight - 20; // Altura disponible por página
+      let sourceY = 0;
+      
+      while (remainingHeight > 0) {
+        const currentPageHeight = Math.min(remainingHeight, pageContentHeight);
+        
+        // Crear canvas temporal para esta porción
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = (currentPageHeight * canvas.width) / imgWidth;
+        
+        tempCtx.drawImage(
+          canvas,
+          0, (sourceY * canvas.width) / imgWidth,
+          canvas.width, tempCanvas.height,
+          0, 0,
+          canvas.width, tempCanvas.height
+        );
+        
+        const tempImgData = tempCanvas.toDataURL('image/jpeg', 0.95);
+        pdf.addImage(tempImgData, 'JPEG', 10, 10, imgWidth, currentPageHeight);
+        
+        remainingHeight -= currentPageHeight;
+        sourceY += currentPageHeight;
+        
+        if (remainingHeight > 0) {
+          pdf.addPage();
+        }
+      }
+    }
+    
+    // Guardar el PDF
+    pdf.save(`documento_${resultId}.pdf`);
+    
+    // Limpiar
+    document.body.removeChild(iframe);
+    
+    addNotification('PDF visual generado correctamente con todos los estilos', 'success');
+    
+  } catch (error) {
+    console.error('Error converting HTML to visual PDF:', error);
+    addNotification('Error al generar PDF visual. Usando método alternativo...', 'warning');
+    
+    // Fallback mejorado
+    await fallbackSimpleVisualPDF(htmlContent, resultId);
+  }
+}
+
+// Fallback simplificado para casos donde el método principal falla
+async function fallbackSimpleVisualPDF(htmlContent, resultId) {
+  try {
+    // Cargar las bibliotecas necesarias
+    const [html2canvasModule, jsPDFModule] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf')
+    ]);
+    
+    const html2canvas = html2canvasModule.default;
+    const { jsPDF } = jsPDFModule;
+    
+    // Crear elemento temporal
+    const element = document.createElement('div');
+    element.innerHTML = htmlContent;
+    element.style.position = 'absolute';
+    element.style.left = '-9999px';
+    element.style.top = '-9999px';
+    element.style.width = '800px';
+    element.style.backgroundColor = 'white';
+    element.style.padding = '20px';
+    element.style.paddingBottom = '50px'; // Un poco de padding extra
+    document.body.appendChild(element);
+    
+    // Esperar a que se rendericen las imágenes y estilos
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Capturar como imagen
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff'
+    });
+    
+    // Crear PDF
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new jsPDF();
+    
+    // Calcular dimensiones
+    const imgWidth = 210; // A4 width in mm
+    const pageHeight = 295; // A4 height in mm
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    
+    let position = 0;
+    
+    // Añadir primera página
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+    
+    // Añadir páginas adicionales si es necesario
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    
+    // Descargar
+    pdf.save(`documento_${resultId}.pdf`);
+    
+    // Limpiar
+    document.body.removeChild(element);
+    
+    addNotification('PDF generado con método alternativo', 'success');
+    
+  } catch (error) {
+    console.error('Fallback also failed:', error);
+    // Último recurso: usar método de texto
+    addNotification('Generando PDF como texto plano debido a errores técnicos...', 'warning');
+    downloadAsMarkdownPDF(htmlContent, resultId);
+  }
+}
+// Función para descargar como PDF (lógica existente de markdown)
+function downloadAsMarkdownPDF(content, resultId) {
+  // Convert text content to PDF using jsPDF
+  import('jspdf').then(({ jsPDF }) => {
+    // Create a new PDF document
+    const doc = new jsPDF();
+    const margin = 15;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const textWidth = pageWidth - (margin * 2);
+    const lines = content.split('\n');
+    let y = margin;
+    
+    lines.forEach(line => {
+      if (line.startsWith('# ')) {
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        const title = line.substring(2);
+        const splitTitle = doc.splitTextToSize(title, textWidth);
+        doc.text(splitTitle, margin, y);
+        y += 10 * splitTitle.length;
+      } else if (line.startsWith('## ')) {
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        const subTitle = line.substring(3);
+        const splitSubTitle = doc.splitTextToSize(subTitle, textWidth);
+        doc.text(splitSubTitle, margin, y);
+        y += 8 * splitSubTitle.length;
+      } else if (line.startsWith('### ')) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        const subSubTitle = line.substring(4);
+        const splitSubSubTitle = doc.splitTextToSize(subSubTitle, textWidth);
+        doc.text(splitSubSubTitle, margin, y);
+        y += 8 * splitSubSubTitle.length;
+      } else if (line.trim() === '') {
+        y += 5;
+      } else {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'normal');
+        const splitText = doc.splitTextToSize(line, textWidth);
+        doc.text(splitText, margin, y);
+        y += 7 * splitText.length;
+      }
+      
+      if (y > doc.internal.pageSize.getHeight() - margin) {
+        doc.addPage();
+        y = margin;
+      }
+    });
+    
+    doc.save(`documento_${resultId}.pdf`);
+    addNotification('Documento PDF descargado correctamente', 'success');
+    
+  }).catch(error => {
+    console.error('Error loading jsPDF:', error);
+    addNotification('No se pudo generar el PDF. Asegúrese de que jsPDF esté instalado.', 'error');
+    
+    // Fallback: download as text
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `documento_${resultId}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+}
 
   return (
     <>
@@ -609,7 +1039,6 @@ const FunctionResultsDisplay = ({ functionResults }) => {
                         className="flex items-center px-4 py-2 bg-blue-950 text-white rounded-md hover:bg-gray-900 transition-colors"
                         onClick={() => {
                           try {
-                            // Handle PDF download logic - keeping existing functionality
                             const content = result.content;
                             
                             // Check if it's already a base64 PDF
@@ -634,77 +1063,24 @@ const FunctionResultsDisplay = ({ functionResults }) => {
                                 return;
                               } catch (e) {
                                 console.log('Base64 decode failed, treating as text', e);
-                                // Continue with generating PDF from text
+                                // Continue with content detection
                               }
                             }
                             
-                            // Convert text content to PDF using jsPDF
-                            import('jspdf').then(({ jsPDF }) => {
-                              // Create a new PDF document
-                              const doc = new jsPDF();
-                              const margin = 15;
-                              const pageWidth = doc.internal.pageSize.getWidth();
-                              const textWidth = pageWidth - (margin * 2);
-                              const lines = content.split('\n');
-                              let y = margin;
-                              
-                              lines.forEach(line => {
-                                if (line.startsWith('# ')) {
-                                  doc.setFontSize(18);
-                                  doc.setFont('helvetica', 'bold');
-                                  const title = line.substring(2);
-                                  const splitTitle = doc.splitTextToSize(title, textWidth);
-                                  doc.text(splitTitle, margin, y);
-                                  y += 10 * splitTitle.length;
-                                } else if (line.startsWith('## ')) {
-                                  doc.setFontSize(16);
-                                  doc.setFont('helvetica', 'bold');
-                                  const subTitle = line.substring(3);
-                                  const splitSubTitle = doc.splitTextToSize(subTitle, textWidth);
-                                  doc.text(splitSubTitle, margin, y);
-                                  y += 8 * splitSubTitle.length;
-                                } else if (line.startsWith('### ')) {
-                                  doc.setFontSize(14);
-                                  doc.setFont('helvetica', 'bold');
-                                  const subSubTitle = line.substring(4);
-                                  const splitSubSubTitle = doc.splitTextToSize(subSubTitle, textWidth);
-                                  doc.text(splitSubSubTitle, margin, y);
-                                  y += 8 * splitSubSubTitle.length;
-                                } else if (line.trim() === '') {
-                                  y += 5;
-                                } else {
-                                  doc.setFontSize(12);
-                                  doc.setFont('helvetica', 'normal');
-                                  const splitText = doc.splitTextToSize(line, textWidth);
-                                  doc.text(splitText, margin, y);
-                                  y += 7 * splitText.length;
-                                }
-                                
-                                if (y > doc.internal.pageSize.getHeight() - margin) {
-                                  doc.addPage();
-                                  y = margin;
-                                }
-                              });
-                              
-                              doc.save(`documento_${result.id}.pdf`);
-                            }).catch(error => {
-                              console.error('Error loading jsPDF:', error);
-                              addNotification('No se pudo generar el PDF. Asegúrese de que jsPDF esté instalado.', 'error');
-                              
-                              // Fallback: download as text
-                              const blob = new Blob([content], { type: 'text/plain' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `documento_${result.id}.txt`;
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
-                              URL.revokeObjectURL(url);
-                            });
+                            // NUEVA FUNCIONALIDAD: Detectar si el contenido es HTML
+                            const isHTML = detectHTMLContent(content);
+                            
+                            if (isHTML) {
+                              // Descargar como HTML conservando estilos
+                              downloadAsHTML(content, result.id);
+                            } else {
+                              // Continuar con la lógica actual para markdown → PDF
+                              downloadAsMarkdownPDF(content, result.id);
+                            }
+                            
                           } catch (error) {
                             console.error('Error creating document:', error);
-                            addNotification('Ocurrió un error al generar el PDF.', 'error');
+                            addNotification('Ocurrió un error al generar el documento.', 'error');
                           }
                         }}
                       >
