@@ -2,28 +2,25 @@ import React, { useRef, useEffect, useState } from "react";
 import { useChat } from "../hooks/useChat";
 import { useSimpleVoice } from "../hooks/useSimpleVoice";
 import { useUserImage } from "../hooks/useUserImage"; 
-import { Send, Loader, Mic, MicOff, RefreshCw, Camera } from "lucide-react";
+import { Send, Loader, Mic, MicOff, RefreshCw, Camera, Ear, EarOff, Volume2 } from "lucide-react";
 import FunctionResultsDisplay from "./FunctionResultsDisplay";
 import { useNavigate } from "react-router-dom";
-import { getCurrentRoleName } from "../utils/roleUtils"; // ← NUEVO: Importar utilidad
+import { getCurrentRoleName } from "../utils/roleUtils";
 
 // Variable global para evitar envíos duplicados
 let lastSentMessage = '';
 let lastSentTime = 0;
 
 export const SimpleUI = ({ hidden, ...props }) => {
-  const navigate = useNavigate(); // Añadir esto para manejar la navegación
+  const navigate = useNavigate();
   const [currentRoleName, setCurrentRoleName] = useState('Investigador');
 
-
-  
   // Función para cambiar de rol
   const handleChangeRole = () => {
-    // Quitar el rol de localStorage
     localStorage.removeItem('naia_selected_role');
-    // Redirigir a la página de selección de rol
     navigate('/naia');
   }
+
   const input = useRef();
   const hiddenVideoRef = useRef(null);
   const { chat, 
@@ -38,11 +35,12 @@ export const SimpleUI = ({ hidden, ...props }) => {
     pendingMessages,
     loadConversation,
     functionResults } = useChat();
+
   // Estado para deshabilitar temporalmente los controles después de enviar
   const [inputDisabled, setInputDisabled] = useState(false);
   const [messageEnded, setMessageEnded] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
-  const [showDebugVideo, setShowDebugVideo] = useState(false); // Para depuración
+  const [showDebugVideo, setShowDebugVideo] = useState(false);
   
   // Estado para mostrar los subtítulos actuales
   const [currentSubtitle, setCurrentSubtitle] = useState("");
@@ -58,7 +56,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
     debugInfo
   } = useUserImage();
   
-    // ← NUEVO: Detectar cambios de rol
+  // Detectar cambios de rol
   useEffect(() => {
     const updateRoleName = () => {
       const roleName = getCurrentRoleName();
@@ -66,10 +64,8 @@ export const SimpleUI = ({ hidden, ...props }) => {
       console.log(`🎭 SimpleUI: Rol actualizado a ${roleName}`);
     };
 
-    // Actualizar rol inicial
     updateRoleName();
 
-    // Escuchar cambios de rol
     const handleRoleChange = () => {
       updateRoleName();
     };
@@ -89,27 +85,22 @@ export const SimpleUI = ({ hidden, ...props }) => {
     };
   }, []);
 
-
   // Determinar si el avatar está respondiendo
   const isAvatarResponding = loading || !!message;
   
   // Inicializar la cámara cuando carga el componente
   useEffect(() => {
     if (!hidden) {
-      // Inicializar cámara
       const setupCamera = async () => {
         console.log('🎥 Iniciando configuración de cámara...');
         const success = await initCamera();
         console.log(`🎥 Inicialización de cámara: ${success ? 'exitosa' : 'fallida'}`);
         
-        // Asignar el elemento de video
         if (success && hiddenVideoRef.current) {
           console.log('🎥 Asignando elemento de video al hook');
           setVideoElement(hiddenVideoRef.current);
           
-          // Esperar un tiempo para permitir que la cámara se inicialice completamente
           setTimeout(() => {
-            // Realizar la captura inicial UNA SOLA VEZ
             console.log('🎥 Intentando captura inicial después de espera');
             captureInitialImage();
           }, 3000);
@@ -123,7 +114,6 @@ export const SimpleUI = ({ hidden, ...props }) => {
   // Efecto para capturar imagen SOLO al finalizar reproducción de audio
   useEffect(() => {
     const handleAudioEnded = () => {
-      // Limpiar el subtítulo actual cuando termina el audio
       setCurrentSubtitle("");
       
       if (isCameraReady) {
@@ -146,30 +136,25 @@ export const SimpleUI = ({ hidden, ...props }) => {
   // Efecto para actualizar los subtítulos cuando cambia el mensaje
   useEffect(() => {
     if (message && message.text) {
-      // Establecer el texto del mensaje actual como subtítulo
       setCurrentSubtitle(message.text);
       console.log("📝 Subtítulo actualizado:", message.text);
     } else {
-      // Limpiar subtítulo si no hay mensaje
       setCurrentSubtitle("");
     }
   }, [message]);
   
   // Función para manejar la entrada del usuario y capturar imagen anticipadamente
   const handleInputChange = (e) => {
-    // Si ya hay un timeout, limpiarlo
     if (typingTimeout) {
       clearTimeout(typingTimeout);
     }
     
-    // Establecer un nuevo timeout para capturar la imagen después de que el usuario ha dejado de escribir
     const timeout = setTimeout(() => {
-      // Solo capturar si la cámara está lista y hay algo escrito
       if (isCameraReady && e.target.value.trim().length > 0) {
         console.log('📸 Capturando imagen anticipada mientras escribe...');
         captureAndUpload().catch(e => console.error("Error en captura anticipada:", e));
       }
-    }, 1500); // 1.5 segundos después de que el usuario deja de escribir
+    }, 1500);
     
     setTypingTimeout(timeout);
   };
@@ -207,21 +192,16 @@ export const SimpleUI = ({ hidden, ...props }) => {
       return;
     }
     
-    // Actualizar variables de seguimiento
     lastSentMessage = messageText;
     lastSentTime = now;
     
     console.log(`📱 UI: Enviando mensaje: "${messageText}"`);
     
-    // Deshabilitar temporalmente la entrada
     setInputDisabled(true);
     
-    // Verificar el tiempo desde la última captura
-    // Si hace menos de 3 segundos que capturamos una imagen, no necesitamos otra
     const timeSinceLastCapture = Date.now() - getLastCaptureTime();
     const needsNewCapture = timeSinceLastCapture > 3000;
     
-    // Capturar imagen solo si es necesario, en paralelo con el envío del mensaje
     if (isCameraReady && needsNewCapture) {
       captureAndUpload()
         .then(success => {
@@ -232,11 +212,9 @@ export const SimpleUI = ({ hidden, ...props }) => {
       console.log('📸 Usando imagen reciente, no es necesario capturar otra');
     }
     
-    // Enviar el mensaje inmediatamente sin esperar por la imagen
     try {
       chat(messageText);
       
-      // Limpiar input si es un mensaje de texto
       if (!text && input.current) {
         input.current.value = "";
       }
@@ -244,51 +222,60 @@ export const SimpleUI = ({ hidden, ...props }) => {
       console.error("📱 UI: Error al enviar mensaje:", error);
     }
     
-    // Restaurar después de un breve retraso
     setTimeout(() => {
       setInputDisabled(false);
     }, 500);
 
-    // Indicar que se ha enviado un nuevo mensaje
     setMessageEnded(false);
   };
+
+  // Handlers para los diferentes modos de voz
   const handleContinuousModeEnabled = () => {
-    console.log("🔄 SimpleUI: Modo continuo activado, cargando conversación previa...");
-    // Llamamos a la función para cargar la conversación
-    // Esta función ahora limpia los subtítulos internamente
+    console.log("🔄 SimpleUI: Modo continuo activado por transición automática");
     loadConversation();
   };
 
   const handleContinuousModeDisabled = () => {
-    console.log("🔄 SimpleUI: Modo continuo desactivado, guardando conversación...");
-    // Llamamos a la función para guardar la conversación
+    console.log("🔄 SimpleUI: Modo continuo desactivado");
     saveConversation();
   };
+
+  const handleAlwaysListeningEnabled = () => {
+    console.log("🔊 SimpleUI: Modo Always Listening activado manualmente");
+    loadConversation();
+  };
+
+  const handleAlwaysListeningDisabled = () => {
+    console.log("🔊 SimpleUI: Modo Always Listening desactivado por transición automática");
+  };
   
-  // Usar el hook simplificado con funcionalidades extendidas
+  // Hook de voz mejorado con los 3 modos
   const { 
     isListening, 
     toggleListening,
     startListening,
     continuousMode,
-    toggleContinuousMode 
+    toggleContinuousMode,
+    alwaysListeningMode,
+    toggleAlwaysListeningMode,
+    consecutiveFailures
   } = useSimpleVoice({
     language: 'es-ES',
     onContinuousModeDisabled: handleContinuousModeDisabled,
-    onContinuousModeEnabled: handleContinuousModeEnabled
+    onContinuousModeEnabled: handleContinuousModeEnabled,
+    onAlwaysListeningEnabled: handleAlwaysListeningEnabled,
+    onAlwaysListeningDisabled: handleAlwaysListeningDisabled
   });
 
-  // Escuchar evento directchat (ahora único punto de entrada)
+  // Escuchar evento directchat
   useEffect(() => {
     const directChatHandler = (event) => {
       const messageText = event.detail;
       console.log(`📱 UI: Evento directchat recibido: "${messageText}"`);
       
-      // Verificar si necesitamos una nueva captura
       const timeSinceLastCapture = Date.now() - getLastCaptureTime();
       const needsNewCapture = timeSinceLastCapture > 3000;
       
-      // Capturar imagen solo si es necesario
       if (isCameraReady && needsNewCapture) {
         captureAndUpload()
           .then(success => {
@@ -297,7 +284,6 @@ export const SimpleUI = ({ hidden, ...props }) => {
           .catch(e => console.error("Error en captura pre-mensaje de voz:", e));
       }
       
-      // No esperar a que termine la captura, enviar el mensaje inmediatamente
       sendMessage(messageText);
     };
     
@@ -310,26 +296,17 @@ export const SimpleUI = ({ hidden, ...props }) => {
     console.log("📱 UI: Mensaje finalizado, notificando...");
     setMessageEnded(true);
     
-    // También llamar al callback original si existe
     if (onMessagePlayed) {
       onMessagePlayed();
     }
   };
 
-  // Vigilar cuando termina el mensaje y el modo continuo está activo
+  // Simplificar lógica - el hook maneja todo el reconocimiento
   useEffect(() => {
     const handleAvatarAudioEnded = () => {
       console.log("🔄 UI: Evento avatar-audio-ended recibido");
       
-      // Solo activar reconocimiento si estamos en modo continuo,
-      // NO hay mensajes pendientes, y no estamos escuchando ya
-      if (continuousMode && !pendingMessages && !isListening) {
-        console.log("✅ No hay más mensajes pendientes, iniciando escucha");
-        // Pequeño retraso para asegurar que los estados se actualizan
-        setTimeout(() => {
-          startListening();
-        }, 300);
-      } else if (pendingMessages) {
+      if (pendingMessages) {
         console.log("⏳ Aún hay mensajes pendientes, esperando...");
       }
     };
@@ -339,36 +316,14 @@ export const SimpleUI = ({ hidden, ...props }) => {
     return () => {
       window.removeEventListener('avatar-audio-ended', handleAvatarAudioEnded);
     };
-  }, [continuousMode, isListening, pendingMessages, startListening]);
-
-  // También mantener el anterior efecto para casos de respaldo
-  useEffect(() => {
-    // Solo activar si en modo continuo, mensaje terminado, sin respuesta activa,
-    // sin mensajes pendientes y no estamos escuchando
-    if (continuousMode && messageEnded && !isAvatarResponding && 
-        !pendingMessages && !isListening) {
-      console.log("🔄 Reiniciando escucha como respaldo (sin mensajes pendientes)");
-      
-      const timer = setTimeout(() => {
-        startListening();
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [continuousMode, messageEnded, isAvatarResponding, pendingMessages, isListening, startListening]);
+  }, [pendingMessages]);
 
   // Monitorear el objeto message para detectar cuándo termina
   useEffect(() => {
-    // Si message pasa de existir a no existir (null), consideramos que terminó
     if (!message && isAvatarResponding === false) {
       handleMessageEnd();
     }
   }, [message, isAvatarResponding]);
-
-  // Toggle para el video de depuración
-  const toggleDebugVideo = () => {
-    setShowDebugVideo(!showDebugVideo);
-  };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -377,13 +332,68 @@ export const SimpleUI = ({ hidden, ...props }) => {
     }
   };
 
+  // 🔧 FUNCIONES MEJORADAS PARA ESTADOS VISUALES CLAROS
+  const getVoiceStatus = () => {
+    if (alwaysListeningMode) {
+      return isListening ? 'Escuchando wake words...' : 'Esperando "Oye Naia"...';
+    }
+    
+    if (continuousMode) {
+      if (isListening) {
+        return 'Escuchando tu respuesta...';
+      }
+      return `Conversación activa (${consecutiveFailures}/3 fallos)`;
+    }
+    
+    return isListening ? 'Escuchando...' : 'Presiona para hablar';
+  };
+
+  const getVoiceButtonStyle = () => {
+    if (alwaysListeningMode) {
+      return isListening 
+        ? "bg-blue-500 hover:bg-blue-600 text-white shadow-lg" 
+        : "bg-blue-600 hover:bg-blue-700 text-white";
+    }
+    
+    if (continuousMode) {
+      return isListening 
+        ? "bg-green-400 hover:bg-green-500 text-white shadow-lg animate-pulse" 
+        : "bg-green-600 hover:bg-green-700 text-white";
+    }
+    
+    return "bg-gray-200 hover:bg-gray-300 text-gray-700";
+  };
+
+  const getListeningIndicatorStyle = () => {
+    if (alwaysListeningMode) {
+      return {
+        bg: isListening ? 'bg-blue-500' : 'bg-blue-600',
+        animate: isListening ? 'animate-ping' : 'animate-pulse'
+      };
+    }
+    
+    if (continuousMode) {
+      return {
+        bg: isListening ? 'bg-green-400' : 'bg-green-600',
+        animate: isListening ? 'animate-ping' : 'animate-pulse'
+      };
+    }
+    
+    return {
+      bg: 'bg-red-800',
+      animate: 'animate-ping'
+    };
+  };
+
   if (hidden) {
     return null;
   }
 
+  const listeningStyle = getListeningIndicatorStyle();
+
   return (
     <>
-      {/* Video para la cámara - ahora posicionado fuera de la pantalla para que se renderice correctamente */}
+      {/* Video para la cámara */}
       <video 
         ref={hiddenVideoRef}
         autoPlay 
@@ -409,12 +419,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
             className="ml-4 px-3 py-1 rounded-md bg-blue-950 text-white text-sm font-medium pointer-events-auto hover:bg-blue-900 transition-colors flex items-center gap-1"
             title="Cambiar el rol actual"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-refresh-cw">
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-              <path d="M21 3v5h-5"/>
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-              <path d="M3 21v-5h5"/>
-            </svg>
+            <RefreshCw className="w-4 h-4" />
             <span>Cambiar rol</span>
           </button>
 
@@ -428,14 +433,21 @@ export const SimpleUI = ({ hidden, ...props }) => {
               </div>
           )}
 
-          {/* Indicador de estado de escucha */}
-          {isListening && (
+          {/* 🔧 INDICADOR MEJORADO DE ESTADOS DE VOZ */}
+          {(alwaysListeningMode || continuousMode || isListening) && (
             <div className="ml-3 flex items-center">
               <div className="relative mr-2">
-                <div className="absolute inset-0 bg-red-900 rounded-full animate-ping opacity-75"></div>
-                <div className="relative rounded-full bg-red-800 h-3 w-3"></div>
+                <div className={`absolute inset-0 ${listeningStyle.bg} rounded-full ${listeningStyle.animate} opacity-75`}></div>
+                <div className={`relative rounded-full h-3 w-3 ${listeningStyle.bg.replace('animate-ping', '').replace('animate-pulse', '')}`}></div>
               </div>
-              <span className="mr-2 text-sm font-medium">Escuchando</span>
+              <span className="mr-2 text-sm font-medium">{getVoiceStatus()}</span>
+              
+              {/* Mostrar contador de fallos si está en modo continuo */}
+              {continuousMode && consecutiveFailures > 0 && (
+                <span className="ml-1 px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
+                  {consecutiveFailures}/3
+                </span>
+              )}
             </div>
           )}
           
@@ -449,31 +461,13 @@ export const SimpleUI = ({ hidden, ...props }) => {
               <span className="mr-2 text-sm font-medium">Respondiendo</span>
             </div>
           )}
-          
-          {/* Indicador de modo continuo */}
-          {continuousMode && (
-            <div className="ml-3 flex items-center">
-              <div className="relative mr-2">
-                <div className="absolute inset-0 bg-green-9 rounded-full animate-pulse opacity-75"></div>
-                <div className="relative rounded-full bg-green-900 h-3 w-3"></div>
-              </div>
-              <span className="mr-2 text-sm font-medium">Modo continuo</span>
-            </div>
-          )}
-          
-          {/* Información de depuración sobre la cámara */}
-          {showDebugVideo && debugInfo && (
-            <div className="ml-3 text-xs text-gray-700">
-              <span>Video: {debugInfo.videoWidth}x{debugInfo.videoHeight} (RS:{debugInfo.readyState})</span>
-            </div>
-          )}
         </div>
 
         {/* Function Results Display */}
         <FunctionResultsDisplay functionResults={functionResults} />
 
         <div className="flex flex-col">
-          {/* Subtitles area - Positioned higher to leave space for ElegantSubtitles */}
+          {/* Subtitles area */}
           {currentSubtitle && (
             <div className="w-full max-w-2xl mx-auto pointer-events-auto mb-12">
               <div className="backdrop-blur-md bg-white bg-opacity-70 p-4 rounded-lg shadow-lg">
@@ -494,35 +488,71 @@ export const SimpleUI = ({ hidden, ...props }) => {
               rows={1}
             />
             
-            {/* Botón de modo continuo */}
+            {/* 🔧 BOTÓN PRINCIPAL DE VOZ UNIFICADO */}
             <button
-              onClick={toggleContinuousMode}
-              className={`p-3 rounded-md flex-shrink-0 ${
-                continuousMode 
-                  ? "bg-green-900 hover:bg-green-950 text-white" 
-                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-              }`}
-              title={continuousMode ? "Desactivar modo continuo" : "Activar modo continuo"}
+              onClick={() => {
+                console.log(`🔘 Click en botón voice - Estado actual: Always=${alwaysListeningMode}, Continuous=${continuousMode}`);
+                
+                if (alwaysListeningMode || continuousMode) {
+                  // Desactivar cualquier modo activo
+                  if (alwaysListeningMode) {
+                    toggleAlwaysListeningMode();
+                  }
+                  if (continuousMode) {
+                    toggleContinuousMode();
+                  }
+                } else {
+                  // Activar Always Listening por defecto
+                  toggleAlwaysListeningMode();
+                }
+              }}
+              className={`p-3 rounded-md flex-shrink-0 transition-all duration-200 ${getVoiceButtonStyle()}`}
+              title={
+                alwaysListeningMode 
+                  ? `Always Listening Activo - ${getVoiceStatus()}` 
+                  : continuousMode 
+                    ? `Modo Continuo Activo - ${getVoiceStatus()}`
+                    : "Activar Always Listening"
+              }
             >
-              <RefreshCw className={`w-5 h-5 ${continuousMode ? "animate-spin" : ""}`} />
+              {alwaysListeningMode ? (
+                <Ear className={`w-5 h-5 ${isListening ? 'animate-pulse' : ''}`} />
+              ) : continuousMode ? (
+                <Volume2 className={`w-5 h-5 ${isListening ? 'animate-pulse' : ''}`} />
+              ) : (
+                <EarOff className="w-5 h-5" />
+              )}
             </button>
             
-            {/* Botón de micrófono */}
-            <button
-              onClick={toggleListening}
-              className={`p-3 rounded-md flex-shrink-0 ${
-                isListening 
-                  ? "bg-red-900 hover:bg-red-950 text-white" 
-                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-              } ${(isAvatarResponding || inputDisabled) ? "cursor-not-allowed opacity-75" : ""}`}
-              disabled={isAvatarResponding || inputDisabled}
-              title={isListening ? "Detener y enviar" : "Iniciar reconocimiento"}
-            >
-              {isListening ? 
-                <MicOff className="w-5 h-5" /> : 
-                <Mic className="w-5 h-5" />
-              }
-            </button>
+            {/* Botón de modo continuo manual - Solo cuando no hay modos activos */}
+            {!alwaysListeningMode && !continuousMode && (
+              <button
+                onClick={toggleContinuousMode}
+                className="p-3 rounded-md flex-shrink-0 bg-gray-200 hover:bg-gray-300 text-gray-700"
+                title="Activar modo continuo manual"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
+            )}
+            
+            {/* Botón de micrófono manual - Solo cuando no hay modos activos */}
+            {!alwaysListeningMode && !continuousMode && (
+              <button
+                onClick={toggleListening}
+                className={`p-3 rounded-md flex-shrink-0 ${
+                  isListening 
+                    ? "bg-red-900 hover:bg-red-950 text-white" 
+                    : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                } ${(isAvatarResponding || inputDisabled) ? "cursor-not-allowed opacity-75" : ""}`}
+                disabled={isAvatarResponding || inputDisabled}
+                title={isListening ? "Detener y enviar" : "Iniciar reconocimiento"}
+              >
+                {isListening ? 
+                  <MicOff className="w-5 h-5" /> : 
+                  <Mic className="w-5 h-5" />
+                }
+              </button>
+            )}
             
             {/* Botón de enviar */}
             <button
@@ -545,6 +575,42 @@ export const SimpleUI = ({ hidden, ...props }) => {
               {cameraZoomed ? "Alejar" : "Acercar"}
             </button>
           </div>
+
+          {/* 🔧 INFORMACIÓN MEJORADA PARA LOS MODOS DE VOZ */}
+          {(alwaysListeningMode || continuousMode) && (
+            <div className="text-center mt-3 pointer-events-auto">
+              <div className={`border rounded-lg p-3 max-w-md mx-auto ${
+                alwaysListeningMode 
+                  ? 'bg-blue-50 border-blue-200' 
+                  : 'bg-green-50 border-green-200'
+              }`}>
+                <p className={`text-sm ${
+                  alwaysListeningMode ? 'text-blue-800' : 'text-green-800'
+                }`}>
+                  {alwaysListeningMode ? (
+                    <>
+                      <Ear className="w-4 h-4 inline mr-1" />
+                      <strong>Always Listening:</strong> Di <strong>"Oye Naia"</strong> para activar la conversación
+                      {isListening && <span className="block text-xs mt-1">🎤 Escuchando wake words...</span>}
+                    </>
+                  ) : continuousMode ? (
+                    <>
+                      <Volume2 className="w-4 h-4 inline mr-1" />
+                      <strong>Modo Continuo:</strong> Habla normalmente, despídete para salir
+                      {isListening && <span className="block text-xs mt-1">🎤 Esperando tu respuesta...</span>}
+                      {consecutiveFailures > 0 && (
+                        <span className="block text-xs text-orange-600 mt-1 font-medium">
+                          ⚠️ {consecutiveFailures}/3 intentos sin respuesta - Se desactivará automáticamente
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    "Activando modo de conversación..."
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
