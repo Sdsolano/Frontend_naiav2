@@ -1,13 +1,23 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { NavLink, useLocation } from "react-router-dom"
-import { Home, FileText, Menu, X, Layers } from "lucide-react"
+import { NavLink, useLocation, useNavigate } from "react-router-dom"
+import { Home, FileText, Menu, X, Layers, LogIn, LogOut, User } from "lucide-react"
+import { useIsAuthenticated, useMsal } from "@azure/msal-react"
+import { useAuth } from "./AuthContext";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
   const isNaiaRoute = location.pathname === "/naia"
+  const { instance, accounts } = useMsal()
+  const { isAuthenticated, handleLogout, openLoginModal } = useAuth();
+
+  // Obtener información del usuario autenticado
+  const userAccount = accounts[0];
+  const userName = userAccount?.name || userAccount?.username?.split('@')[0] || '';
+  const userEmail = userAccount?.username || '';
 
   // Close sidebar when clicking outside
   useEffect(() => {
@@ -71,7 +81,7 @@ const Sidebar = () => {
         <div className="h-full flex flex-col m-4 rounded-2xl bg-white bg-opacity-80  backdrop-blur-md shadow-2xl overflow-hidden border border-sky-100">
           {/* Logo/Brand */}
           <div className="p-6 border-b border-sky-100">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-4">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-blue-800 to-blue-950">
                 <Layers className="text-white" size={20} />
               </div>
@@ -79,6 +89,23 @@ const Sidebar = () => {
                 NAIA
               </h1>
             </div>
+            
+            {/* User info - only show when authenticated */}
+            {isAuthenticated && userName && (
+              <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-sky-50 rounded-xl border border-blue-100">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white text-sm font-semibold">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 truncate">
+                    {userName}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate" title={userEmail}>
+                    {userEmail}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Navigation Links */}
@@ -128,6 +155,35 @@ const Sidebar = () => {
                   <span>NAIA</span>
                 </NavLink>
               </li>
+              
+              {/* Botón de inicio o cierre de sesión según el estado de autenticación */}
+              {!isAuthenticated ? (
+                <li>
+                  <button
+                    onClick={() => {
+                      openLoginModal();
+                      setIsOpen(false);
+                    }}
+                    className="w-full flex items-center p-4 rounded-xl transition-all text-gray-600 hover:bg-gray-50"
+                  >
+                    <LogIn className="mr-3" size={20} />
+                    <span>Iniciar sesión</span>
+                  </button>
+                </li>
+              ) : (
+                <li>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsOpen(false);
+                    }}
+                    className="w-full flex items-center p-4 rounded-xl transition-all text-gray-600 hover:bg-gray-50"
+                  >
+                    <LogOut className="mr-3" size={20} />
+                    <span>Cerrar sesión</span>
+                  </button>
+                </li>
+              )}
             </ul>
           </nav>
 

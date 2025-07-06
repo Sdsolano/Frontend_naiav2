@@ -1,10 +1,13 @@
+// components/Avatar.jsx - VERSIÓN ACTUALIZADA CON GÉNERO
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { button, useControls } from "leva";
 import React, { useEffect, useRef, useState } from "react";
-
+import defaultLipsync from "../utils/defaultLipsync";
 import * as THREE from "three";
 import { useChat } from "../hooks/useChat";
+import { getCurrentRoleConfig } from "../utils/roleUtils";
+import { getAnimationFileForRole, getRoleGender } from "../utils/animationUtils"; // ← NUEVO IMPORT
 
 const facialExpressions = {
   default: {},
@@ -101,32 +104,180 @@ const corresponding = {
 
 let setupMode = false;
 
-export function Avatar(props) {
-  const { nodes, materials, scene } = useGLTF(
-    "/models/investigator.glb"
-  );
+// Función para determinar el modelo basado en el rol
+const getModelPathForRole = (roleId) => {
+  switch (roleId) {
+    case 'guide':
+      return "/models/uni.glb";
+    case 'companion':
+      return "/models/companion.glb";
+    case 'trainer':
+      return "/models/trainer.glb";
+    case 'assistant':
+      return "/models/personal.glb";
+    case 'receptionist':
+      return "/models/receptionist.glb";
+    default:
+      return "/models/investigator.glb";
+  }
+};
 
-  const { message, onMessagePlayed, chat,isThinking } = useChat();
+export function Avatar(props) {
+  // Estado de rol actual
+  const [currentRole, setCurrentRole] = useState(() => {
+    const roleConfig = getCurrentRoleConfig();
+    return roleConfig.id;
+  });
+  
+  // Estado del modelo actual
+  const [modelPath, setModelPath] = useState(() => {
+    const roleConfig = getCurrentRoleConfig();
+    return getModelPathForRole(roleConfig.id);
+  });
+
+  // ← NUEVO: Estado para archivo de animaciones dinámico
+  const [animationPath, setAnimationPath] = useState(() => {
+    const roleConfig = getCurrentRoleConfig();
+    return getAnimationFileForRole(roleConfig.id);
+  });
+
+  // ← NUEVO: Estado para género actual
+  const [currentGender, setCurrentGender] = useState(() => {
+    const roleConfig = getCurrentRoleConfig();
+    return getRoleGender(roleConfig.id);
+  });
+
+  // Efecto para cambios de rol - ACTUALIZADO
+  useEffect(() => {
+    const handleRoleChange = () => {
+      const roleConfig = getCurrentRoleConfig();
+      const newRole = roleConfig.id;
+      
+      if (newRole !== currentRole) {
+        console.log(`🎭 Avatar: Cambiando rol de ${currentRole} a ${newRole}`);
+        setCurrentRole(newRole);
+        
+        const newModelPath = getModelPathForRole(newRole);
+        const newAnimationPath = getAnimationFileForRole(newRole); // ← NUEVO
+        const newGender = getRoleGender(newRole); // ← NUEVO
+        
+        console.log(`📦 Avatar: Cambiando modelo a ${newModelPath}`);
+        console.log(`🎭 Avatar: Cambiando animaciones a ${newAnimationPath}`);
+        console.log(`👤 Avatar: Género ${newGender}`);
+        
+        setModelPath(newModelPath);
+        setAnimationPath(newAnimationPath); // ← NUEVO
+        setCurrentGender(newGender); // ← NUEVO
+      }
+    };
+
+    // Verificar inmediatamente
+    handleRoleChange();
+
+    // Escuchar eventos de cambio
+    window.addEventListener('role-changed', handleRoleChange);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'naia_selected_role') {
+        handleRoleChange();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('role-changed', handleRoleChange);
+      window.removeEventListener('storage', handleRoleChange);
+    };
+  }, [currentRole]);
+
+  // ← MODIFICADO: Cargar modelo y animaciones dinámicamente
+  const { nodes, materials, scene } = useGLTF(modelPath, true);
+  const { animations } = useGLTF(animationPath, true); // ← Usar animationPath dinámico
+
+  const { message, onMessagePlayed, chat, isThinking } = useChat();
 
   const [lipsync, setLipsync] = useState();
   const [audio, setAudio] = useState();
   const [isPlaying, setIsPlaying] = useState(false);
   const audioEndTimerRef = useRef(null);
 
+  // Referencias estáticas
+  const group = useRef();
+  const { actions, mixer } = useAnimations(animations, group);
+
+  // Estado de animación
+  const [animation, setAnimation] = useState("Idle");
+
+  // Función para aplicar animaciones de forma segura
+  const setAnimationSafely = (animName) => {
+    console.log(`🎭 setAnimationSafely: ${animName} para rol ${currentRole} (${currentGender})`);
+    
+    if (!actions || Object.keys(actions).length === 0) {
+      console.warn(`⚠️ Actions no disponibles para ${currentRole}, reintentando...`);
+      
+      setTimeout(() => {
+        if (actions && actions[animName]) {
+          console.log(`✅ Retry exitoso: ${animName} para ${currentRole}`);
+          setAnimation(animName);
+        } else {
+          console.error(`❌ Retry fallido: ${animName} para ${currentRole}`);
+        }
+      }, 300);
+      return;
+    }
+    
+    if (actions[animName]) {
+      console.log(`✅ Aplicando animación: ${animName} para ${currentRole} (${currentGender})`);
+      setAnimation(animName);
+    } else {
+      console.warn(`❌ Animación "${animName}" no encontrada para ${currentRole}`);
+      console.log(`Disponibles:`, Object.keys(actions));
+      
+      // Buscar fallback
+      const fallbacks = ['Idle', 'Talking_1', Object.keys(actions)[0]];
+      for (const fallback of fallbacks) {
+        if (actions[fallback]) {
+          console.log(`🔄 Usando fallback: ${fallback}`);
+          setAnimation(fallback);
+          break;
+        }
+      }
+    }
+  };
+
+  // Resetear a Idle cuando cambie el modelo
+  useEffect(() => {
+    if (actions && Object.keys(actions).length > 0) {
+      console.log(`🔄 Animaciones cargadas para ${currentRole} (${currentGender}), aplicando Idle`);
+      setTimeout(() => {
+        setAnimationSafely("Idle");
+      }, 100);
+    }
+  }, [actions, currentRole, currentGender]);
+
+  // ← NUEVO: Precargar ambos archivos de animaciones
+  useEffect(() => {
+    console.log("🔄 Precargando archivos de animaciones...");
+    
+    // Precargar animaciones femeninas
+    useGLTF.preload("/models/animations.glb");
+    
+    // Precargar animaciones masculinas
+    useGLTF.preload("/models/male_animations.glb");
+    
+    console.log("✅ Archivos de animaciones precargados");
+  }, []);
+
   useEffect(() => {
     console.log(message);
 
     if (isThinking) {
       console.log("Avatar pensando...");
-      setAnimationSafely("Thinking"); // Animación de pensamiento
+      setAnimationSafely("Thinking");
       setFacialExpression("default");
-      return; // Importante: salimos del useEffect aquí
+      return;
     }
-
 
     if (!message) {
       if (isPlaying) {
-        // Si estábamos reproduciendo y el mensaje se vuelve null, volvemos a Idle
         setAnimation("Idle");
         setFacialExpression("default");
         setIsPlaying(false);
@@ -155,7 +306,6 @@ export function Avatar(props) {
     const audioElement = new Audio("data:audio/mp3;base64," + message.audio);
     
     // Calcular duración estimada para el temporizador de respaldo
-    // (utilizamos el mismo cálculo que en useChat.jsx)
     const estimatedDuration = Math.max(3000, message.text.length * 100);
     
     // Establecer temporizador de respaldo por si falla el evento onended
@@ -165,7 +315,7 @@ export function Avatar(props) {
       setFacialExpression("default");
       setIsPlaying(false);
       if (onMessagePlayed) onMessagePlayed();
-    }, estimatedDuration + 500); // Añadimos un margen de 500ms
+    }, estimatedDuration + 500);
     
     // Establecer los callbacks antes de reproducir
     audioElement.onended = () => {
@@ -211,15 +361,22 @@ export function Avatar(props) {
     
     // Pequeño retraso para asegurar que la animación y expresión se han aplicado
     setTimeout(() => {
-      audioElement.play().catch(err => {
-        console.error('Error playing audio:', err);
-        setAnimation("Idle");
-        setFacialExpression("default");
-        setIsPlaying(false);
-      });
+      audioElement.play()
+        .then(() => {
+          console.log("🔄 Avatar: Audio iniciado correctamente");
+          // Emitir evento para sincronizar subtítulos
+          const audioStartedEvent = new CustomEvent('avatar-audio-started');
+          window.dispatchEvent(audioStartedEvent);
+        })
+        .catch(err => {
+          console.error('Error playing audio:', err);
+          setAnimation("Idle");
+          setFacialExpression("default");
+          setIsPlaying(false);
+        });
     }, 100);
     
-  }, [message,isThinking]);
+  }, [message, isThinking]);
 
   // Cleanup al desmontar
   useEffect(() => {
@@ -236,37 +393,13 @@ export function Avatar(props) {
     };
   }, [audio]);
 
-  const { animations } = useGLTF("/models/animations.glb");
-
-  const group = useRef();
-  const { actions, mixer } = useAnimations(animations, group);
-  // Función segura para cambiar animaciones
-  const setAnimationSafely = (animName) => {
-    // Verificar si la animación existe en las acciones disponibles
-    if (actions && actions[animName]) {
-      setAnimation(animName);
-    } else {
-      console.warn(`Animation "${animName}" not found, falling back to default`);
-      // Buscar una animación de respaldo válida
-      const defaultAnim = animations.find(a => actions && actions[a.name]) || {};
-      if (defaultAnim.name) {
-        console.log(`Using fallback animation: ${defaultAnim.name}`);
-        setAnimation(defaultAnim.name);
-      }
-    }
-  };
-  
-  // Estado inicial seguro
-  const [animation, setAnimation] = useState(() => {
-    const hasIdle = animations.find((a) => a.name === "Idle");
-    return hasIdle ? "Idle" : (animations[0]?.name || "");
-  });
   useEffect(() => {
     // Verificar que la animación existe
     if (actions && animation && actions[animation]) {
+      actions[animation].timeScale = 0.5;
       actions[animation]
         .reset()
-        .fadeIn(mixer.stats.actions.inUse === 0 ? 0 : 0.5)
+        .fadeIn(mixer && mixer.stats.actions.inUse === 0 ? 0 : 0.5)
         .play();
       
       // Verificar también en la función de limpieza
@@ -276,7 +409,7 @@ export function Avatar(props) {
         }
       };
     }
-  }, [animation, actions]);
+  }, [animation, actions, mixer]);
 
   const lerpMorphTarget = (target, value, speed = 0.1) => {
     scene.traverse((child) => {
@@ -310,12 +443,24 @@ export function Avatar(props) {
   const [winkRight, setWinkRight] = useState(false);
   const [facialExpression, setFacialExpression] = useState("");
 
+  const vowelIntensity = {
+    "A": 1.5,
+    "C": 1.3,
+    "D": 1.4,
+    "E": 1.3,
+    "F": 1.3,
+    "B": 0.9,
+    "G": 0.8,
+    "H": 0.7,
+    "X": 0.6
+  };
+
   useFrame(() => {
     !setupMode &&
       Object.keys(nodes.EyeLeft.morphTargetDictionary).forEach((key) => {
         const mapping = facialExpressions[facialExpression];
         if (key === "eyeBlinkLeft" || key === "eyeBlinkRight") {
-          return; // eyes wink/blink are handled separately
+          return;
         }
         if (mapping && mapping[key]) {
           lerpMorphTarget(key, mapping[key], 0.1);
@@ -335,19 +480,50 @@ export function Avatar(props) {
     const appliedMorphTargets = [];
     if (isPlaying && message && lipsync && audio) {
       const currentAudioTime = audio.currentTime;
-      for (let i = 0; i < lipsync.mouthCues.length; i++) {
-        const mouthCue = lipsync.mouthCues[i];
-        if (
-          currentAudioTime >= mouthCue.start &&
-          currentAudioTime <= mouthCue.end
-        ) {
-          appliedMorphTargets.push(corresponding[mouthCue.value]);
-          lerpMorphTarget(corresponding[mouthCue.value], 1, 0.2);
-          break;
+      
+      const lastCue = lipsync.mouthCues[lipsync.mouthCues.length - 1];
+      const isWithinDataRange = currentAudioTime <= lastCue.end;
+      
+      if (isWithinDataRange) {
+        for (let i = 0; i < lipsync.mouthCues.length; i++) {
+          const mouthCue = lipsync.mouthCues[i];
+          if (
+            currentAudioTime >= mouthCue.start &&
+            currentAudioTime <= mouthCue.end
+          ) {
+            const visemeKey = mouthCue.value;
+            const morphTarget = corresponding[visemeKey];
+            
+            const intensity = vowelIntensity[visemeKey] || 1.0;
+            
+            appliedMorphTargets.push(morphTarget);
+            lerpMorphTarget(morphTarget, intensity, 0.25);
+            break;
+          }
+        }
+      } else {
+        const cycleDuration = 0.8;
+        const cyclePosition = (currentAudioTime % cycleDuration) / cycleDuration;
+        
+        if (cyclePosition < 0.2) {
+          lerpMorphTarget(corresponding["X"], 0.3, 0.2);
+          appliedMorphTargets.push(corresponding["X"]);
+        } else if (cyclePosition < 0.3) {
+          lerpMorphTarget(corresponding["F"], 0.8, 0.3);
+          appliedMorphTargets.push(corresponding["F"]);
+        } else if (cyclePosition < 0.5) {
+          lerpMorphTarget(corresponding["A"], 1.5, 0.3);
+          appliedMorphTargets.push(corresponding["A"]);
+        } else if (cyclePosition < 0.7) {
+          lerpMorphTarget(corresponding["C"], 1.2, 0.3);
+          appliedMorphTargets.push(corresponding["C"]);
+        } else {
+          lerpMorphTarget(corresponding["D"], 0.9, 0.3);
+          appliedMorphTargets.push(corresponding["D"]);
         }
       }
     }
-
+    
     Object.values(corresponding).forEach((value) => {
       if (appliedMorphTargets.includes(value)) {
         return;
@@ -385,7 +561,7 @@ export function Avatar(props) {
       const emotionValues = {};
       Object.keys(nodes.EyeLeft.morphTargetDictionary).forEach((key) => {
         if (key === "eyeBlinkLeft" || key === "eyeBlinkRight") {
-          return; // eyes wink/blink are handled separately
+          return;
         }
         const value =
           nodes.EyeLeft.morphTargetInfluences[
@@ -421,6 +597,32 @@ export function Avatar(props) {
       })
     )
   );
+
+  // Diagnóstico cuando cambie el rol
+  useEffect(() => {
+    if (nodes && scene) {
+      console.log(`🔍 DIAGNÓSTICO PARA ROL: ${currentRole} (${currentGender})`);
+      console.log(`📦 Modelo cargado: ${modelPath}`);
+      console.log(`🎭 Animaciones cargadas: ${animationPath}`);
+      
+      if (nodes.EyeLeft && nodes.EyeLeft.morphTargetDictionary) {
+        console.log("  ✅ EyeLeft morph targets disponibles");
+      } else {
+        console.error("  ❌ No se encontró EyeLeft o morphTargetDictionary");
+      }
+      
+      if (actions) {
+        console.log(`  ✅ ${Object.keys(actions).length} animaciones disponibles:`, Object.keys(actions));
+        if (actions.Idle) {
+          console.log("  ✅ Animación 'Idle' encontrada");
+        } else {
+          console.error("  ❌ Animación 'Idle' NO encontrada");
+        }
+      } else {
+        console.error("  ❌ No hay actions disponibles");
+      }
+    }
+  }, [nodes, scene, currentRole, currentGender, modelPath, animationPath, actions]);
 
   useEffect(() => {
     let blinkTimeout;
@@ -464,18 +666,43 @@ export function Avatar(props) {
         material={materials.Wolf3D_Outfit_Top}
         skeleton={nodes.Wolf3D_Outfit_Top.skeleton}
       />
-      <skinnedMesh
-        name="Wolf3D_Glasses"
-        geometry={nodes.Wolf3D_Glasses.geometry}
-        material={materials.Wolf3D_Glasses}
-        skeleton={nodes.Wolf3D_Glasses.skeleton}
-      />
-      <skinnedMesh
-        name="Wolf3D_Hair"
-        geometry={nodes.Wolf3D_Hair.geometry}
-        material={materials.Wolf3D_Hair}
-        skeleton={nodes.Wolf3D_Hair.skeleton}
-      />
+      {(() => {
+        try {
+          if (nodes.Wolf3D_Glasses && materials.Wolf3D_Glasses) {
+            return (
+              <skinnedMesh
+                name="Wolf3D_Glasses"
+                geometry={nodes.Wolf3D_Glasses.geometry}
+                material={materials.Wolf3D_Glasses}
+                skeleton={nodes.Wolf3D_Glasses.skeleton}
+              />
+            );
+          }
+          return null;
+        } catch (error) {
+          console.warn("Error loading glasses mesh, skipping:", error);
+          return null;
+        }
+      })()}
+      {(() => {
+        try {
+          if (nodes.Wolf3D_Hair && materials.Wolf3D_Hair) {
+            return (
+               <skinnedMesh
+                name="Wolf3D_Hair"
+                geometry={nodes.Wolf3D_Hair.geometry}
+                material={materials.Wolf3D_Hair}
+                skeleton={nodes.Wolf3D_Hair.skeleton}
+              />
+            );
+          }
+          return null;
+        } catch (error) {
+          console.warn("Error loading hair mesh, skipping:", error);
+          return null;
+        }
+      })()}
+     
       <skinnedMesh
         name="EyeLeft"
         geometry={nodes.EyeLeft.geometry}
@@ -512,5 +739,14 @@ export function Avatar(props) {
   );
 }
 
-useGLTF.preload("/models/64f1a714fe61576b46f27ca2.glb");
-useGLTF.preload("/models/animations.glb");
+// ← ACTUALIZADO: Precargar todos los modelos y ambos archivos de animaciones
+useGLTF.preload("/models/investigator.glb");
+useGLTF.preload("/models/uni.glb");
+useGLTF.preload("/models/companion.glb");  
+useGLTF.preload("/models/trainer.glb");
+useGLTF.preload("/models/personal.glb");
+useGLTF.preload("/models/receptionist.glb");
+
+// ← NUEVO: Precargar ambos archivos de animaciones
+useGLTF.preload("/models/animations.glb");      // Femeninas
+useGLTF.preload("/models/male_animations.glb"); // Masculinas

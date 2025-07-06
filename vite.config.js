@@ -6,6 +6,13 @@ export default defineConfig({
   plugins: [react()],
   server:{
     port:3000,
-    open:true
+    open:true,
+    hmr: {
+      clientPort: 3000,
+      host: 'localhost',
+      protocol: 'ws',
+      timeout: 10000,
+      overlay: false
+    }
   }
 })

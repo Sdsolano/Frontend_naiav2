@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useNotification } from "../components/NotificationContext";
 import { BACKEND_URL } from "../../config";
+import { useUser } from '../components/UserContext';
+
 
 // URL base para las API del investigador - IMPORTANTE: debe terminar con barra diagonal (/)
 const API_BASE_URL = `${BACKEND_URL}/api/v1/researcher/document/`;
@@ -29,25 +31,94 @@ const Documents = () => {
   const [uploadProgress, setUploadProgress] = useState({});
   const [apiError, setApiError] = useState(null);
   const [apiAvailable, setApiAvailable] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0); // Nuevo estado para forzar recargas
-  
-  // Normalmente este ID vendría del contexto de autenticación
-  // Por ahora lo hardcodeamos para propósitos de ejemplo
-  const userId = 1;
-  
+  const [refreshKey, setRefreshKey] = useState(0); // Estado para forzar recargas
+  const [initialSyncAttempted, setInitialSyncAttempted] = useState(false); // Nuevo estado para controlar si ya se 
+  // intentó la sincronización inicial
+  const { userId, isUserReady } = useUser(); // Obtener userId dinámico
   const fileInputRef = useRef(null);
   const dropAreaRef = useRef(null);
   const { addNotification } = useNotification();
 
   // Cargar documentos cuando el componente se monta o refreshKey cambia
   useEffect(() => {
-    fetchDocuments();
-  }, [refreshKey]); // Dependencia a refreshKey para forzar recarga
+    const initializeDocuments = async () => {
+       if (!isUserReady()) {
+        console.log("⚠️ Usuario no está listo, esperando configuración...");
+        setIsLoading(false);
+        return;
+      }
 
+      if (!userId) {
+        console.log("⚠️ userId no disponible");
+        setApiError("Usuario no identificado");
+        setIsLoading(false);
+        return;
+      }
 
+      setIsLoading(true);
+      
+      try {
+        // 1. Intentar cargar documentos normalmente primero
+        await fetchDocuments();
+        
+        // 2. Si no hay documentos y no hemos intentado la sincronización inicial,
+        // intentar forzar una sincronización completa
+        if (documents.length === 0 && !initialSyncAttempted) {
+          console.log("⚠️ Lista de documentos vacía en carga inicial, forzando sincronización...");
+          setInitialSyncAttempted(true);
+          
+          // Hacer una llamada a save_changes para forzar la sincronización del sistema
+          try {
+            const timestamp = Date.now();
+            const randomString = Math.random().toString(36).substring(7);
+            const syncUrl = `${API_BASE_URL}save_changes/?_t=${timestamp}&_r=${randomString}`;
+            
+            console.log(`🔄 Forzando sincronización inicial: ${syncUrl}`);
+            
+            const syncResponse = await fetch(syncUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ 
+                user_id: userId,
+                _t: timestamp,
+                _r: randomString 
+              })
+            });
+            
+            if (syncResponse.ok) {
+              console.log("✅ Sincronización inicial exitosa");
+              addNotification('Sincronizando documentos del servidor...', 'info');
+            } else {
+              console.log(`⚠️ Error en sincronización inicial: ${syncResponse.status}`);
+            }
+            
+            // Esperar un momento para que el servidor procese la sincronización
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Intentar nuevamente con forceRefresh
+            await forceRefresh();
+          } catch (syncError) {
+            console.error("Error en sincronización inicial:", syncError);
+          }
+        }
+      } catch (error) {
+        console.error("Error en inicialización:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    initializeDocuments();
+  }, [refreshKey, userId, isUserReady]); // Mantener la dependencia a refreshKey para forzar recargas
 
   // Función mejorada para refrescar forzadamente
   const forceRefresh = async () => {
+    if (!userId) {
+      addNotification("Error: Usuario no identificado", "error");
+      return;
+    }
     console.log("🔄 Forzando actualización completa de documentos...");
     
     // Resetear todos los estados relacionados a documentos
@@ -96,9 +167,6 @@ const Documents = () => {
       setApiError(error.message);
       setApiAvailable(false);
       addNotification('Error al actualizar documentos. Intente de nuevo.', 'error');
-      
-      // Usar datos de ejemplo si falla
-      setDocuments(getExampleDocuments());
     } finally {
       setIsLoading(false);
       // Incrementar refreshKey para asegurar que se detecten cambios
@@ -107,15 +175,15 @@ const Documents = () => {
   };
 
   const fetchDocuments = async (bypassCache = false) => {
+    if (!userId) {
+      throw new Error('Usuario no identificado');
+    }
     setIsLoading(true);
     setApiError(null);
     
     try {
       // Añadir timestamp a la URL para evitar caché
       const timestamp = new Date().getTime();
-      
-      // Ya no enviamos headers de caché que pueden causar problemas CORS
-      // El timestamp en la URL es suficiente para evitar el uso de caché
       
       // URL con parámetro de timestamp para forzar una petición fresca
       const url = `${API_BASE_URL}?user_id=${userId}&_t=${timestamp}`;
@@ -147,8 +215,6 @@ const Documents = () => {
       // Guardar el error para mostrarlo en la interfaz
       setApiError(error.message);
       setApiAvailable(false);
-      
-     
       
       addNotification(`Error al cargar documentos: ${error.message}. Usando datos de ejemplo.`, 'warning');
     } finally {
@@ -264,6 +330,11 @@ const Documents = () => {
   };
 
   const saveChanges = async () => {
+    if (!userId) {
+      addNotification("Error: Usuario no identificado", "error");
+      return;
+    }
+
     if (!pendingFiles.length && !pendingDeletions.length) {
       addNotification('No hay cambios para guardar', 'info');
       return;
@@ -726,7 +797,7 @@ const Documents = () => {
               className={`flex items-center px-6 py-3 rounded-md font-medium ${
                 (!pendingFiles.length && !pendingDeletions.length) || isSaving
                   ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-sky-600 hover:bg-sky-700 text-white shadow-md hover:shadow-lg'
+                  : 'bg-slate-800 hover:bg-slate-700 text-white shadow-md hover:shadow-lg'
               } transition-all`}
             >
               {isSaving ? (

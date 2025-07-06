@@ -1,109 +1,184 @@
 // hooks/useUserImage.jsx
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNotification } from '../components/NotificationContext';
+import { BACKEND_URL } from '../../config';
+import { useUser } from '../components/UserContext';
 
-const CAPTURE_QUALITY = 0.9; // Calidad de compresión JPEG (0-1)
-const MAX_IMAGE_SIZE = 640; // Tamaño máximo en píxeles (ancho o alto)
-const MIN_CAPTURE_INTERVAL = 2000; // Mínimo intervalo entre capturas (ms)
-const CAMERA_INIT_DELAY = 2000; // Tiempo de espera para inicialización de cámara (ms)
+const CAPTURE_QUALITY = 0.9;
+const MAX_IMAGE_SIZE = 640;
+const MIN_CAPTURE_INTERVAL = 2000;
+const CAMERA_INIT_DELAY = 3000;
 
-export const useUserImage = (userId = 1) => {
+export const useUserImage = () => {
+  const { userId, isUserReady } = useUser(); // Obtener userId dinámico
+
   const { addNotification } = useNotification();
   const [isCapturing, setIsCapturing] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [debugInfo, setDebugInfo] = useState({});
   
-  // Referencias para mantener estado
+  // Referencias
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(document.createElement('canvas'));
   const lastCaptureTimeRef = useRef(0);
   const pendingUploadRef = useRef(false);
-  
-  // Cola para imágenes pendientes
   const imageQueueRef = useRef([]);
   const isProcessingQueueRef = useRef(false);
-  
-  // Cache para la última imagen
   const latestImageRef = useRef(null);
-  
-  // Flag para evitar múltiples capturas iniciales
   const initialCaptureCompletedRef = useRef(false);
-  // Timer para la inicialización de la cámara
   const cameraInitTimerRef = useRef(null);
   
-  // Exponer lastCaptureTime para que otros componentes puedan verificarlo
+  // Exponer lastCaptureTime
   const getLastCaptureTime = useCallback(() => {
     return lastCaptureTimeRef.current;
   }, []);
   
-  // Inicializar la cámara
-  const initCamera = useCallback(async () => {
-    try {
-      if (streamRef.current) return true; // Ya inicializado
+  // Función para asignar el elemento de video
+  const setVideoElement = useCallback((element) => {
+    if (!element) return;
+    
+    console.log('📸 Elemento de video asignado');
+    videoRef.current = element;
+    
+    // Si ya tenemos un stream, asignarlo al nuevo elemento
+    if (streamRef.current && element) {
+      element.srcObject = streamRef.current;
       
-      console.log('📸 Iniciando cámara para capturas de imagen...');
-      
-      // Solicitar acceso a la cámara con resolución específica
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: MAX_IMAGE_SIZE },
-          height: { ideal: MAX_IMAGE_SIZE }
-        }
+      // Intentar iniciar reproducción
+      element.play().then(() => {
+        console.log('📸 Video reproducción iniciada con éxito (desde setVideoElement)');
+      }).catch(err => {
+        console.error('📸 Error al iniciar reproducción:', err);
       });
-      
-      // Guardar referencia al stream
-      streamRef.current = stream;
-      
-      // Si hay un elemento de video, asignar el stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        
-        // Esperar a que el video esté listo realmente
-        await new Promise((resolve) => {
-          videoRef.current.onloadedmetadata = () => {
-            // Iniciar reproducción explícitamente
-            videoRef.current.play().then(() => {
-              console.log('📸 Video reproducción iniciada con éxito');
-              resolve();
-            }).catch(err => {
-              console.error('📸 Error al iniciar reproducción:', err);
-              resolve(); // Continuamos de todas formas
-            });
-          };
-        });
-        
-        // Damos tiempo adicional para que el video realmente muestre contenido
-        if (cameraInitTimerRef.current) {
-          clearTimeout(cameraInitTimerRef.current);
+    }
+  }, []);
+  
+  // Inicializar cámara
+    const initCamera = useCallback(async () => {
+      try {
+        // Si ya hay un stream activo, consideramos que la cámara está lista
+        if (streamRef.current) {
+          console.log('📸 Usando stream de cámara existente');
+          return true;
         }
         
-        cameraInitTimerRef.current = setTimeout(() => {
-          setIsReady(true);
-          console.log('📸 Cámara inicializada y lista para capturar');
+        console.log('📸 Solicitando permisos de cámara...');
+        
+        // Verificar si el navegador soporta getUserMedia
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          console.error('📸 getUserMedia no es soportado en este navegador');
+          return false;
+        }
+        
+        // Intentar obtener el stream de la cámara
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'user',
+              width: { ideal: MAX_IMAGE_SIZE },
+              height: { ideal: MAX_IMAGE_SIZE }
+            }
+          });
           
-          // Actualizar información de debug
+          // Verificar que el stream tenga tracks de video
+          if (!stream || !stream.getVideoTracks().length) {
+            console.error('📸 No se obtuvieron tracks de video');
+            return false;
+          }
+          
+          streamRef.current = stream;
+          console.log('📸 Stream de cámara obtenido correctamente');
+          
+          // Si hay un elemento de video, asignar el stream
           if (videoRef.current) {
-            setDebugInfo({
-              videoWidth: videoRef.current.videoWidth,
-              videoHeight: videoRef.current.videoHeight,
-              readyState: videoRef.current.readyState
+            videoRef.current.srcObject = stream;
+            
+            // Esperar a que el video esté listo para reproducir
+            await new Promise((resolve) => {
+              videoRef.current.onloadedmetadata = () => {
+                videoRef.current.play()
+                  .then(() => {
+                    console.log('📸 Video reproducción iniciada con éxito');
+                    resolve();
+                  })
+                  .catch(err => {
+                    console.error('📸 Error al iniciar reproducción:', err);
+                    resolve(); // Continuamos de todas formas
+                  });
+              };
             });
           }
-        }, CAMERA_INIT_DELAY);
+          
+          // Establecer un temporizador para marcar la cámara como lista
+          if (cameraInitTimerRef.current) {
+            clearTimeout(cameraInitTimerRef.current);
+          }
+          
+          cameraInitTimerRef.current = setTimeout(() => {
+            // Verificar que realmente se esté obteniendo una imagen válida
+            const videoTrack = stream.getVideoTracks()[0];
+            if (videoTrack && videoTrack.readyState === 'live' && videoTrack.enabled) {
+              setIsReady(true);
+              console.log('📸 Cámara inicializada y lista para capturar');
+              
+              // Actualizar información de debug
+              if (videoRef.current) {
+                setDebugInfo({
+                  videoWidth: videoRef.current.videoWidth || 0,
+                  videoHeight: videoRef.current.videoHeight || 0,
+                  readyState: videoRef.current.readyState || 0,
+                  videoTrackState: videoTrack.readyState
+                });
+              }
+            } else {
+              console.error('📸 El video track no está activo o en estado live');
+              setIsReady(false);
+              return false;
+            }
+          }, CAMERA_INIT_DELAY);
+          
+          return true;
+        } catch (error) {
+          console.error('📸 Error al solicitar acceso a la cámara:', error);
+          return false;
+        }
+      } catch (error) {
+        console.error('📸 Error inesperado al inicializar cámara:', error);
+        setIsReady(false);
+        return false;
       }
-      
-      return true;
-    } catch (error) {
-      console.error('📸 Error al inicializar cámara:', error);
-      addNotification('No se pudo acceder a la cámara para las capturas de imagen', 'warning');
-      setIsReady(false);
+    }, []);
+  
+  // Añadir esta función nueva al hook
+  const isCameraActuallyWorking = useCallback(() => {
+    // Verificar que tenemos un stream activo
+    if (!streamRef.current) return false;
+    
+    // Verificar que hay tracks de video activos
+    const videoTracks = streamRef.current.getVideoTracks();
+    if (!videoTracks.length) return false;
+    
+    // Verificar que el primer track está activo
+    const mainTrack = videoTracks[0];
+    if (mainTrack.readyState !== 'live' || !mainTrack.enabled) return false;
+    
+    // Verificar que, si tenemos un elemento video, tiene dimensiones
+    if (videoRef.current && 
+      (videoRef.current.videoWidth === 0 || 
+        videoRef.current.videoHeight === 0 || 
+        videoRef.current.readyState < 2)) {
       return false;
     }
-  }, [addNotification]);
-  
-  // Detener la cámara
+    
+    // Si pasó todas las verificaciones, la cámara está funcionando
+    return true;
+  }, []);
+
+
+
+
+  // Detener cámara
   const stopCamera = useCallback(() => {
     if (cameraInitTimerRef.current) {
       clearTimeout(cameraInitTimerRef.current);
@@ -124,27 +199,7 @@ export const useUserImage = (userId = 1) => {
     }
   }, []);
   
-  // Asignar elemento de video
-  const setVideoElement = useCallback((element) => {
-    if (!element) return;
-    
-    console.log('📸 Elemento de video asignado');
-    videoRef.current = element;
-    
-    // Si ya tenemos un stream, asignarlo al nuevo elemento
-    if (streamRef.current && element) {
-      element.srcObject = streamRef.current;
-      
-      // Intentar iniciar reproducción explícitamente
-      element.play().then(() => {
-        console.log('📸 Video reproducción iniciada con éxito (desde setVideoElement)');
-      }).catch(err => {
-        console.error('📸 Error al iniciar reproducción:', err);
-      });
-    }
-  }, []);
-  
-  // Capturar y redimensionar imagen - optimizado para velocidad
+  // Capturar imagen
   const captureImage = useCallback(async () => {
     if (!isReady || !streamRef.current) {
       console.log('📸 No se puede capturar: cámara no lista', { isReady, hasStream: !!streamRef.current });
@@ -160,7 +215,6 @@ export const useUserImage = (userId = 1) => {
     // Evitar capturas demasiado frecuentes
     if (now - lastCaptureTimeRef.current < MIN_CAPTURE_INTERVAL) {
       console.log('📸 Captura demasiado frecuente, usando cache');
-      // Retornar la última imagen capturada si existe
       if (latestImageRef.current) {
         return latestImageRef.current;
       }
@@ -171,14 +225,13 @@ export const useUserImage = (userId = 1) => {
     lastCaptureTimeRef.current = now;
     
     try {
-      // Si no hay video ref, usar el stream directamente
       const video = videoRef.current;
       
       if (!video) {
         throw new Error('Elemento de video no disponible');
       }
       
-      // Verificar que el video tenga dimensiones y esté reproduciendo
+      // Verificar que el video tenga dimensiones
       if (!video.videoWidth || !video.videoHeight || video.videoWidth === 0 || video.videoHeight === 0) {
         console.error('📸 Video no tiene dimensiones válidas', { 
           width: video.videoWidth, 
@@ -217,34 +270,18 @@ export const useUserImage = (userId = 1) => {
         targetWidth = (width / height) * targetHeight;
       }
       
-      // Configurar canvas directamente al tamaño objetivo
+      // Configurar canvas
       canvas.width = targetWidth;
       canvas.height = targetHeight;
       
-      // Limpiar canvas para asegurar que no queden residuos
+      // Limpiar canvas
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, targetWidth, targetHeight);
       
-      // Dibujar y redimensionar en un solo paso
+      // Dibujar y redimensionar
       ctx.drawImage(video, 0, 0, width, height, 0, 0, targetWidth, targetHeight);
       
-      // Obtener los datos de imagen para verificar que no sea negra
-      const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
-      let isBlack = true;
-      
-      // Comprobar si la imagen es completamente negra (muestreo rápido)
-      for (let i = 0; i < imageData.data.length; i += 40) {
-        if (imageData.data[i] > 10 || imageData.data[i+1] > 10 || imageData.data[i+2] > 10) {
-          isBlack = false;
-          break;
-        }
-      }
-      
-      if (isBlack) {
-        console.warn('📸 La imagen capturada parece ser completamente negra');
-      }
-      
-      // Convertir a Blob con compresión JPEG
+      // Convertir a Blob
       const blob = await new Promise(resolve => {
         canvas.toBlob(blob => resolve(blob), 'image/jpeg', CAPTURE_QUALITY);
       });
@@ -270,6 +307,11 @@ export const useUserImage = (userId = 1) => {
   
   // Procesar cola de imágenes
   const processImageQueue = useCallback(async () => {
+    if (!userId) {
+      console.log('📸 No se puede procesar cola de imágenes: userId no disponible');
+      isProcessingQueueRef.current = false;
+      return;
+    }
     if (isProcessingQueueRef.current || imageQueueRef.current.length === 0) {
       return;
     }
@@ -277,8 +319,7 @@ export const useUserImage = (userId = 1) => {
     isProcessingQueueRef.current = true;
     
     try {
-      // Tomar solo la imagen más reciente, descartar las demás
-      // Esto evita sobrecarga de red con imágenes obsoletas
+      // Tomar solo la imagen más reciente
       const sortedQueue = [...imageQueueRef.current].sort((a, b) => b.timestamp - a.timestamp);
       const latestImage = sortedQueue[0];
       
@@ -296,7 +337,8 @@ export const useUserImage = (userId = 1) => {
         formData.append('image', latestImage.blob, 'user_image.jpg');
         
         try {
-          const response = await fetch('http://127.0.0.1:8000/api/v1/chat/images/', {
+          console.log('📸 URL de la solicitud:', `${BACKEND_URL}/api/v1/chat/images/`);
+          const response = await fetch(`${BACKEND_URL}/api/v1/chat/images/`, {
             method: 'POST',
             body: formData,
           });
@@ -321,82 +363,151 @@ export const useUserImage = (userId = 1) => {
     }
   }, [userId]);
   
-  // Subir imagen al servidor - versión optimizada
+  // Subir imagen al servidor
   const uploadImage = useCallback(async (imageBlob) => {
+    if (!userId) {
+      console.log('📸 No se puede subir imagen dummy: userId no disponible');
+      return false;
+    }
+
     if (!imageBlob) return false;
     
-    // Añadir a la cola en lugar de subir inmediatamente
+    // Añadir a la cola
     imageQueueRef.current.push({
       blob: imageBlob,
       timestamp: Date.now()
     });
     
-    // Iniciar el procesamiento de la cola si no está en marcha
+    // Iniciar el procesamiento de la cola
     if (!isProcessingQueueRef.current) {
       processImageQueue();
     }
     
-    return true; // Devolver true inmediatamente para no bloquear
+    return true;
   }, [processImageQueue]);
   
-  // Función combinada para capturar y subir - no bloqueante
+  // Función de fallback para subir imagen dummy
+  const uploadDummyImage = useCallback(async () => {
+    console.log('📸 Generando imagen dummy como fallback');
+    
+    try {
+      // Crear un canvas con un color sólido
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      
+      canvas.width = 320;
+      canvas.height = 240;
+      
+      // Dibujar un color de fondo claro
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Añadir texto indicando que es un fallback
+      ctx.fillStyle = '#333333';
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Camera not available', canvas.width/2, canvas.height/2);
+      
+      // Convertir a blob
+      const blob = await new Promise(resolve => {
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.9);
+      });
+      
+      // Subir directamente
+      const formData = new FormData();
+      formData.append('user_id', userId);
+      formData.append('image', blob, 'fallback_image.jpg');
+      
+      console.log('📸 Subiendo imagen fallback...');
+      const response = await fetch(`${BACKEND_URL}/api/v1/chat/images/`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        console.log('✅ Imagen fallback subida correctamente');
+        return true;
+      } else {
+        console.error('❌ Error al subir imagen fallback:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error en uploadDummyImage:', error);
+      return false;
+    }
+  }, [userId]);
+  
+  // Capturar y subir
   const captureAndUpload = useCallback(async () => {
-    // Si la cámara no está lista, intentar inicializarla pero no esperar
-    if (!isReady) {
-      console.log('📸 Cámara no lista, intentando inicializar');
-      initCamera();
+    // Solo subir si realmente podemos acceder a la cámara
+    if (!isUserReady() || !userId) {
+      console.log('📸 Usuario no está listo o userId no disponible, omitiendo captura');
+      return false;
+    }
+    if (!isReady || !isCameraActuallyWorking()) {
+      // No subir nada si no hay cámara disponible
+      console.log('📸 Cámara no disponible, omitiendo captura');
       return false;
     }
     
     try {
-      // Capturar imagen
+      // Intentar captura normal (sin fallback)
       const imageBlob = await captureImage();
       
-      // Si tenemos una imagen, añadirla a la cola de envío
-      if (imageBlob) {
+      // Solo subir si realmente obtuvimos una imagen
+      if (imageBlob && imageBlob.size > 5000) { // Mínimo 5KB para una imagen real
         return uploadImage(imageBlob);
+      } else {
+        console.log('📸 Imagen no válida o muy pequeña, omitiendo subida');
+        return false;
       }
-      
-      return false;
     } catch (error) {
       console.error('Error en captureAndUpload:', error);
       return false;
     }
-  }, [isReady, initCamera, captureImage, uploadImage]);
+  }, [isReady, isCameraActuallyWorking, captureImage, uploadImage, isUserReady, userId]);
   
   // Función para captura inicial única
   const captureInitialImage = useCallback(async () => {
     // Asegurarse de que solo se ejecute una vez
     if (initialCaptureCompletedRef.current) return;
     
+    if (!isUserReady() || !userId) {
+      console.log('📸 Usuario no está listo para captura inicial, omitiendo');
+      return false;
+    }
+
     console.log('📸 Programando captura inicial...');
     
-    // Marcar como completada para evitar múltiples capturas iniciales
+    // Marcar como completada
     initialCaptureCompletedRef.current = true;
     
-    // Tiempo más largo para que la cámara se inicialice completamente
+    // Tiempo para inicialización
     setTimeout(async () => {
+      // Verificar si realmente tenemos acceso a la cámara
+      if (!isReady || !isCameraActuallyWorking()) {
+        console.log('📸 Cámara no disponible para captura inicial, omitiendo');
+        return false;
+      }
+      
+      // Intentar captura normal
       try {
-        // Verificar que la cámara esté realmente lista
-        if (!isReady) {
-          console.log('📸 Esperando a que la cámara esté lista para captura inicial');
-          
-          // Esperar más tiempo si la cámara aún no está lista
-          setTimeout(async () => {
-            const success = await captureAndUpload();
-            console.log(`📸 Captura inicial (segundo intento): ${success ? 'éxito' : 'falló'}`);
-          }, 2000);
-          
-          return;
-        }
+        const imageBlob = await captureImage();
         
-        const success = await captureAndUpload();
-        console.log(`📸 Captura inicial: ${success ? 'éxito' : 'falló'}`);
+        if (imageBlob && imageBlob.size > 5000) {
+          uploadImage(imageBlob);
+          console.log('📸 Captura inicial exitosa');
+          return true;
+        } else {
+          console.log('📸 Captura inicial no produjo una imagen válida, omitiendo');
+          return false;
+        }
       } catch (e) {
         console.error('Error en captura inicial:', e);
+        return false;
       }
-    }, 3000); // Aumentado a 3 segundos para dar más tiempo a la inicialización
-  }, [captureAndUpload, isReady]);
+    }, 3000);
+  }, [captureImage, uploadImage, isReady, isCameraActuallyWorking, isUserReady, userId]);
   
   // Limpiar al desmontar
   useEffect(() => {
@@ -422,7 +533,11 @@ export const useUserImage = (userId = 1) => {
     captureAndUpload,
     captureInitialImage,
     getLastCaptureTime,
-    debugInfo
+    debugInfo,
+    isCameraActuallyWorking, // Nueva función
+    uploadDummyImage, // Mantener para casos donde explícitamente se quiera usar
+    userId: userId || "no disponible", // Exponer userId para uso externo
+    isUserReady: isUserReady(),
   };
 };
 
