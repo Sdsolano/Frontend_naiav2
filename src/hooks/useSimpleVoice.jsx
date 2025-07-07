@@ -10,8 +10,9 @@ let lastProcessedTime = 0;
 const WAKE_WORDS = [
   'naia', 'nadia', 'anaya', 'naya', 'naía', 'ñaia',
   'oye naia', 'hey naia', 'hola naia',
-  'ok naia', 'vale naia'
+  'ok naia', "maya", "nayla", "anaia", "oye nadia", "oye anaya", "oye naya", "oye naía", "oye ñaia", "oye maya", "oye nayla", "oye anaia", 'nadie','oye nadie', 'hola naia', "hola nadia", "hola anaya", "hola naya", "hola naía", "hola ñaia", "hola maya", "hola nayla", "hola anaia",'hola nadie','hello naia', "hello nadia", "hello anaya", "hello naya", "hello naía", "hello ñaia", "hello maya", "hello nayla", "hello anaia",'hello nadie','hey naia', "hey nadia", "hey anaya", "hey naya", "hey naía", "hey ñaia", "hey maya", "hey nayla", "hey anaia",'hey nadie'
 ];
+
 
 const MAX_CONSECUTIVE_FAILURES = 3;
 
@@ -229,6 +230,9 @@ export const useSimpleVoice = (options = {}) => {
       // Comando de salida
       const lowerText = trimmedText.toLowerCase();
       if (lowerText.includes('adiós') || 
+          lowerText.includes('adios') || 
+          lowerText.includes('bye') || 
+          lowerText.includes('goodbye') || 
           lowerText.includes('hasta luego') ||
           lowerText.includes('salir')) {
         console.log(`👋 Comando de salida detectado`);
