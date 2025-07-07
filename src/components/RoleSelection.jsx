@@ -46,7 +46,7 @@ const roles = [
     textColor: "text-emerald-600",
     bgColor: "bg-emerald-50",
     borderColor: "border-emerald-200",
-    available: false,
+    available: true,
     image: Receptionist_AF,
     features: [
       "Notificar a residentes vía WhatsApp sobre visitantes",
