@@ -50,6 +50,10 @@ export const loginRequest = {
     "offline_access",
     "openid",
     "profile",
-    "email"
+    "email",
+    "People.Read",
+    "Contacts.Read",
+    "User.Read.All",
+    "Directory.Read.All"
   ]
 };
