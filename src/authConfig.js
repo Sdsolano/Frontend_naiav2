@@ -8,6 +8,39 @@ const redirectUri = isProduction
 const clientId = isProduction
   ? "71d031dd-5709-4ca1-84a6-d5f622f1a6c8" 
   : "716c96e0-113d-4d95-af42-7ee4dc266e43";
+let scopes;
+if (isProduction) {
+    scopes = [
+    "User.Read",
+    "Mail.Send",
+    "Mail.ReadWrite",
+    "Calendars.ReadWrite",
+    "Calendars.Read",
+    "User.ReadBasic.All",
+    "offline_access",
+    "openid",
+    "profile",
+    "email",
+    "People.Read",
+    "Contacts.Read",
+    "User.Read.All",
+    "Directory.Read.All"
+  ]
+} else {
+      scopes = [
+    "User.Read",
+    "Mail.Send",
+    "Mail.ReadWrite",
+    "Calendars.ReadWrite",
+    "Calendars.Read",
+    "User.ReadBasic.All",
+    "offline_access",
+    "openid",
+    "profile",
+    "email"
+  ]
+}
+
 
 if(isProduction) {
   console.log("Producción: Configuración de MSAL para NAIA");
@@ -31,7 +64,7 @@ export const msalConfig = {
     allowRedirectInIframe: false,
     loggerOptions: {
       logLevel: isProduction ? 1 : 3,
-      loggerCallback: (level, message, containsPii) => {
+      loggerCallback: (_, __, containsPii) => {
         if (containsPii) return;
       },
       piiLoggingEnabled: false
@@ -40,20 +73,5 @@ export const msalConfig = {
 };
 
 export const loginRequest = {
-  scopes: [
-    "User.Read",
-    "Mail.Send",
-    "Mail.ReadWrite",
-    "Calendars.ReadWrite",
-    "Calendars.Read",
-    "User.ReadBasic.All",
-    "offline_access",
-    "openid",
-    "profile",
-    "email",
-    "People.Read",
-    "Contacts.Read",
-    "User.Read.All",
-    "Directory.Read.All"
-  ]
+  scopes: scopes
 };
