@@ -125,7 +125,7 @@ const roles = [
     textColor: "text-pink-600", 
     bgColor: "bg-pink-50",
     borderColor: "border-pink-200",
-    available: true,
+    available: false,
     image: Companion_AF,
     features: [
       "Acompañamiento emocional personalizado y comprensivo",
