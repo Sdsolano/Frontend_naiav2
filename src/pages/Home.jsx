@@ -118,12 +118,12 @@ const Home = () => {
       textColor: "text-blue-950",
       bgColor: "bg-blue-50",
       features: [
-        "Leer y extraer información de PDFs (hasta 1GB).",
-        "Buscar artículos científicos con Google Scholar.",
-        "Proporcionar fragmentos de texto copiables.",
-        "Generar textos extendidos sobre archivos PDF.",
-        "Búsqueda web de cualquier información.",
-        "Generación de gráficas a partir de datos complejos."
+      "Leer y extraer información de documentos",
+      "Buscar artículos científicos con Google Scholar",
+      "Redacción de documentos académicos",
+      "Envío de correos",
+      "Búsqueda web de cualquier información o imagen",
+      "Generación de gráficas a partir de datos complejos"
       ]
     },
     {
@@ -134,10 +134,10 @@ const Home = () => {
       textColor: "text-emerald-600",
       bgColor: "bg-emerald-50",
       features: [
-        "Notificar a residentes vía WhatsApp sobre visitantes.",
-        "Enviar anuncios a todos los residentes.",
-        "Gestionar reservas de áreas comunes.",
-        "Recomendar lugares, restaurantes y eventos cercanos."
+      "Información sobre servicios de la universidad",
+      "Sugerencias de actividades y eventos",
+      "Búsqueda de contactos y envío de correos",
+      "Recomendar lugares, restaurantes y eventos cercanos"
       ]
     },
     {
@@ -148,9 +148,11 @@ const Home = () => {
       textColor: "text-amber-600",
       bgColor: "bg-amber-50",
       features: [
-        "Simulaciones de escenarios reales (entrevistas, negociaciones).",
-        "Práctica para exámenes de idiomas con componentes orales.",
-        "Recomendaciones sobre interacciones sociales y presentación."
+      "Simulaciones de escenarios reales (entrevistas, negociaciones)",
+      "Analiza la apariencia y tono de voz",
+      "Recomendaciones sobre interacciones sociales y presentación",
+      "Generación de informes de progreso",
+      "Análisis de hojas de vida y entrevistas"
       ]
     },
     {
@@ -161,10 +163,11 @@ const Home = () => {
       textColor: "text-purple-600", 
       bgColor: "bg-purple-50",
       features: [
-        "Envío de correos a contactos preregistrados.",
-        "Recordatorios usando Google Calendar.",
-        "Informes sobre visitantes en tu ausencia.",
-        "Información de agenda, clima y noticias."
+      "Envío de correos a contactos",
+      "Recordatorios usando Calendar personal",
+      "Programación de citas y reuniones",
+      "Gestión de tareas y listas de pendientes",
+      "Información de agenda, clima y noticias"
       ]
     },
     {
@@ -175,10 +178,11 @@ const Home = () => {
     textColor: "text-red-600",
     bgColor: "bg-red-50",
     features: [
-      "Información sobre calendarios y fechas académicas.",
-      "Guía en procesos académicos clave (matrícula, progreso).",
-      "Acceso a servicios de apoyo estudiantil.",
-      "Envío de información sobre recursos universitarios."
+      "Información sobre calendarios y fechas académicas",
+      "Guía en procesos académicos clave (matrícula, progreso)",
+      "Acceso a servicios de apoyo estudiantil",
+      "Envío de información sobre recursos universitarios",
+      "Tour virtual por la universidad"
       ]
     },
     {
@@ -189,12 +193,11 @@ const Home = () => {
       textColor: "text-pink-600",
       bgColor: "bg-pink-50",
       features: [
-        "Acompañamiento emocional personalizado y comprensivo.",
-        "Análisis de patrones de bienestar basado en conversaciones.",
-        "Técnicas de relajación y manejo del estrés.",
-        "Asesoría psicológica de apoyo y orientación.",
-        "Seguimiento del estado anímico y progreso personal.",
-        "Recursos y ejercicios para el desarrollo del bienestar."
+        "Acompañamiento emocional personalizado y comprensivo",
+      "Análisis de patrones de bienestar basado en conversaciones",
+      "Técnicas de relajación y manejo del estrés",
+      "Seguimiento del estado anímico y progreso personal",
+      "Recursos y ejercicios para el desarrollo del bienestar"
       ]
     }
   ];
@@ -227,19 +230,9 @@ const Home = () => {
       description: "Configura este rol para gestionar visitantes y reservas de espacios",
       steps: [
         {
-          title: "Registrar espacios",
-          description: "Añade apartamentos y áreas comunes para organizar las visitas",
+          title: "Registrar ubicaciones",
+          description: "Añade lugares importantes de la universidad",
           icon: MapPin
-        },
-        {
-          title: "Configurar contactos",
-          description: "Agrega residentes y sus datos de contacto para notificaciones",
-          icon: Users
-        },
-        {
-          title: "Personalizar mensajes",
-          description: "Define plantillas de mensajes para enviar a los residentes",
-          icon: MessageSquare
         }
       ]
     },
@@ -256,16 +249,6 @@ const Home = () => {
           title: "Información personal",
           description: "Añade tus datos personales y preferencias para personalizar la experiencia",
           icon: User
-        },
-        {
-          title: "Sincronizar correo",
-          description: "Conecta tu cuenta de correo para enviar mensajes y obtener notificaciones",
-          icon: Mail
-        },
-        {
-          title: "Calendarios",
-          description: "Integra tus calendarios para gestionar tu agenda y recordatorios",
-          icon: Calendar
         }
       ]
     },
@@ -284,11 +267,6 @@ const Home = () => {
           icon: GanttChart
         },
         {
-          title: "Nivel de experiencia",
-          description: "Indica tu nivel actual en cada área para adaptar las sesiones",
-          icon: Sparkles
-        },
-        {
           title: "Preferencias de entrenamiento",
           description: "Configura el estilo, duración y frecuencia de las sesiones",
           icon: BrainCircuit
@@ -304,16 +282,6 @@ const Home = () => {
     borderColor: "border-red-200",
     description: "Configura tu experiencia académica con información de la Universidad del Norte",
     steps: [
-      {
-        title: "Correo institucional",
-        description: "Conecta tu cuenta de correo universitario para recibir notificaciones",
-        icon: Mail
-      },
-      {
-        title: "Programa académico",
-        description: "Selecciona tu carrera, semestre y materias actuales",
-        icon: BookOpen
-      },
       {
         title: "Recursos académicos",
         description: "Configura tus recursos favoritos y espacios de estudio",
@@ -334,16 +302,6 @@ const Home = () => {
           title: "Perfil de bienestar",
           description: "Comparte tus objetivos de bienestar y áreas de interés personal",
           icon: User
-        },
-        {
-          title: "Preferencias de comunicación",
-          description: "Define cómo prefieres recibir apoyo y el tono de las conversaciones",
-          icon: MessageSquare
-        },
-        {
-          title: "Recordatorios de bienestar",
-          description: "Configura notificaciones para ejercicios de relajación y check-ins",
-          icon: Calendar
         }
       ]
     }

@@ -29,11 +29,11 @@ const roles = [
     available: true,
     image: Research_AF,
     features: [
-      "Leer y extraer información de PDFs (hasta 1GB)",
+      "Leer y extraer información de documentos",
       "Buscar artículos científicos con Google Scholar",
-      "Proporcionar fragmentos de texto copiables",
-      "Generar textos extendidos sobre archivos PDF",
-      "Búsqueda web de cualquier información",
+      "Redacción de documentos académicos",
+      "Envío de correos",
+      "Búsqueda web de cualquier información o imagen",
       "Generación de gráficas a partir de datos complejos"
     ]
   },
@@ -49,9 +49,9 @@ const roles = [
     available: true,
     image: Receptionist_AF,
     features: [
-      "Notificar a residentes vía WhatsApp sobre visitantes",
-      "Enviar anuncios a todos los residentes",
-      "Gestionar reservas de áreas comunes",
+      "Información sobre servicios de la universidad",
+      "Sugerencias de actividades y eventos",
+      "Búsqueda de contactos y envío de correos",
       "Recomendar lugares, restaurantes y eventos cercanos"
     ],
     developmentStatus: "En desarrollo - funcionalidad básica disponible"
@@ -69,8 +69,10 @@ const roles = [
     image: Personal_Trainer_AF,
     features: [
       "Simulaciones de escenarios reales (entrevistas, negociaciones)",
-      "Práctica para exámenes de idiomas con componentes orales",
-      "Recomendaciones sobre interacciones sociales y presentación"
+      "Analiza la apariencia y tono de voz",
+      "Recomendaciones sobre interacciones sociales y presentación",
+      "Generación de informes de progreso",
+      "Análisis de hojas de vida y entrevistas"
     ],
     developmentStatus: "Próximamente - en fase de planificación"
   },
@@ -86,9 +88,10 @@ const roles = [
     available: true,
     image: Personal_Assistant_AF,
     features: [
-      "Envío de correos a contactos preregistrados",
-      "Recordatorios usando Google Calendar",
-      "Informes sobre visitantes en tu ausencia",
+      "Envío de correos a contactos",
+      "Recordatorios usando Calendar personal",
+      "Programación de citas y reuniones",
+      "Gestión de tareas y listas de pendientes",
       "Información de agenda, clima y noticias"
     ],
     developmentStatus: "Próximamente - integraciones en desarrollo"
@@ -108,7 +111,8 @@ const roles = [
       "Información sobre calendarios y fechas académicas",
       "Guía en procesos académicos clave (matrícula, progreso)",
       "Acceso a servicios de apoyo estudiantil",
-      "Envío de información sobre recursos universitarios"
+      "Envío de información sobre recursos universitarios",
+      "Tour virtual por la universidad"
     ]
   },
   // ← NUEVO ROL: Compañero de bienestar
