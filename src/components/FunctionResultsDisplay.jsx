@@ -810,58 +810,281 @@ async function fallbackSimpleVisualPDF(htmlContent, resultId) {
     downloadAsMarkdownPDF(htmlContent, resultId);
   }
 }
+
 // Función para descargar como PDF (lógica existente de markdown)
 function downloadAsMarkdownPDF(content, resultId) {
-  // Convert text content to PDF using jsPDF
   import('jspdf').then(({ jsPDF }) => {
-    // Create a new PDF document
     const doc = new jsPDF();
-    const margin = 15;
+    const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const textWidth = pageWidth - (margin * 2);
-    const lines = content.split('\n');
     let y = margin;
     
-    lines.forEach(line => {
-      if (line.startsWith('# ')) {
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        const title = line.substring(2);
-        const splitTitle = doc.splitTextToSize(title, textWidth);
-        doc.text(splitTitle, margin, y);
-        y += 10 * splitTitle.length;
-      } else if (line.startsWith('## ')) {
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        const subTitle = line.substring(3);
-        const splitSubTitle = doc.splitTextToSize(subTitle, textWidth);
-        doc.text(splitSubTitle, margin, y);
-        y += 8 * splitSubTitle.length;
-      } else if (line.startsWith('### ')) {
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        const subSubTitle = line.substring(4);
-        const splitSubSubTitle = doc.splitTextToSize(subSubTitle, textWidth);
-        doc.text(splitSubSubTitle, margin, y);
-        y += 8 * splitSubSubTitle.length;
-      } else if (line.trim() === '') {
-        y += 5;
-      } else {
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'normal');
-        const splitText = doc.splitTextToSize(line, textWidth);
-        doc.text(splitText, margin, y);
-        y += 7 * splitText.length;
-      }
-      
-      if (y > doc.internal.pageSize.getHeight() - margin) {
+    // Helper function to check if we need a new page
+    function checkNewPage(lineHeight) {
+      if (y + lineHeight > pageHeight - margin) {
         doc.addPage();
         y = margin;
       }
+    }
+    
+    // Helper function to parse and render text with formatting
+    function renderFormattedText(text, x, fontSize = 12, isBold = false, isItalic = false) {
+      const parts = [];
+      let currentText = text;
+      
+      // Parse bold text (**text** or __text__)
+      currentText = currentText.replace(/\*\*(.*?)\*\*/g, (match, content) => {
+        parts.push({ text: content, bold: true });
+        return `{{BOLD_${parts.length - 1}}}`;
+      });
+      
+      currentText = currentText.replace(/__(.*?)__/g, (match, content) => {
+        parts.push({ text: content, bold: true });
+        return `{{BOLD_${parts.length - 1}}}`;
+      });
+      
+      // Parse italic text (*text* or _text_)
+      currentText = currentText.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, (match, content) => {
+        parts.push({ text: content, italic: true });
+        return `{{ITALIC_${parts.length - 1}}}`;
+      });
+      
+      currentText = currentText.replace(/(?<!_)_([^_]+)_(?!_)/g, (match, content) => {
+        parts.push({ text: content, italic: true });
+        return `{{ITALIC_${parts.length - 1}}}`;
+      });
+      
+      // Parse links [text](url)
+      currentText = currentText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+        parts.push({ text: linkText, link: url });
+        return `{{LINK_${parts.length - 1}}}`;
+      });
+      
+      // Parse inline code `code`
+      currentText = currentText.replace(/`([^`]+)`/g, (match, code) => {
+        parts.push({ text: code, code: true });
+        return `{{CODE_${parts.length - 1}}}`;
+      });
+      
+      // Split text by placeholders and render each part
+      const segments = currentText.split(/({{[A-Z_0-9]+}})/);
+      let currentX = x;
+      const lineHeight = fontSize * 0.3;
+      
+      segments.forEach(segment => {
+        if (segment.startsWith('{{') && segment.endsWith('}}')) {
+          // Extract the part information
+          const partIndex = parseInt(segment.match(/\d+/)[0]);
+          const part = parts[partIndex];
+          
+          if (part.bold) {
+            doc.setFont('helvetica', 'bold');
+          } else if (part.italic) {
+            doc.setFont('helvetica', 'italic');
+          } else if (part.link) {
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(0, 0, 255); // Blue for links
+          } else if (part.code) {
+            doc.setFont('courier', 'normal');
+            doc.setTextColor(100, 100, 100); // Gray for code
+          }
+          
+          doc.setFontSize(fontSize);
+          const textWidth = doc.getTextWidth(part.text);
+          doc.text(part.text, currentX, y);
+          currentX += textWidth + 1;
+          
+          // Reset formatting
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(0, 0, 0);
+        } else if (segment.trim()) {
+          // Regular text
+          doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+          doc.setFontSize(fontSize);
+          const textWidth = doc.getTextWidth(segment);
+          doc.text(segment, currentX, y);
+          currentX += textWidth;
+        }
+      });
+      
+      return lineHeight;
+    }
+    
+    // Process content line by line
+    const lines = content.split('\n');
+    
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // Skip empty lines but add small spacing
+      if (trimmedLine === '') {
+        y += 4;
+        return;
+      }
+      
+      // Headers
+      if (trimmedLine.startsWith('# ')) {
+        checkNewPage(25);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.setTextColor(51, 51, 51);
+        const title = trimmedLine.substring(2);
+        const splitTitle = doc.splitTextToSize(title, textWidth);
+        splitTitle.forEach(titleLine => {
+          doc.text(titleLine, margin, y);
+          y += 12;
+        });
+        y += 8;
+        
+        // Add underline for main title
+        doc.setLineWidth(0.5);
+        doc.line(margin, y - 3, margin + textWidth, y - 3);
+        y += 5;
+        
+      } else if (trimmedLine.startsWith('## ')) {
+        checkNewPage(20);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(68, 68, 68);
+        const subTitle = trimmedLine.substring(3);
+        const splitSubTitle = doc.splitTextToSize(subTitle, textWidth);
+        splitSubTitle.forEach(subTitleLine => {
+          doc.text(subTitleLine, margin, y);
+          y += 10;
+        });
+        y += 5;
+        
+      } else if (trimmedLine.startsWith('### ')) {
+        checkNewPage(18);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(85, 85, 85);
+        const subSubTitle = trimmedLine.substring(4);
+        const splitSubSubTitle = doc.splitTextToSize(subSubTitle, textWidth);
+        splitSubSubTitle.forEach(subSubTitleLine => {
+          doc.text(subSubTitleLine, margin, y);
+          y += 9;
+        });
+        y += 4;
+        
+      } else if (trimmedLine.startsWith('---')) {
+        // Horizontal line
+        checkNewPage(10);
+        y += 5;
+        doc.setLineWidth(0.3);
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, y, margin + textWidth, y);
+        y += 8;
+        
+      } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+        // Bullet points
+        checkNewPage(15);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        
+        const bulletText = trimmedLine.substring(2);
+        const indent = 25;
+        
+        // Draw bullet
+        doc.circle(margin + 8, y - 2, 1, 'F');
+        
+        // Split long bullet text
+        const splitBulletText = doc.splitTextToSize(bulletText, textWidth - indent);
+        splitBulletText.forEach((bulletLine, bulletIndex) => {
+          if (bulletIndex === 0) {
+            renderFormattedText(bulletLine, margin + indent, 12);
+          } else {
+            checkNewPage(8);
+            renderFormattedText(bulletLine, margin + indent, 12);
+          }
+          y += 8;
+        });
+        y += 2;
+        
+      } else if (trimmedLine.startsWith('> ')) {
+        // Blockquotes
+        checkNewPage(15);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(11);
+        doc.setTextColor(100, 100, 100);
+        
+        const quoteText = trimmedLine.substring(2);
+        const quoteIndent = 15;
+        
+        // Draw quote line
+        doc.setLineWidth(2);
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin + 5, y - 5, margin + 5, y + 5);
+        
+        const splitQuoteText = doc.splitTextToSize(quoteText, textWidth - quoteIndent);
+        splitQuoteText.forEach(quoteLine => {
+          doc.text(quoteLine, margin + quoteIndent, y);
+          y += 7;
+        });
+        y += 5;
+        
+      } else if (trimmedLine.startsWith('```')) {
+        // Code blocks
+        if (trimmedLine === '```') {
+          // End of code block, skip
+          return;
+        }
+        
+        // Find the end of code block
+        const codeLines = [];
+        for (let i = index + 1; i < lines.length; i++) {
+          if (lines[i].trim() === '```') {
+            break;
+          }
+          codeLines.push(lines[i]);
+        }
+        
+        if (codeLines.length > 0) {
+          checkNewPage(codeLines.length * 8 + 10);
+          
+          // Draw code block background
+          doc.setFillColor(245, 245, 245);
+          doc.rect(margin, y - 5, textWidth, codeLines.length * 8 + 10, 'F');
+          
+          doc.setFont('courier', 'normal');
+          doc.setFontSize(10);
+          doc.setTextColor(50, 50, 50);
+          
+          codeLines.forEach(codeLine => {
+            doc.text(codeLine, margin + 5, y);
+            y += 8;
+          });
+          y += 5;
+        }
+        
+      } else {
+        // Regular paragraph text
+        checkNewPage(15);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        
+        const splitText = doc.splitTextToSize(trimmedLine, textWidth);
+        splitText.forEach(textLine => {
+          checkNewPage(8);
+          renderFormattedText(textLine, margin, 12);
+          y += 8;
+        });
+        y += 3;
+      }
+      
+      // Reset colors and fonts
+      doc.setTextColor(0, 0, 0);
+      doc.setDrawColor(0, 0, 0);
+      doc.setFont('helvetica', 'normal');
     });
     
-    doc.save(`documento_${resultId}.pdf`);
-    addNotification('Documento PDF descargado correctamente', 'success');
+    // Save the PDF
+    doc.save(`CV_${resultId}.pdf`);
+    addNotification('CV PDF generado y descargado correctamente', 'success');
     
   }).catch(error => {
     console.error('Error loading jsPDF:', error);
@@ -872,7 +1095,7 @@ function downloadAsMarkdownPDF(content, resultId) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `documento_${resultId}.txt`;
+    a.download = `CV_${resultId}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
