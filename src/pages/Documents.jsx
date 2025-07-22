@@ -17,7 +17,6 @@ import { useNotification } from "../components/NotificationContext";
 import { BACKEND_URL } from "../../config";
 import { useUser } from '../components/UserContext';
 
-
 // URL base para las API del investigador - IMPORTANTE: debe terminar con barra diagonal (/)
 const API_BASE_URL = `${BACKEND_URL}/api/v1/researcher/document/`;
 
@@ -31,18 +30,15 @@ const Documents = () => {
   const [uploadProgress, setUploadProgress] = useState({});
   const [apiError, setApiError] = useState(null);
   const [apiAvailable, setApiAvailable] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0); // Estado para forzar recargas
-  const [initialSyncAttempted, setInitialSyncAttempted] = useState(false); // Nuevo estado para controlar si ya se 
-  // intentó la sincronización inicial
-  const { userId, isUserReady } = useUser(); // Obtener userId dinámico
+  const { userId, isUserReady } = useUser();
   const fileInputRef = useRef(null);
   const dropAreaRef = useRef(null);
   const { addNotification } = useNotification();
 
-  // Cargar documentos cuando el componente se monta o refreshKey cambia
+  // Cargar documentos cuando el componente se monta - SIMPLIFICADO
   useEffect(() => {
-    const initializeDocuments = async () => {
-       if (!isUserReady()) {
+    const loadDocuments = async () => {
+      if (!isUserReady()) {
         console.log("⚠️ Usuario no está listo, esperando configuración...");
         setIsLoading(false);
         return;
@@ -55,171 +51,60 @@ const Documents = () => {
         return;
       }
 
-      setIsLoading(true);
-      
-      try {
-        // 1. Intentar cargar documentos normalmente primero
-        await fetchDocuments();
-        
-        // 2. Si no hay documentos y no hemos intentado la sincronización inicial,
-        // intentar forzar una sincronización completa
-        if (documents.length === 0 && !initialSyncAttempted) {
-          console.log("⚠️ Lista de documentos vacía en carga inicial, forzando sincronización...");
-          setInitialSyncAttempted(true);
-          
-          // Hacer una llamada a save_changes para forzar la sincronización del sistema
-          try {
-            const timestamp = Date.now();
-            const randomString = Math.random().toString(36).substring(7);
-            const syncUrl = `${API_BASE_URL}save_changes/?_t=${timestamp}&_r=${randomString}`;
-            
-            console.log(`🔄 Forzando sincronización inicial: ${syncUrl}`);
-            
-            const syncResponse = await fetch(syncUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ 
-                user_id: userId,
-                _t: timestamp,
-                _r: randomString 
-              })
-            });
-            
-            if (syncResponse.ok) {
-              console.log("✅ Sincronización inicial exitosa");
-              addNotification('Sincronizando documentos del servidor...', 'info');
-            } else {
-              console.log(`⚠️ Error en sincronización inicial: ${syncResponse.status}`);
-            }
-            
-            // Esperar un momento para que el servidor procese la sincronización
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // Intentar nuevamente con forceRefresh
-            await forceRefresh();
-          } catch (syncError) {
-            console.error("Error en sincronización inicial:", syncError);
-          }
-        }
-      } catch (error) {
-        console.error("Error en inicialización:", error);
-      } finally {
-        setIsLoading(false);
-      }
+      console.log("📋 Cargando documentos para usuario:", userId);
+      await fetchDocuments();
     };
     
-    initializeDocuments();
-  }, [refreshKey, userId, isUserReady]); // Mantener la dependencia a refreshKey para forzar recargas
+    loadDocuments();
+  }, [userId, isUserReady]); // Solo depende de userId e isUserReady
 
-  // Función mejorada para refrescar forzadamente
-  const forceRefresh = async () => {
-    if (!userId) {
-      addNotification("Error: Usuario no identificado", "error");
-      return;
-    }
-    console.log("🔄 Forzando actualización completa de documentos...");
-    
-    // Resetear todos los estados relacionados a documentos
-    setDocuments([]);
-    setPendingFiles([]);
-    setPendingDeletions([]);
-    setUploadProgress({});
-    setIsLoading(true);
-    
-    try {
-      // Hacer una solicitud con un enfoque diferente para evitar caché
-      const timestamp = new Date().getTime();
-      const randomString = Math.random().toString(36).substring(7);
-      
-      // Construir una URL con parámetros aleatorios para asegurar que sea una petición nueva
-      const url = `${API_BASE_URL}?user_id=${userId}&_t=${timestamp}&_r=${randomString}`;
-      console.log(`🔄 Petición forzada a: ${url}`);
-      
-      const response = await fetch(url, {
-        // Añadir este encabezado pero sin los problemáticos de CORS
-        headers: {
-          'X-Requested-With': 'ForcedRefresh'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error en respuesta: ${response.status}`);
-      }
-      
-      const responseText = await response.text();
-      console.log('Respuesta recibida:', responseText);
-      
-      try {
-        const data = JSON.parse(responseText);
-        console.log('📋 Datos actualizados recibidos:', data);
-        
-        // Actualizar el estado con los datos nuevos
-        setDocuments(data.documents || []);
-        setApiAvailable(true);
-      } catch (jsonError) {
-        console.error('Error al procesar datos:', jsonError);
-        throw new Error('Respuesta inválida del servidor');
-      }
-    } catch (error) {
-      console.error('Error al forzar actualización:', error);
-      setApiError(error.message);
-      setApiAvailable(false);
-      addNotification('Error al actualizar documentos. Intente de nuevo.', 'error');
-    } finally {
-      setIsLoading(false);
-      // Incrementar refreshKey para asegurar que se detecten cambios
-      setRefreshKey(prev => prev + 1);
-    }
-  };
-
-  const fetchDocuments = async (bypassCache = false) => {
+  // Función simplificada para obtener documentos
+  const fetchDocuments = async () => {
     if (!userId) {
       throw new Error('Usuario no identificado');
     }
+    
     setIsLoading(true);
     setApiError(null);
     
     try {
-      // Añadir timestamp a la URL para evitar caché
-      const timestamp = new Date().getTime();
+      // Simple llamada GET para obtener documentos
+      const url = `${API_BASE_URL}?user_id=${userId}`;
+      console.log(`📥 Obteniendo documentos: ${url}`);
       
-      // URL con parámetro de timestamp para forzar una petición fresca
-      const url = `${API_BASE_URL}?user_id=${userId}&_t=${timestamp}`;
-      console.log(`Fetching documents from: ${url}`);
-      
-      // Endpoint para obtener documentos
       const response = await fetch(url);
       
-      // Imprime la respuesta completa para depuración
-      const responseText = await response.text();
-      console.log('Response from server:', responseText);
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
       
-      // Verificar si podemos parsear como JSON
+      const responseText = await response.text();
+      console.log('✅ Respuesta recibida del servidor');
+      
       try {
-        // Intentar parsear el texto como JSON
         const data = JSON.parse(responseText);
-        console.log('Parsed data:', data);
+        console.log('📊 Documentos encontrados:', data.documents?.length || 0);
         
-        // La API devuelve un objeto con una propiedad "documents"
         setDocuments(data.documents || []);
         setApiAvailable(true);
       } catch (jsonError) {
-        console.error('Error parsing JSON:', jsonError);
+        console.error('❌ Error parseando JSON:', jsonError);
         throw new Error('Respuesta del servidor no es JSON válido');
       }
     } catch (error) {
-      console.error('Error fetching documents:', error);
-      
-      // Guardar el error para mostrarlo en la interfaz
+      console.error('❌ Error obteniendo documentos:', error);
       setApiError(error.message);
       setApiAvailable(false);
-      
-      addNotification(`Error al cargar documentos: ${error.message}. Usando datos de ejemplo.`, 'warning');
+      addNotification(`Error al cargar documentos: ${error.message}`, 'error');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Función simplificada para refrescar
+  const refreshDocuments = async () => {
+    console.log("🔄 Refrescando lista de documentos...");
+    await fetchDocuments();
   };
 
   // Drag and drop handlers
@@ -233,8 +118,6 @@ const Documents = () => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Solo salir del modo arrastrar si el cursor sale del área de drop
-    // y no solo pasa de un hijo a otro dentro del área
     if (dropAreaRef.current && !dropAreaRef.current.contains(e.relatedTarget)) {
       setIsDragging(false);
     }
@@ -318,13 +201,11 @@ const Documents = () => {
   };
 
   const markForDeletion = (fileId) => {
-    // Marcar documento para eliminación
     setPendingDeletions([...pendingDeletions, fileId]);
     addNotification('Documento marcado para eliminación', 'warning');
   };
 
   const undoMarkForDeletion = (fileId) => {
-    // Desmarcar documento para eliminación
     setPendingDeletions(pendingDeletions.filter(id => id !== fileId));
     addNotification('Documento restaurado', 'info');
   };
@@ -339,7 +220,6 @@ const Documents = () => {
       addNotification('No hay cambios para guardar', 'info');
       return;
     }
-    
 
     setIsSaving(true);
     let success = true;
@@ -348,42 +228,27 @@ const Documents = () => {
     try {
       // Manejar eliminaciones
       for (const docId of pendingDeletions) {
-        // Encontrar el documento completo para obtener el file_name
         const docToDelete = documents.find(doc => doc.file_id === docId);
         if (!docToDelete) continue;
         
-        // Añadir timestamp para prevenir caché
-        const timestamp = new Date().getTime();
-        const randomString = Math.random().toString(36).substring(7);
+        const deleteUrl = `${API_BASE_URL}?file_id=${encodeURIComponent(docToDelete.file_id)}&file_name=${encodeURIComponent(docToDelete.file_name)}&user_id=${userId}`;
         
-        // Construir la URL con los parámetros necesarios y valores aleatorios
-        const deleteUrl = `${API_BASE_URL}?file_id=${encodeURIComponent(docToDelete.file_id)}&file_name=${encodeURIComponent(docToDelete.file_name)}&user_id=${userId}&_t=${timestamp}&_r=${randomString}`;
-        
-        console.log(`Eliminando documento: ${deleteUrl}`);
+        console.log(`🗑️ Eliminando documento: ${docToDelete.file_name}`);
         
         try {
           const response = await fetch(deleteUrl, {
             method: 'DELETE',
           });
           
-          // Registrar respuesta del servidor para depuración
-          console.log(`Respuesta DELETE: ${response.status}`);
-          
           if (response.ok) {
             console.log(`✅ Documento eliminado exitosamente: ${docToDelete.file_name}`);
             hasChanged = true;
           } else {
-            let errorText = '';
-            try {
-              errorText = await response.text();
-            } catch (e) {
-              errorText = 'No se pudo leer el mensaje de error';
-            }
+            const errorText = await response.text().catch(() => 'Error desconocido');
             
-            console.error('Error en respuesta DELETE:', errorText);
-            // Si el error es 404 o contiene "not present", asumimos que ya estaba eliminado
+            // Si el error es 404, asumimos que ya estaba eliminado
             if (response.status === 404 || errorText.includes('not present')) {
-              console.log('El documento ya no existe en el servidor, continuando...');
+              console.log('📝 El documento ya no existe en el servidor, continuando...');
               hasChanged = true;
             } else {
               success = false;
@@ -391,13 +256,8 @@ const Documents = () => {
             }
           }
         } catch (error) {
-          if (error.message.includes('Failed to fetch')) {
-            console.error('Error de red al eliminar documento');
-            addNotification('Error de conexión al servidor', 'error');
-          } else {
-            console.error('Error al eliminar:', error);
-            addNotification(`Error: ${error.message}`, 'error');
-          }
+          console.error('❌ Error al eliminar:', error);
+          addNotification(`Error: ${error.message}`, 'error');
         }
       }
       
@@ -407,8 +267,6 @@ const Documents = () => {
           const formData = new FormData();
           formData.append('user_id', userId);
           formData.append('document', pendingFile.file);
-          formData.append('_t', new Date().getTime()); // Añadir timestamp para evitar caché
-          formData.append('_r', Math.random().toString(36).substring(7)); // Añadir valor aleatorio
           
           // Usar XMLHttpRequest para monitorear el progreso
           return new Promise((resolve, reject) => {
@@ -430,16 +288,14 @@ const Documents = () => {
                 hasChanged = true;
                 resolve();
               } else {
-                console.error('Error en carga de archivo:', xhr.response);
+                console.error('❌ Error en carga de archivo:', xhr.response);
                 reject(new Error(`Error HTTP: ${xhr.status} - ${xhr.statusText}`));
               }
             };
             
             xhr.onerror = () => reject(new Error('Error de red'));
             
-            // La URL ya tiene la barra diagonal
             xhr.open('POST', API_BASE_URL, true);
-            // No establecemos encabezados de caché que puedan causar problemas de CORS
             xhr.send(formData);
           });
         } catch (error) {
@@ -452,20 +308,14 @@ const Documents = () => {
       try {
         await Promise.all(uploadPromises);
       } catch (error) {
-        console.error('Error al subir archivos:', error);
+        console.error('❌ Error al subir archivos:', error);
         addNotification(`Error al subir archivos: ${error.message}`, 'error');
       }
       
       // Solo llamar a save_changes si hubo cambios exitosos
       if (hasChanged) {
-        // Añadir timestamp para el endpoint save_changes
-        const timestamp = new Date().getTime();
-        const randomString = Math.random().toString(36).substring(7);
-        
-        // Llamar al endpoint save_changes para aplicar cambios
-        // El API_BASE_URL ya tiene la barra final, así que no añadimos otra
-        const saveUrl = `${API_BASE_URL}save_changes/?_t=${timestamp}&_r=${randomString}`;
-        console.log(`Guardando cambios: ${saveUrl}`);
+        const saveUrl = `${API_BASE_URL}save_changes/`;
+        console.log(`💾 Aplicando cambios en el sistema RAG: ${saveUrl}`);
         
         try {
           const saveResponse = await fetch(saveUrl, {
@@ -474,51 +324,41 @@ const Documents = () => {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              user_id: userId,
-              _t: timestamp,
-              _r: randomString
+              user_id: userId
             })
           });
           
-          console.log(`Respuesta save_changes: ${saveResponse.status}`);
-          
           if (!saveResponse.ok) {
-            let errorText = '';
-            try {
-              errorText = await saveResponse.text();
-            } catch (e) {
-              errorText = 'No se pudo leer el mensaje de error';
-            }
-            
-            console.error('Error en save_changes:', errorText);
+            const errorText = await saveResponse.text().catch(() => 'Error desconocido');
+            console.error('❌ Error en save_changes:', errorText);
             throw new Error(`Error al aplicar cambios en el sistema RAG: ${saveResponse.status} - ${errorText}`);
           } else {
-            console.log('✅ Cambios guardados correctamente en el sistema RAG');
+            console.log('✅ Cambios aplicados correctamente en el sistema RAG');
           }
         } catch (error) {
-          console.error('Error en save_changes:', error);
+          console.error('❌ Error en save_changes:', error);
           addNotification(`Error al finalizar cambios: ${error.message}`, 'error');
         }
       }
       
       // Limpiar estados si todo fue exitoso
-      setPendingFiles([]);
-      setPendingDeletions([]);
-      setUploadProgress({});
-      
-      // Esperar un momento para que el servidor procese todo completamente
-      console.log('⏳ Esperando a que el servidor procese los cambios...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // En lugar de llamar a fetchDocuments, usar nuestra función de recarga forzada
-      console.log('🔄 Aplicando recarga forzada de datos...');
-      await forceRefresh();
-      
       if (success) {
+        setPendingFiles([]);
+        setPendingDeletions([]);
+        setUploadProgress({});
+        
+        // Esperar un momento para que el servidor procese
+        console.log('⏳ Esperando procesamiento del servidor...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Refrescar la lista de documentos
+        console.log('🔄 Actualizando lista de documentos...');
+        await fetchDocuments();
+        
         addNotification('Cambios guardados exitosamente', 'success');
       }
     } catch (error) {
-      console.error('Error saving changes:', error);
+      console.error('❌ Error guardando cambios:', error);
       addNotification(`Error al guardar cambios: ${error.message}`, 'error');
     } finally {
       setIsSaving(false);
@@ -576,11 +416,11 @@ const Documents = () => {
       <div className="flex justify-between items-center mb-4">
         <div className="text-sm text-gray-500 flex items-center">
           <div className={`w-2 h-2 rounded-full mr-2 ${isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></div>
-          {isLoading ? 'Actualizando...' : 'Datos sincronizados'}
+          {isLoading ? 'Cargando...' : 'Documentos cargados'}
         </div>
         
         <button
-          onClick={forceRefresh}
+          onClick={refreshDocuments}
           disabled={isLoading || isSaving}
           className={`flex items-center text-sm px-3 py-1 rounded ${
             isLoading || isSaving 
@@ -589,7 +429,7 @@ const Documents = () => {
           }`}
         >
           <RefreshCw className={`w-4 h-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
-          Actualizar lista
+          Actualizar
         </button>
       </div>
       
@@ -605,11 +445,10 @@ const Documents = () => {
               <div className="flex items-start">
                 <AlertTriangle className="text-yellow-500 w-5 h-5 mr-3 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium text-yellow-800">API no disponible</h3>
+                  <h3 className="font-medium text-yellow-800">Error de conexión</h3>
                   <p className="text-yellow-700 text-sm mb-2">
                     {apiError}
                   </p>
-
                 </div>
               </div>
             </div>

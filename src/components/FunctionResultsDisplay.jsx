@@ -1083,8 +1083,8 @@ function downloadAsMarkdownPDF(content, resultId) {
     });
     
     // Save the PDF
-    doc.save(`CV_${resultId}.pdf`);
-    addNotification('CV PDF generado y descargado correctamente', 'success');
+    doc.save(`Document_${resultId}.pdf`);
+    addNotification('Document PDF generado y descargado correctamente', 'success');
     
   }).catch(error => {
     console.error('Error loading jsPDF:', error);
@@ -1095,7 +1095,7 @@ function downloadAsMarkdownPDF(content, resultId) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `CV_${resultId}.txt`;
+    a.download = `Document_${resultId}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

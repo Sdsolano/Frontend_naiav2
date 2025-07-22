@@ -7,7 +7,7 @@ import Personal_Trainer_AF from "../assets/Personal_Trainer_AF.jpeg";
 import Research_AF from "../assets/Research_AF.jpeg";
 import Receptionist_AF from "../assets/Receptionist_AF.jpeg";
 import University_Guide_AF from "../assets/University_guide_AF.jpeg";
-import Companion_AF from "../assets/Companion_AF.jpeg"; 
+import Companion_AF from "../assets/Companion_AF.png"; 
 const HeroCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   
