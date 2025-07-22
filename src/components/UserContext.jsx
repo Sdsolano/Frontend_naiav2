@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { useMsal } from '@azure/msal-react';
 import { useNotification } from './NotificationContext';
 import useUserManagement from '../hooks/useUserManagement';
+import PermissionDeniedModal from './PermissionDeniedModal';
 
 const UserContext = createContext();
 
@@ -16,6 +17,8 @@ export const UserProvider = ({ children }) => {
     resetCounters,
     canProcessEmail 
   } = useUserManagement();
+
+  const [showPermissionDeniedModal, setShowPermissionDeniedModal] = useState(false);
 
   // Estados existentes
   const [userInfo, setUserInfo] = useState(null);
@@ -173,8 +176,21 @@ export const UserProvider = ({ children }) => {
           
           let errorMessage = 'Error al configurar el usuario';
           let isPermanentFailure = false;
-          
-          if (userManagementError.message.includes('No tienes permisos')) {
+          let isPermissionDenied = false;
+
+          if (userManagementError.message.includes('PERMISSION_DENIED')) {
+            console.log('🚫 Error de permisos detectado - mostrando modal interactivo');
+            isPermissionDenied = true;
+            isPermanentFailure = true;
+            
+            // Mostrar modal interactivo en lugar de notificación
+            setShowPermissionDeniedModal(true);
+            setUserSetupFailed(true);
+            setLastFailureReason('Sin permisos para acceder a NAIA');
+            setLastProcessedEmail(currentEmail);
+            
+          }
+          else if (userManagementError.message.includes('No tienes permisos')) {
             errorMessage = 'No tienes permisos para acceder al sistema. Contacta al administrador.';
             isPermanentFailure = true;
           } else if (userManagementError.message.includes('temporalmente bloqueado')) {
@@ -189,7 +205,10 @@ export const UserProvider = ({ children }) => {
           }
           
           addNotification(errorMessage, 'error');
-          
+
+          if (!isPermissionDenied) {
+            addNotification(errorMessage, 'error');
+          }
           // Marcar como fallo si es permanente
           if (isPermanentFailure) {
             setUserSetupFailed(true);
@@ -206,6 +225,7 @@ export const UserProvider = ({ children }) => {
             setLastProcessedEmail(null);
           }
         }
+        
 
       } catch (error) {
         console.error('❌ Error general en fetchUserInfo:', error);
@@ -273,6 +293,10 @@ export const UserProvider = ({ children }) => {
     return userInfo && userId && backendUserData && !isLoading && !userSetupFailed;
   };
 
+  const closePermissionDeniedModal = () => {
+          setShowPermissionDeniedModal(false);
+  };
+
   const contextValue = {
     // Estados existentes
     userInfo, 
@@ -296,8 +320,16 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-    <UserContext.Provider value={contextValue}>
+    <UserContext.Provider value={{contextValue, 
+    showPermissionDeniedModal, 
+    closePermissionDeniedModal
+    }}>
       {children}
+
+      <PermissionDeniedModal 
+      isOpen={showPermissionDeniedModal}
+      onClose={closePermissionDeniedModal}
+    />
     </UserContext.Provider>
   );
 };
