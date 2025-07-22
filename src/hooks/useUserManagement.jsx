@@ -236,7 +236,16 @@ const useUserManagement = () => {
           lastError = new Error(`Error 401 ${attempt.description}: Token inválido o insuficiente`);
           console.log(`❌ ${lastError.message}`);
           continue;
-        } else {
+          
+        } else if (response.status === 403) {
+          // 🚨 NUEVO: Error de permisos - Usuario no autorizado
+          const errorData = await response.json().catch(() => ({}));
+          const forbiddenError = new Error(`PERMISSION_DENIED: ${errorData.Denied || 'No tienes permisos para acceder a NAIA'}`);
+          console.log(`❌ Error 403 ${attempt.description}: Usuario sin permisos`);
+          recordFailedAttempt(userData.email, true);
+          throw forbiddenError;
+        }
+        else {
           const errorData = await response.json().catch(() => ({}));
           lastError = new Error(`Error ${response.status} ${attempt.description}: ${errorData.status || 'Error desconocido'}`);
           console.log(`❌ ${lastError.message}`);
