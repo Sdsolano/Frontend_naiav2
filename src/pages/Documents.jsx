@@ -35,19 +35,14 @@ const Documents = () => {
   const dropAreaRef = useRef(null);
   const { addNotification } = useNotification();
 
-  // Cargar documentos cuando el componente se monta - SIMPLIFICADO
+  // Cargar documentos cuando el componente se monta - CORREGIDO para evitar bucle infinito
   useEffect(() => {
     const loadDocuments = async () => {
-      if (!isUserReady()) {
-        console.log("⚠️ Usuario no está listo, esperando configuración...");
+      // Verificar que el usuario esté listo usando los valores directos
+      if (!userId || !isUserReady()) {
+        console.log("⚠️ Usuario no está listo, esperando configuración...", { userId, userReady: isUserReady() });
         setIsLoading(false);
-        return;
-      }
-
-      if (!userId) {
-        console.log("⚠️ userId no disponible");
-        setApiError("Usuario no identificado");
-        setIsLoading(false);
+        setApiError(userId ? null : "Usuario no identificado");
         return;
       }
 
@@ -55,15 +50,34 @@ const Documents = () => {
       await fetchDocuments();
     };
     
-    loadDocuments();
-  }, [userId, isUserReady]); // Solo depende de userId e isUserReady
+    // Solo ejecutar cuando el userId esté disponible y haya cambiado
+    if (userId) {
+      loadDocuments();
+    } else {
+      setIsLoading(false);
+      setApiError("Usuario no identificado");
+    }
+  }, [userId]); // Solo depender de userId para evitar bucle infinito
 
-  // Función simplificada para obtener documentos
+  // Estados para evitar bucle infinito
+  const [isFetchingDocuments, setIsFetchingDocuments] = useState(false);
+
+  // Función simplificada para obtener documentos - CON PROTECCIÓN CONTRA BUCLE INFINITO
   const fetchDocuments = async () => {
     if (!userId) {
-      throw new Error('Usuario no identificado');
+      console.log("⚠️ fetchDocuments: userId no disponible");
+      setApiError("Usuario no identificado");
+      setIsLoading(false);
+      return;
+    }
+
+    // Prevenir múltiples llamadas simultáneas
+    if (isFetchingDocuments) {
+      console.log("⚠️ fetchDocuments: Ya hay una petición en curso, ignorando...");
+      return;
     }
     
+    setIsFetchingDocuments(true);
     setIsLoading(true);
     setApiError(null);
     
@@ -75,6 +89,15 @@ const Documents = () => {
       const response = await fetch(url);
       
       if (!response.ok) {
+        // Si es error 500, probablemente no hay documentos aún
+        if (response.status === 500) {
+          console.log('📝 Error 500 - probablemente no hay documentos aún');
+          setDocuments([]);
+          setApiAvailable(true);
+          // Establecer un mensaje informativo específico para error 500
+          setApiError("Error 500 - no hay documentos");
+          return;
+        }
         throw new Error(`Error HTTP: ${response.status}`);
       }
       
@@ -98,11 +121,17 @@ const Documents = () => {
       addNotification(`Error al cargar documentos: ${error.message}`, 'error');
     } finally {
       setIsLoading(false);
+      setIsFetchingDocuments(false);
     }
   };
 
-  // Función simplificada para refrescar
+  // Función simplificada para refrescar - CON PROTECCIÓN
   const refreshDocuments = async () => {
+    if (isFetchingDocuments) {
+      console.log("⚠️ refreshDocuments: Ya hay una petición en curso, ignorando...");
+      return;
+    }
+    
     console.log("🔄 Refrescando lista de documentos...");
     await fetchDocuments();
   };
@@ -415,20 +444,20 @@ const Documents = () => {
       {/* Indicador de estado de sincronización */}
       <div className="flex justify-between items-center mb-4">
         <div className="text-sm text-gray-500 flex items-center">
-          <div className={`w-2 h-2 rounded-full mr-2 ${isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></div>
-          {isLoading ? 'Cargando...' : 'Documentos cargados'}
+          <div className={`w-2 h-2 rounded-full mr-2 ${isFetchingDocuments ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></div>
+          {isFetchingDocuments ? 'Cargando...' : 'Documentos cargados'}
         </div>
         
         <button
           onClick={refreshDocuments}
-          disabled={isLoading || isSaving}
+          disabled={isFetchingDocuments || isSaving}
           className={`flex items-center text-sm px-3 py-1 rounded ${
-            isLoading || isSaving 
+            isFetchingDocuments || isSaving 
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
               : 'bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors'
           }`}
         >
-          <RefreshCw className={`w-4 h-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 mr-1 ${isFetchingDocuments ? 'animate-spin' : ''}`} />
           Actualizar
         </button>
       </div>
@@ -439,15 +468,37 @@ const Documents = () => {
         </div>
       ) : (
         <>
-          {/* Mensaje de error si la API no está disponible */}
+          {/* Mensaje informativo o de error según el tipo */}
           {apiError && (
-            <div className="mb-6 bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+            <div className={`mb-6 rounded-lg p-4 ${
+              apiError.includes('500') || apiError.includes('no hay documentos')
+                ? 'bg-blue-50 border border-blue-200'
+                : 'bg-yellow-50 border border-yellow-300'
+            }`}>
               <div className="flex items-start">
-                <AlertTriangle className="text-yellow-500 w-5 h-5 mr-3 mt-0.5 flex-shrink-0" />
+                {apiError.includes('500') || apiError.includes('no hay documentos') ? (
+                  <Info className="text-blue-500 w-5 h-5 mr-3 mt-0.5 flex-shrink-0" />
+                ) : (
+                  <AlertTriangle className="text-yellow-500 w-5 h-5 mr-3 mt-0.5 flex-shrink-0" />
+                )}
                 <div>
-                  <h3 className="font-medium text-yellow-800">Error de conexión</h3>
-                  <p className="text-yellow-700 text-sm mb-2">
-                    {apiError}
+                  <h3 className={`font-medium ${
+                    apiError.includes('500') || apiError.includes('no hay documentos')
+                      ? 'text-blue-800'
+                      : 'text-yellow-800'
+                  }`}>
+                    {apiError.includes('500') || apiError.includes('no hay documentos') 
+                      ? 'Sin documentos' 
+                      : 'Error de conexión'}
+                  </h3>
+                  <p className={`text-sm mb-2 ${
+                    apiError.includes('500') || apiError.includes('no hay documentos')
+                      ? 'text-blue-700'
+                      : 'text-yellow-700'
+                  }`}>
+                    {apiError.includes('500') || apiError.includes('no hay documentos')
+                      ? 'No has añadido ningún documento aún. Añade documentos para empezar a usar la base de conocimiento.'
+                      : apiError}
                   </p>
                 </div>
               </div>

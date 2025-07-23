@@ -126,18 +126,33 @@ const Sidebar = () => {
                 </NavLink>
               </li>
               <li>
-                <NavLink
-                  to="/documents"
-                  className={({ isActive }) =>
-                    `flex items-center p-4 rounded-xl transition-all ${
-                      isActive ? "bg-gray-300 text-blue-950 font-medium shadow-sm" : "text-gray-600 hover:bg-gray-50"
-                    }`
-                  }
-                  onClick={() => setIsOpen(false)}
-                >
-                  <FileText className="mr-3" size={20} />
-                  <span>Documents</span>
-                </NavLink>
+                {isAuthenticated ? (
+                  <NavLink
+                    to="/documents"
+                    className={({ isActive }) =>
+                      `flex items-center p-4 rounded-xl transition-all ${
+                        isActive ? "bg-gray-300 text-blue-950 font-medium shadow-sm" : "text-gray-600 hover:bg-gray-50"
+                      }`
+                    }
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <FileText className="mr-3" size={20} />
+                    <span>Documents</span>
+                  </NavLink>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      openLoginModal(() => {
+                        navigate('/documents');
+                      });
+                    }}
+                    className="w-full flex items-center p-4 rounded-xl transition-all text-gray-600 hover:bg-gray-50"
+                  >
+                    <FileText className="mr-3" size={20} />
+                    <span>Documents</span>
+                  </button>
+                )}
               </li>
               <li>
                 <NavLink
