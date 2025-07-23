@@ -18,6 +18,7 @@ import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./authConfig";
 import { UserProvider } from "./components/UserContext";
+import ProtectedRouteWrapper from "./components/ProtectedRouteWrapper";
 
 // Crear el root una sola vez
 const root = ReactDOM.createRoot(document.getElementById("root"));
@@ -169,9 +170,18 @@ const initializeApp = async () => {
                     <Routes>
                       <Route path="/" element={<Layout />}>
                         <Route index element={<Home />} />
-                        <Route path="documents" element={<Documents />} />
+
+                        <Route path="documents" element={
+                          <ProtectedRouteWrapper>
+                            <Documents />
+                          </ProtectedRouteWrapper>
+                        } />
                         <Route path="naia" element={<RoleSelection />} />
-                        <Route path="naia/interface" element={<App />} />
+                        <Route path="naia/interface" element={
+                          <ProtectedRouteWrapper>
+                            <App />
+                          </ProtectedRouteWrapper>
+                        } />
                         <Route path="*" element={<Navigate to="/" replace />} />
                       </Route>
                     </Routes>

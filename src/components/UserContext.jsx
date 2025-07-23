@@ -1,4 +1,4 @@
-// src/components/UserContext.jsx
+// UserContext.jsx - Versión corregida
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { useNotification } from './NotificationContext';
@@ -29,24 +29,24 @@ export const UserProvider = ({ children }) => {
   const [backendUserData, setBackendUserData] = useState(null);
   const [isLoadingUserId, setIsLoadingUserId] = useState(false);
 
-  // 🚨 ESTADOS MEJORADOS PARA EVITAR BUCLE INFINITO
+  // Estados mejorados para evitar bucle infinito
   const [isInitialized, setIsInitialized] = useState(false);
   const [lastProcessedEmail, setLastProcessedEmail] = useState(null);
   const [isFetching, setIsFetching] = useState(false);
-  const [userSetupFailed, setUserSetupFailed] = useState(false); // NUEVO: marcar fallas permanentes
-  const [lastFailureReason, setLastFailureReason] = useState(null); // NUEVO: razón del último fallo
+  const [userSetupFailed, setUserSetupFailed] = useState(false);
+  const [lastFailureReason, setLastFailureReason] = useState(null);
 
-  // 🚨 REF PARA PREVENIR MÚLTIPLES EJECUCIONES SIMULTÁNEAS
+  // Ref para prevenir múltiples ejecuciones simultáneas
   const setupInProgressRef = useRef(false);
   const lastSetupAttemptRef = useRef(0);
   
-  // 🚨 CONFIGURACIÓN DE COOLDOWNS
+  // Configuración de cooldowns
   const SETUP_COOLDOWN = 10000; // 10 segundos entre intentos de setup
   const MAX_SETUP_ATTEMPTS = 3; // Máximo 3 intentos totales
 
   useEffect(() => {
     const fetchUserInfo = async () => {
-      // 🛡️ PROTECCIÓN BÁSICA - No hay cuentas autenticadas
+      // Protección básica - No hay cuentas autenticadas
       if (accounts.length === 0) {
         console.log('📭 No hay cuentas autenticadas, limpiando estado...');
         setUserInfo(null);
@@ -63,7 +63,7 @@ export const UserProvider = ({ children }) => {
       const currentEmail = accounts[0].username;
       const now = Date.now();
 
-      // 🛡️ PROTECCIÓN - Usuario ya configurado correctamente
+      // Protección - Usuario ya configurado correctamente
       if (isInitialized && 
           currentEmail === lastProcessedEmail && 
           userId !== null && 
@@ -72,69 +72,59 @@ export const UserProvider = ({ children }) => {
         return;
       }
 
-      // 🛡️ PROTECCIÓN - Setup falló anteriormente para este email
+      // Protección - Setup falló anteriormente para este email
       if (userSetupFailed && currentEmail === lastProcessedEmail) {
         console.log(`🚫 Setup falló anteriormente para ${currentEmail}: ${lastFailureReason}`);
         return;
       }
 
-      // 🛡️ PROTECCIÓN - Cooldown entre intentos
+      // Protección - Cooldown entre intentos
       if (now - lastSetupAttemptRef.current < SETUP_COOLDOWN) {
         console.log('⏰ Cooldown activo, omitiendo setup...');
         return;
       }
 
-      // 🛡️ PROTECCIÓN - Setup ya en progreso
-      if (setupInProgressRef.current || isFetching) {
+      // Protección - Setup ya en progreso
+      if (setupInProgressRef.current) {
         console.log('🔄 Setup ya en progreso, omitiendo...');
         return;
       }
 
-      // 🛡️ PROTECCIÓN - Verificar si email puede ser procesado
-      if (!canProcessEmail(currentEmail)) {
-        console.log(`❌ Email ${currentEmail} está bloqueado temporalmente`);
-        setUserSetupFailed(true);
-        setLastFailureReason('Email bloqueado por exceso de reintentos');
-        setIsInitialized(true);
-        return;
-      }
-
-      // 🚨 INICIAR SETUP CON PROTECCIONES
-      setupInProgressRef.current = true;
-      lastSetupAttemptRef.current = now;
-      setIsFetching(true);
-      setIsLoadingUserInfo(true);
-      setIsLoadingUserId(true);
-      setUserSetupFailed(false);
-      setLastFailureReason(null);
-      
       try {
+        setupInProgressRef.current = true;
+        lastSetupAttemptRef.current = now;
+        
         console.log(`🚀 Iniciando setup para usuario: ${currentEmail}`);
-        
-        // Set active account if not already set
-        instance.setActiveAccount(accounts[0]);
-        
-        // Get basic account info from Azure AD
+        setIsLoadingUserInfo(true);
+        setIsLoadingUserId(true);
+        setUserSetupFailed(false);
+        setLastFailureReason(null);
+
+        // Obtener información de Azure AD
         const azureUserInfo = {
-          name: accounts[0].name || accounts[0].username.split('@')[0],
+          name: accounts[0].name,
           username: accounts[0].username,
           tenantId: accounts[0].tenantId,
         };
-        
-        setUserInfo(azureUserInfo);
+
         console.log('✅ Información de Azure AD obtenida:', azureUserInfo);
+        setUserInfo(azureUserInfo);
 
         // Preparar datos para el backend
+        const nameParts = azureUserInfo.name.split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ');
+
         const userDataForBackend = {
-          name: azureUserInfo.name.split(' ')[0] || azureUserInfo.username.split('@')[0],
-          family_name: azureUserInfo.name.split(' ').slice(1).join(' ') || 'Usuario',
+          name: firstName,
+          family_name: lastName,
           email: azureUserInfo.username,
           photo_url: " "
         };
 
         console.log('📝 Datos preparados para backend:', userDataForBackend);
 
-        // 🚨 OBTENER TOKEN (OPCIONAL) - Si falla, continuar sin token
+        // Obtener token (opcional)
         let accessToken = null;
         try {
           const tokenResponse = await instance.acquireTokenSilent({
@@ -142,20 +132,17 @@ export const UserProvider = ({ children }) => {
             account: accounts[0]
           });
           accessToken = tokenResponse.accessToken;
-          console.log('🔑 Token Azure AD obtenido (puede no ser válido para backend)');
+          console.log('🔑 Token Azure AD obtenido');
         } catch (tokenError) {
           console.log('ℹ️ No se pudo obtener token Azure AD, continuando sin token');
-          console.log('   → useUserManagement intentará crear usuario sin autenticación');
-          // No es un error crítico - continuar sin token
         }
 
-        // Llamar a nuestro hook para obtener/crear usuario en el backend
         console.log('🔄 Obteniendo/creando usuario en backend...');
         
         try {
           const backendUser = await getOrCreateUser(userDataForBackend, accessToken);
           
-          // ✅ ÉXITO - Almacenar datos del backend
+          // Éxito - Almacenar datos del backend
           setBackendUserData(backendUser);
           setUserId(backendUser.id);
           setLastProcessedEmail(currentEmail);
@@ -171,7 +158,7 @@ export const UserProvider = ({ children }) => {
           );
 
         } catch (userManagementError) {
-          // 🚨 ERROR EN GESTIÓN DE USUARIO
+          // Error en gestión de usuario
           console.error('❌ Error en gestión de usuario:', userManagementError);
           
           let errorMessage = 'Error al configurar el usuario';
@@ -179,18 +166,21 @@ export const UserProvider = ({ children }) => {
           let isPermissionDenied = false;
 
           if (userManagementError.message.includes('PERMISSION_DENIED')) {
-            console.log('🚫 Error de permisos detectado - mostrando modal interactivo');
+            console.log('🚫 Error de permisos detectado');
             isPermissionDenied = true;
             isPermanentFailure = true;
-            
-            // Mostrar modal interactivo en lugar de notificación
+            try {
+              await instance.clearCache();
+              console.log('🧹 Cache de MSAL limpiado por falta de permisos');
+            } catch (clearError) {
+              console.warn('⚠️ Error al limpiar cache de MSAL:', clearError);
+            }
             setShowPermissionDeniedModal(true);
             setUserSetupFailed(true);
             setLastFailureReason('Sin permisos para acceder a NAIA');
             setLastProcessedEmail(currentEmail);
             
-          }
-          else if (userManagementError.message.includes('No tienes permisos')) {
+          } else if (userManagementError.message.includes('No tienes permisos')) {
             errorMessage = 'No tienes permisos para acceder al sistema. Contacta al administrador.';
             isPermanentFailure = true;
           } else if (userManagementError.message.includes('temporalmente bloqueado')) {
@@ -198,52 +188,28 @@ export const UserProvider = ({ children }) => {
             isPermanentFailure = true;
           } else if (userManagementError.message.includes('No se puede conectar')) {
             errorMessage = 'No se puede conectar al servidor. Verifica tu conexión.';
-            isPermanentFailure = false; // Puede ser temporal
-          } else {
-            errorMessage = `Error de configuración: ${userManagementError.message}`;
-            isPermanentFailure = false;
           }
-          
-          addNotification(errorMessage, 'error');
 
-          if (!isPermissionDenied) {
-            addNotification(errorMessage, 'error');
-          }
-          // Marcar como fallo si es permanente
-          if (isPermanentFailure) {
+          if (isPermanentFailure && !isPermissionDenied) {
             setUserSetupFailed(true);
             setLastFailureReason(errorMessage);
             setLastProcessedEmail(currentEmail);
           }
-          
-          // Limpiar estados en caso de error
-          setUserId(null);
-          setBackendUserData(null);
-          
-          // Si no es fallo permanente, permitir reintento en siguiente login
-          if (!isPermanentFailure) {
-            setLastProcessedEmail(null);
+
+          if (!isPermissionDenied) {
+            addNotification(errorMessage, 'error');
           }
+          
+          throw userManagementError;
         }
-        
 
       } catch (error) {
-        console.error('❌ Error general en fetchUserInfo:', error);
-        
-        const errorMessage = `Error inesperado: ${error.message}`;
-        addNotification(errorMessage, 'error');
-        
-        // Limpiar estados
-        setUserId(null);
-        setBackendUserData(null);
-        setLastProcessedEmail(null); // Permitir reintento
-        
+        console.error('❌ Error general en setup:', error);
       } finally {
         setIsLoadingUserInfo(false);
         setIsLoadingUserId(false);
-        setIsFetching(false);
         setIsInitialized(true);
-        setupInProgressRef.current = false; // 🛡️ LIBERAR LOCK
+        setupInProgressRef.current = false;
       }
     };
 
@@ -275,7 +241,7 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // 🚨 FUNCIÓN DE REINICIO MANUAL (para debugging o admin)
+  // Función de reinicio manual
   const retryUserSetup = useCallback(() => {
     console.log('🔄 Reintentando setup de usuario manualmente...');
     setUserSetupFailed(false);
@@ -285,18 +251,19 @@ export const UserProvider = ({ children }) => {
     resetCounters();
   }, [resetCounters]);
 
+  const closePermissionDeniedModal = () => {
+    setShowPermissionDeniedModal(false);
+  };
+
   // Determinar estado de carga general
   const isLoading = isLoadingUserInfo || isLoadingUserId || isUserManagementLoading;
 
-  // Función helper para componentes que necesiten verificar si el usuario está completamente configurado
+  // Función helper para verificar si el usuario está completamente configurado
   const isUserReady = () => {
     return userInfo && userId && backendUserData && !isLoading && !userSetupFailed;
   };
 
-  const closePermissionDeniedModal = () => {
-          setShowPermissionDeniedModal(false);
-  };
-
+  // ✅ ESTRUCTURA CORRECTA: Incluir TODOS los valores directamente en el value
   const contextValue = {
     // Estados existentes
     userInfo, 
@@ -315,21 +282,25 @@ export const UserProvider = ({ children }) => {
     userSetupFailed,          // Indica si el setup falló permanentemente
     lastFailureReason,        // Razón del último fallo
     
-    // 🚨 NUEVAS UTILIDADES
+    // Nuevas utilidades
     retryUserSetup,           // Función para reintentar setup manualmente
+    
+    // 🚨 AÑADIR LOS ESTADOS DEL MODAL DIRECTAMENTE AQUÍ
+    showPermissionDeniedModal,
+    closePermissionDeniedModal,
+    
+    // Para compatibilidad con ProtectedRouteWrapper
+    isAuthenticated: accounts.length > 0
   };
 
   return (
-    <UserContext.Provider value={{contextValue, 
-    showPermissionDeniedModal, 
-    closePermissionDeniedModal
-    }}>
+    <UserContext.Provider value={contextValue}>
       {children}
-
+      
       <PermissionDeniedModal 
-      isOpen={showPermissionDeniedModal}
-      onClose={closePermissionDeniedModal}
-    />
+        isOpen={showPermissionDeniedModal}
+        onClose={closePermissionDeniedModal}
+      />
     </UserContext.Provider>
   );
 };

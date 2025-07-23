@@ -154,6 +154,12 @@ const useUserManagement = () => {
         
         recordFailedAttempt(email);
         throw new Error(`Error del servidor: ${response.status}`);
+      } else if (response.status === 403) {
+        // 🚨 NUEVO: Error de permisos en getUserByEmail
+        console.log(`❌ Error 403 - Usuario sin permisos para acceder: ${email}`);
+        const errorData = await response.json().catch(() => ({}));
+        recordFailedAttempt(email, true);
+        throw new Error(`PERMISSION_DENIED: ${errorData.Denied || 'No tienes permisos para acceder a NAIA'}`);
       } else {
         const errorData = await response.json().catch(() => ({}));
         recordFailedAttempt(email);
