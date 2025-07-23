@@ -15,10 +15,17 @@ export const SimpleUI = ({ hidden, ...props }) => {
   const navigate = useNavigate();
   const [currentRoleName, setCurrentRoleName] = useState('Investigador');
 
-  // Función para cambiar de rol
+  // Función para cambiar de rol con refresh completo de la página
   const handleChangeRole = () => {
     localStorage.removeItem('naia_selected_role');
+    
+    // Navegar y luego refrescar la página para limpiar todos los estados
     navigate('/naia');
+    
+    // Usar setTimeout para asegurar que la navegación ocurra antes del refresh
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   }
 
   const input = useRef();
