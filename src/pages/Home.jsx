@@ -8,6 +8,7 @@ import Research_AF from "../assets/Research_AF.jpeg";
 import Receptionist_AF from "../assets/Receptionist_AF.jpeg";
 import University_Guide_AF from "../assets/University_guide_AF.jpeg";
 import Companion_AF from "../assets/Companion_AF.png"; 
+import { DemoModal } from "../components/DemoModal";
 const HeroCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   
@@ -107,7 +108,7 @@ const HeroCarousel = () => {
 const Home = () => {
   const [activeRole, setActiveRole] = useState(0);
   const [selectedConfig, setSelectedConfig] = useState(0);
-  
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
   // Roles data
   const roles = [
     {
@@ -344,7 +345,7 @@ const Home = () => {
                 <ArrowRight size={18} />
               </Link>
               
-              <button className="flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm hover:bg-white/15 px-6 py-3 rounded-xl font-medium transition-all border border-white/20">
+              <button className="flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm hover:bg-white/15 px-6 py-3 rounded-xl font-medium transition-all border border-white/20" onClick={() => setIsDemoModalOpen(true)}>
                 <Video size={18} />
                 Ver demostración
               </button>
@@ -618,6 +619,11 @@ const Home = () => {
           </div>
         </div>
       </section>
+      
+      <DemoModal
+        isOpen={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+      />
     </div>
   )
 }
