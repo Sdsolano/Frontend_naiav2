@@ -74,7 +74,7 @@ export const DemoModal = ({ isOpen, onClose }) => {
       image: University_Guide_AF,
       features: ["Información académica actualizada", "Acceso a recursos", "Orientación estudiantil", "Calendario académico"]
     },
-    
+    /*
     {
       id: 'bienestar',
       title: "Compañero",
@@ -87,6 +87,7 @@ export const DemoModal = ({ isOpen, onClose }) => {
       image: Companion_AF,
       features: ["Apoyo emocional 24/7", "Técnicas de relajación", "Seguimiento de estado", "Recursos de bienestar"]
     }
+      */
   ];
 
   if (!isOpen) return null;

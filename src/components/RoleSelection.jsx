@@ -116,6 +116,7 @@ const roles = [
     ]
   },
   // ← NUEVO ROL: Compañero de bienestar
+  /*
   {
     id: "companion",
     icon: Heart,
@@ -135,6 +136,7 @@ const roles = [
       "Recursos y ejercicios para el desarrollo del bienestar"
     ]
   }
+    */
 ];
 
 const RoleSelection = () => {

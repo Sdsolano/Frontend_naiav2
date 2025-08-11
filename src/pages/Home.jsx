@@ -18,7 +18,7 @@ const HeroCarousel = () => {
     { src: Personal_Trainer_AF, alt: "Entrenador NAIA", role: "Entrenador" },
     { src: Personal_Assistant_AF, alt: "Asistente Personal NAIA", role: "Asistente" },
     { src: University_Guide_AF, alt: "Guía Universitario NAIA", role: "Guía" },
-    { src: Companion_AF, alt: "Compañero de bienestar NAIA", role: "Compañero" }  // ← NUEVA IMAGEN
+   // { src: Companion_AF, alt: "Compañero de bienestar NAIA", role: "Compañero" }  // ← NUEVA IMAGEN
 
   ];
 
@@ -185,7 +185,7 @@ const Home = () => {
       "Envío de información sobre recursos universitarios",
       "Tour virtual por la universidad"
       ]
-    },
+    },/*
     {
       icon: Heart,
       title: "Compañero de bienestar",
@@ -201,6 +201,7 @@ const Home = () => {
       "Recursos y ejercicios para el desarrollo del bienestar"
       ]
     }
+      */
   ];
 
   // Configuración data
@@ -289,7 +290,7 @@ const Home = () => {
         icon: FileText
       }
     ]
-  },
+  },/*
   {
       role: "Compañero de bienestar",
       icon: Heart,
@@ -306,6 +307,7 @@ const Home = () => {
         }
       ]
     }
+      */
 
     
   ];
@@ -374,7 +376,7 @@ const Home = () => {
       <section className="py-10">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-gray-800 mb-3">
-            Seis roles especializados
+            Cinco roles especializados
           </h2>
           <p className="mt-3 text-lg text-gray-600 max-w-2xl mx-auto">
             NAIA adapta sus capacidades a tus necesidades específicas
