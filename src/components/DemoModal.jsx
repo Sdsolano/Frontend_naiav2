@@ -33,7 +33,7 @@ export const DemoModal = ({ isOpen, onClose }) => {
       icon: Building,
       gradient: "from-emerald-500 via-emerald-600 to-emerald-700",
       glowColor: "emerald",
-      videoId: "vHG36nh-3Mc",
+      videoId: "DuFYj4f6IZI",
       description: "Gestionar citas, visitantes e información con eficiencia profesional",
       image: Receptionist_AF,
       features: ["Gestión inteligente de citas", "Atención personalizada", "Organización de espacios", "Notificaciones automáticas"]
@@ -45,7 +45,7 @@ export const DemoModal = ({ isOpen, onClose }) => {
       icon: UserCheck,
       gradient: "from-amber-500 via-amber-600 to-amber-700",
       glowColor: "amber",
-      videoId: "vHG36nh-3Mc",
+      videoId: "Nzj7shoQ2yc",
       description: "Desarrollar habilidades personales y profesionales mediante práctica interactiva",
       image: Personal_Trainer_AF,
       features: ["Simulaciones realistas", "Análisis en tiempo real", "Retroalimentación personalizada", "Seguimiento de progreso"]
@@ -74,6 +74,7 @@ export const DemoModal = ({ isOpen, onClose }) => {
       image: University_Guide_AF,
       features: ["Información académica actualizada", "Acceso a recursos", "Orientación estudiantil", "Calendario académico"]
     },
+    
     {
       id: 'bienestar',
       title: "Compañero",
