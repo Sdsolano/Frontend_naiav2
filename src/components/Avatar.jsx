@@ -117,8 +117,11 @@ const getModelPathForRole = (roleId) => {
       return "/models/personal.glb";
     case 'receptionist':
       return "/models/receptionist.glb";
+    case 'ciudadano':  // ← NUEVO: Asistente de Atención al Ciudadano
+      return "/models/ciudadano.glb";
     default:
       return "/models/investigator.glb";
+
   }
 };
 

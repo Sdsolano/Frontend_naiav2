@@ -7,7 +7,8 @@ export const ROLE_MAPPING = {
   'assistant': 3,
   'trainer': 4,
   'receptionist': 5, 
-  'companion': 6  // ← NUEVO: Compañero de bienestar
+  'companion': 6,
+  'ciudadano': 7  // ← NUEVO: Asistente de Atención al Ciudadano
 };
 
 export const REVERSE_ROLE_MAPPING = {
@@ -16,7 +17,9 @@ export const REVERSE_ROLE_MAPPING = {
   3: 'assistant',
   4: 'trainer', 
   5: 'receptionist',
-  6: 'companion'  // ← NUEVO: Compañero de bienestar
+  6: 'companion',  // ← NUEVO: Compañero de bienestar
+  7: 'ciudadano'  // ← NUEVO
+
 };
 
 export const ROLE_NAMES = {
@@ -25,7 +28,8 @@ export const ROLE_NAMES = {
   'trainer': 'Entrenador de Habilidades',
   'assistant': 'Asistente Personal', 
   'guide': 'Guía Universitario',
-  'companion': 'Compañero de bienestar'  // ← NUEVO
+  'companion': 'Compañero de bienestar',
+  'ciudadano': 'Asistente de Atención al Ciudadano'  // ← NUEVO
 };
 
 /**
@@ -74,7 +78,7 @@ export const getCurrentRoleName = () => {
  */
 export const isRoleAvailable = (roleId) => {
   // Roles completamente implementados
-  const availableRoles = ['researcher', 'guide', 'companion', 'trainer', 'assistant', 'receptionist']; // ← Añadido 'receptionist'
+  const availableRoles = ['researcher', 'guide', 'companion', 'trainer', 'assistant', 'receptionist', 'ciudadano']; 
   return availableRoles.includes(roleId);
 };
 
@@ -91,4 +95,36 @@ export const getCurrentRoleConfig = () => {
     apiId: getCurrentRoleId(),
     available: isRoleAvailable(selectedRole)
   };
+};
+
+/**
+ * Detecta si estamos en contexto de gobierno
+ * @returns {boolean} Si estamos en rutas /gov
+ */
+export const isGovContext = () => {
+  return window.location.pathname.startsWith('/gov');
+};
+
+/**
+ * Configuración por defecto para el contexto de gobierno
+ * @returns {object} Configuración específica de gobierno
+ */
+export const getGovConfig = () => ({
+  userId: 325,
+  roleId: 7,
+  roleName: 'Asistente de Atención al Ciudadano',
+  roleKey: 'ciudadano',
+  avatar: 'ciudadano.glb',
+  image: 'Ciudadano_AF.png'
+});
+
+/**
+ * Obtiene la configuración de rol considerando el contexto
+ * @returns {object} Configuración del rol (normal o gobierno)
+ */
+export const getContextualRoleConfig = () => {
+  if (isGovContext()) {
+    return getGovConfig();
+  }
+  return getCurrentRoleConfig();
 };

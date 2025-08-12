@@ -6,11 +6,13 @@ export const ROLE_VOICE_MAPPING = {
   'researcher': 'nova',        // Investigadora - Voz clara y profesional
   'receptionist': 'shimmer',   // Recepcionista - Voz amigable y cálida  
   'companion': 'alloy',        // Compañera de bienestar - Voz suave y empática
+  'ciudadano': 'nova',         // Asistente Ciudadano - Voz femenina clara y profesional
 
   // === VOCES MASCULINAS ===
   'trainer': 'onyx',           // Entrenador - Voz energética y motivadora
   'guide': 'echo',            // Guía Universitario - Voz autorizada y conocedora
-  'assistant': 'fable'         // Asistente Personal - Voz versátil y útil
+  'assistant': 'fable',        // Asistente Personal - Voz versátil y útil
+
 };
 
 /**
@@ -100,7 +102,9 @@ export const getVoiceInstructions = (roleId, tts_prompt = null) => {
     'companion': ", habla con calidez y empatía, como una amiga comprensiva que escucha atentamente",
     'trainer': ", habla con energía y motivación, como un entrenador que inspira confianza",
     'guide': ", usa un tono conocedor y confiable, como un profesor experimentado que guía estudiantes",
-    'assistant': ", habla de forma eficiente y organizada, como un asistente profesional muy competente"
+    'assistant': ", habla de forma eficiente y organizada, como un asistente profesional muy competente",
+    'ciudadano': ", habla con amabilidad y profesionalismo, como una funcionaria pública que atiende ciudadanos con cortesía y eficiencia"
+
   };
   
   const roleInstruction = roleSpecificInstructions[roleId] || "";

@@ -5,7 +5,9 @@ export const GENDER_MAPPING = {
   'companion': 'female',
   'trainer': 'male',        // ← Masculino
   'guide': 'male',          // ← Masculino
-  'assistant': 'male'       // ← Masculino
+  'assistant': 'male',
+  'ciudadano': 'female'  
+
 };
 
 /**

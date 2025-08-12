@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChatEventListener, useChat } from './hooks/useChat';
 import ElegantSubtitles from "./components/ElegantSubtitles";
 import RoleGuard from "./components/RoleGuard";
+import { isGovContext, getGovConfig } from './utils/roleUtils';
 
 function App() {
   const [subtitles, setSubtitles] = useState('');
@@ -132,7 +133,38 @@ function App() {
       }
     }
   }, [processingStatus, pollingEnabled]);
-  
+
+  // Detectar y configurar contexto de gobierno
+  useEffect(() => {
+    const isGovContext = window.location.pathname.startsWith('/gov');
+    
+    if (isGovContext) {
+      console.log("🏛️ Contexto de gobierno detectado - configurando automáticamente");
+      
+      // Configurar rol ciudadano automáticamente
+      localStorage.setItem('naia_selected_role', 'ciudadano');
+      localStorage.setItem('naia_gov_context', 'true');
+      localStorage.setItem('naia_user_id', '325');
+      
+      // Actualizar estado del rol si es necesario
+      if (currentRole !== 'ciudadano') {
+        setCurrentRole('ciudadano');
+        console.log("🏛️ Rol actualizado a: ciudadano");
+      }
+      
+      // Emitir evento de cambio de rol para notificar otros componentes
+      window.dispatchEvent(new CustomEvent('role-changed', { 
+        detail: { roleId: 'ciudadano', roleName: 'Asistente de Atención al Ciudadano', isGov: true }
+      }));
+    } else {
+      // Si no es contexto gov, limpiar configuración de gobierno
+      if (localStorage.getItem('naia_gov_context') === 'true') {
+        localStorage.removeItem('naia_gov_context');
+        localStorage.removeItem('naia_user_id');
+        console.log("🏛️ Contexto de gobierno desactivado");
+      }
+    }
+  }, []); 
   // Log para depuración
   useEffect(() => {
     if (processingStatus !== pollingInfoRef.current.lastStatus) {

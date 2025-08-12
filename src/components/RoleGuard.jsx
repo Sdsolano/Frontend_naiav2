@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader } from 'lucide-react';
-import AuthGuard from './AuthGuard'; // Importamos el AuthGuard
+import AuthGuard from './AuthGuard';
+import { isGovContext } from '../utils/roleUtils';
 
 const RoleGuard = ({ children }) => {
   const navigate = useNavigate();
@@ -15,8 +16,15 @@ const RoleGuard = ({ children }) => {
     if (selectedRole) {
       setHasRole(true);
     } else {
-      // Redirect to role selection if no role is selected
-      navigate('/naia');
+      // Detectar contexto para redirección correcta
+      const isGov = isGovContext();
+      if (isGov) {
+        // En contexto gov, redirigir a /gov/naia
+        navigate('/gov/naia');
+      } else {
+        // En contexto normal, redirigir a /naia
+        navigate('/naia');
+      }
     }
     
     setLoading(false);
@@ -33,8 +41,22 @@ const RoleGuard = ({ children }) => {
     );
   }
 
-  // Envolvemos el children con AuthGuard para verificar ambas condiciones
-  return hasRole ? <AuthGuard>{children}</AuthGuard> : null;
+  if (!hasRole) {
+    return null;
+  }
+
+  // 🚨 CLAVE: Verificar contexto de gobierno
+  const isGov = isGovContext();
+  
+  if (isGov) {
+    // En contexto gov: NO usar AuthGuard, solo verificar rol
+    console.log("🏛️ Contexto gobierno detectado - evitando AuthGuard");
+    return children;
+  } else {
+    // En contexto normal: usar AuthGuard como siempre
+    console.log("👤 Contexto normal - usando AuthGuard");
+    return <AuthGuard>{children}</AuthGuard>;
+  }
 };
 
 export default RoleGuard;
