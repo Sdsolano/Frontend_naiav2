@@ -22,7 +22,7 @@ const HeroCarousel = () => {
   }, [images.length]);
 
   return (
-    <div className="relative h-[340px] sm:h-[400px] md:h-[480px] lg:h-[520px] w-full max-w-full overflow-hidden">
+    <div className="relative h-[340px] sm:h-[400px] md:h-[480px] lg:h-[520px] w-full max-w-full overflow-hidden ">
       {/* Sutil efecto de resplandor */}
       <div className="absolute inset-0 rounded-full opacity-20 blur-3xl"></div>
       
@@ -119,7 +119,7 @@ const GovHome = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-white">
       {/* Header */}
-      <header className="bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-lg">
+      <header className="text-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             {/* Logo y título */}
@@ -130,7 +130,7 @@ const GovHome = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold">NAIA Gov</h1>
-                  <p className="text-red-100 text-sm">Gobernación del Atlántico</p>
+                  <p className="text-red-800 text-sm">Gobernación del Atlántico</p>
                 </div>
               </div>
             </div>
@@ -138,7 +138,7 @@ const GovHome = () => {
             {/* Hamburger Menu Button - MEJORADO */}
             <button
               onClick={handleMenuToggle}
-              className="p-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
+              className="p-3 rounded-lg bg-red-600 hover:bg-red-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
               aria-label="Abrir menú"
               type="button"
             >
@@ -164,7 +164,7 @@ const GovHome = () => {
       {/* Main Content */}
       <main className="space-y-12 pb-12 md:px-32">
         {/* Hero Section */}
-        <section className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-orange-600 text-white shadow-2xl mx-4 sm:mx-6 lg:mx-8 mt-8">
+        <section className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-orange-600 text-white shadow-2xl mx-4 sm:mx-6 lg:mx-8 mt-12">
           {/** SVG background como variable para evitar error de comillas en JSX **/}
           {(() => {
             const svgBg = "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='white' fill-opacity='0.1'%3E%3Cpath d='m0 40l40-40h-40v40zm40 0v-40h-40l40 40z'/%3E%3C/g%3E%3C/svg%3E";
@@ -225,7 +225,7 @@ const GovHome = () => {
         <section className="px-4 sm:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4 md:pt-12">
                 ¿Cómo puede ayudarte NAIA Gov?
               </h2>
               <p className="text-lg text-gray-600 max-w-3xl mx-auto">
