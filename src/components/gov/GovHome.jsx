@@ -129,8 +129,8 @@ const GovHome = () => {
                   <span className="text-red-600 font-bold text-xl">G</span>
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">NAIA Gov</h1>
-                  <p className="text-red-800 text-sm">Gobernación del Atlántico</p>
+                  <h1 className="text-2xl font-bold">MAIA</h1>
+                  <p className="text-red-800 text-sm">Modulo de atención al cliente del Atlántico</p>
                 </div>
               </div>
             </div>
@@ -187,7 +187,7 @@ const GovHome = () => {
                   </div>
                   
                  <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-                  Conoce a NAIAGov, <br />
+                  Conoce a MAIA, <br />
                   <span className="text-orange-300">tu asistente AI</span> de la Gobernación
                     </h1>
                   
@@ -226,7 +226,7 @@ const GovHome = () => {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4 md:pt-12">
-                ¿Cómo puede ayudarte NAIA Gov?
+                ¿Cómo puede ayudarte MAIA?
               </h2>
               <p className="text-lg text-gray-600 max-w-3xl mx-auto">
                 Diseñado específicamente para la Gobernación del Atlántico, nuestro asistente IA te guía 
