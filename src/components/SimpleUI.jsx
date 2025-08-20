@@ -14,6 +14,7 @@ let lastSentTime = 0;
 export const SimpleUI = ({ hidden, ...props }) => {
   const navigate = useNavigate();
   const [currentRoleName, setCurrentRoleName] = useState('Investigador');
+  const [isGovContext, setIsGovContext] = useState(false);
 
   // Función para cambiar de rol con refresh completo de la página
   const handleChangeRole = () => {
@@ -27,6 +28,28 @@ export const SimpleUI = ({ hidden, ...props }) => {
       window.location.reload();
     }, 100);
   }
+
+  useEffect(() => {
+    const checkGovContext = () => {
+      const isGov = window.location.pathname.startsWith('/gov');
+      setIsGovContext(isGov);
+      console.log(`🏛️ Contexto gubernamental: ${isGov ? 'SÍ' : 'NO'}`);
+    };
+
+    // Verificar al cargar
+    checkGovContext();
+
+    // Escuchar cambios de ruta
+    const handleLocationChange = () => {
+      checkGovContext();
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+    };
+  }, []);
 
   const input = useRef();
   const hiddenVideoRef = useRef(null);
@@ -419,16 +442,18 @@ export const SimpleUI = ({ hidden, ...props }) => {
       
       <div className="fixed top-0 left-0 right-0 bottom-0 z-10 flex justify-between p-4 pl-20 flex-col pointer-events-none">
         <div className="self-start backdrop-blur-md bg-white bg-opacity-50 p-4 rounded-lg flex items-center">
-          <h1 className="font-black text-xl">NAIA</h1>
+          <h1 className="font-black text-xl">{isGovContext ? 'MAIA' : 'NAIA'}</h1>
           
-          <button
-            onClick={handleChangeRole}
-            className="ml-4 px-3 py-1 rounded-md bg-blue-950 text-white text-sm font-medium pointer-events-auto hover:bg-blue-900 transition-colors flex items-center gap-1"
-            title="Cambiar el rol actual"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Cambiar rol</span>
-          </button>
+          {!isGovContext && (
+            <button
+              onClick={handleChangeRole}
+              className="ml-4 px-3 py-1 rounded-md bg-blue-950 text-white text-sm font-medium pointer-events-auto hover:bg-blue-900 transition-colors flex items-center gap-1"
+              title="Cambiar el rol actual"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Cambiar rol</span>
+            </button>
+          )}
 
           {pendingMessages && (
               <div className="ml-3 flex items-center">

@@ -130,7 +130,7 @@ const GovHome = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold">MAIA</h1>
-                  <p className="text-red-800 text-sm">Modulo de atención al cliente del Atlántico</p>
+                  <p className="text-red-800 text-sm">Módulo de Atención Inteligente del Atlántico</p>
                 </div>
               </div>
             </div>

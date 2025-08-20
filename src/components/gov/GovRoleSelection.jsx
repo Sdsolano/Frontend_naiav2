@@ -24,7 +24,7 @@ const roles = [
       "Consultas sobre programas sociales y beneficios ciudadanos",
       "Contacto directo con dependencias específicas",
       "Horarios de atención y requisitos documentales",
-      "Seguimiento personalizado de solicitudes y casos"
+      
     ],
     developmentStatus: "Disponible ahora - Especializado en Gobernación del Atlántico"
   }
@@ -141,10 +141,7 @@ const GovRoleSelection = () => {
                     </ul>
                   </div>
 
-                  <div className={`${selectedRole.bgColor} p-3 sm:p-4 rounded-xl mb-4 sm:mb-6`}>
-                    <h4 className={`font-semibold ${selectedRole.textColor} mb-1 sm:mb-2 text-sm sm:text-base`}>Estado de desarrollo:</h4>
-                    <p className="text-gray-700 text-xs sm:text-sm">{selectedRole.developmentStatus}</p>
-                  </div>
+                  
                 </div>
                 
                 <div className="flex gap-2 mt-2">
@@ -173,7 +170,7 @@ const GovRoleSelection = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-white">
       {/* Header - ESTRUCTURA ORIGINAL */}
-      <header className="relative bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-lg">
+      <header className="relative  text-red-600 ">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
             <Link 
@@ -185,22 +182,14 @@ const GovRoleSelection = () => {
             </Link>
             
             <div className="text-center">
-              <h1 className="text-lg sm:text-xl font-bold">Asistente NAIA</h1>
-              <p className="text-red-100 text-xs sm:text-sm">Gobernación del Atlántico</p>
+              <h1 className="text-lg sm:text-xl font-bold">MAIA</h1>
+              <p className="text-red-500 text-xs sm:text-sm">Gobernación del Atlántico</p>
             </div>
             
             <div className="w-20"></div> {/* Spacer for centering */}
           </div>
         </div>
-        
-        {/* Breadcrumb and Description */}
-        <div className="border-t border-red-500/30 bg-red-600/20">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-            <p className="text-red-100 text-xs sm:text-sm text-center">
-              Selecciona tu asistente virtual especializado para la Gobernación del Atlántico.
-            </p>
-          </div>
-        </div>
+
       </header>
       
       {/* Main Content - ESTRUCTURA ORIGINAL */}
@@ -255,11 +244,9 @@ const GovRoleSelection = () => {
                       </div>
 
                       {/* Footer del card */}
-                      <div className="h-[120px] xs:h-[120px] sm:h-[140px] md:h-[160px] p-3 sm:p-4 md:p-6 flex flex-col justify-between">
+                      <div className="p-5">
                         <div>
-                          <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 mb-2">
-                            {role.description}
-                          </p>
+                          
                           <div className={`inline-flex items-center text-xs ${role.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'} px-2 py-1 rounded-full font-medium`}>
                             {role.available ? '✓ Disponible' : '⏳ Próximamente'}
                           </div>
@@ -346,14 +333,14 @@ const GovRoleSelection = () => {
               className="h-8 sm:h-10 w-auto mr-2 sm:mr-3"
             />
             <div>
-              <h2 className="text-base sm:text-lg font-bold bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">NAIA Gov</h2>
+              <h2 className="text-base sm:text-lg font-bold bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">MAIA</h2>
               <p className="text-[10px] sm:text-xs text-gray-500">Gobernación del Atlántico © 2025</p>
             </div>
           </div>
           <div className="flex items-center space-x-4 sm:space-x-6 text-gray-600">
             <Link to="/gov" className="text-xs sm:text-sm hover:text-red-600 transition-colors flex items-center gap-1">
               <Info size={14} className="sm:w-4 sm:h-4" />
-              <span>Acerca de NAIA Gov</span>
+              <span>Acerca de MAIA</span>
             </Link>
           </div>
         </div>
