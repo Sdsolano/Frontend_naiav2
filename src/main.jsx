@@ -10,6 +10,7 @@ import RoleSelection from "./components/RoleSelection";
 import { NotificationProvider } from "./components/NotificationContext";
 import { ChatProvider } from "./hooks/useChat";
 import { AuthProvider } from "./components/AuthContext";
+import SmartChatProvider from "./components/SmartChatProvider";
 import LoginModal from "./components/LoginModal";
 import "./index.css";
 
@@ -21,6 +22,7 @@ import { UserProvider } from "./components/UserContext";
 import ProtectedRouteWrapper from "./components/ProtectedRouteWrapper";
 import GovHome from "./components/gov/GovHome";
 import GovRoleSelection from "./components/gov/GovRoleSelection";
+import HybridChatTest from "./components/HybridChatTest";
 
 // Crear el root una sola vez
 const root = ReactDOM.createRoot(document.getElementById("root"));
@@ -166,7 +168,7 @@ const initializeApp = async () => {
           <MsalProvider instance={msalInstance}>
             <NotificationProvider>
               <UserProvider>
-              <ChatProvider>
+              <SmartChatProvider>
                 <AuthProvider>
                   <BrowserRouter>
                     <Routes>
@@ -184,6 +186,11 @@ const initializeApp = async () => {
                             <App />
                           </ProtectedRouteWrapper>
                         } />
+                        <Route path="naia/test" element={
+                          <ProtectedRouteWrapper>
+                            <HybridChatTest />
+                          </ProtectedRouteWrapper>
+                        } />
                         <Route path="*" element={<Navigate to="/" replace />} />
                       </Route>
                       <Route path="/gov" element={<GovHome />} />
@@ -193,7 +200,7 @@ const initializeApp = async () => {
                     <LoginModal />
                   </BrowserRouter>
                 </AuthProvider>
-              </ChatProvider>
+              </SmartChatProvider>
               </UserProvider>
             </NotificationProvider>
           </MsalProvider>

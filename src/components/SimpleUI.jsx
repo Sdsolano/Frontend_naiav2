@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useChat } from "../hooks/useChat";
+import { useHybridChat } from "../hooks/useHybridChat";
+import { useLocalChat } from "../hooks/useLocalChat";
 import { useSimpleVoice } from "../hooks/useSimpleVoice";
 import { useUserImage } from "../hooks/useUserImage"; 
 import { Send, Loader, Mic, MicOff, RefreshCw, Camera, Ear, EarOff, Volume2 } from "lucide-react";
@@ -53,6 +55,20 @@ export const SimpleUI = ({ hidden, ...props }) => {
 
   const input = useRef();
   const hiddenVideoRef = useRef(null);
+  // Hook inteligente - usar híbrido si está disponible, sino normal
+  let chatHook;
+  let isUsingLocalMode = false;
+  
+  try {
+    chatHook = useHybridChat();
+    isUsingLocalMode = chatHook.isUsingLocalMode || false;
+  } catch (error) {
+    chatHook = useChat();
+  }
+
+  // Hook para LocalChat (incluye Realtime API)
+  const localChat = useLocalChat();
+
   const { chat, 
     loading, 
     cameraZoomed, 
@@ -64,7 +80,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
     saveConversation,
     pendingMessages,
     loadConversation,
-    functionResults } = useChat();
+    functionResults } = chatHook;
 
   // Estado para deshabilitar temporalmente los controles después de enviar
   const [inputDisabled, setInputDisabled] = useState(false);
@@ -455,6 +471,16 @@ export const SimpleUI = ({ hidden, ...props }) => {
             </button>
           )}
 
+          {/* Indicador de Modo Híbrido */}
+          {isUsingLocalMode && (
+            <div className="ml-3 flex items-center">
+              <div className="px-2 py-1 rounded-full bg-green-100 border border-green-300 flex items-center">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-1"></div>
+                <span className="text-green-700 text-xs font-medium">Chat Local</span>
+              </div>
+            </div>
+          )}
+
           {pendingMessages && (
               <div className="ml-3 flex items-center">
                 <div className="relative mr-2">
@@ -606,6 +632,19 @@ export const SimpleUI = ({ hidden, ...props }) => {
             >
               {cameraZoomed ? "Alejar" : "Acercar"}
             </button>
+
+            {/* Botón temporal para Realtime */}
+            <button
+              onClick={localChat.isRealtimeConnected ? localChat.disconnectRealtime : localChat.initRealtimeConnection}
+              className={`p-3 rounded-md flex-shrink-0 text-sm font-medium ${
+                localChat.isRealtimeConnected 
+                  ? "bg-red-500 hover:bg-red-600 text-white" 
+                  : "bg-purple-500 hover:bg-purple-600 text-white"
+              }`}
+              title={localChat.isRealtimeConnected ? "Desconectar Realtime" : "Conectar Realtime"}
+            >
+              {localChat.isRealtimeConnected ? "🔴 RT ON" : "🟣 RT OFF"}
+            </button>
           </div>
 
           {/* 🔧 INFORMACIÓN MEJORADA PARA LOS MODOS DE VOZ */}
@@ -643,6 +682,15 @@ export const SimpleUI = ({ hidden, ...props }) => {
               </div>
             </div>
           )}
+
+          {/* Elemento audio oculto para Realtime API */}
+          <audio 
+            ref={localChat.audioRef} 
+            autoPlay 
+            playsInline 
+            style={{ display: 'none' }}
+            title="Audio de Realtime API"
+          />
         </div>
       </div>
     </>

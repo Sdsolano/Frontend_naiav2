@@ -5,7 +5,7 @@ import { button, useControls } from "leva";
 import React, { useEffect, useRef, useState } from "react";
 import defaultLipsync from "../utils/defaultLipsync";
 import * as THREE from "three";
-import { useChat } from "../hooks/useChat";
+import { useUniversalChat } from "../hooks/useUniversalChat";
 import { getCurrentRoleConfig } from "../utils/roleUtils";
 import { getAnimationFileForRole, getRoleGender } from "../utils/animationUtils"; // ← NUEVO IMPORT
 
@@ -195,12 +195,17 @@ export function Avatar(props) {
   const { nodes, materials, scene } = useGLTF(modelPath, true);
   const { animations } = useGLTF(animationPath, true); // ← Usar animationPath dinámico
 
-  const { message, onMessagePlayed, chat, isThinking } = useChat();
+  const { message, onMessagePlayed, chat, isThinking } = useUniversalChat();
 
   const [lipsync, setLipsync] = useState();
   const [audio, setAudio] = useState();
   const [isPlaying, setIsPlaying] = useState(false);
   const audioEndTimerRef = useRef(null);
+
+  // Estados específicos para Realtime API lipsync
+  const [realtimeLipsync, setRealtimeLipsync] = useState();
+  const [isRealtimeLipsyncActive, setIsRealtimeLipsyncActive] = useState(false);
+  const [realtimeStartTime, setRealtimeStartTime] = useState(null);
 
   // Referencias estáticas
   const group = useRef();
@@ -211,34 +216,37 @@ export function Avatar(props) {
 
   // Función para aplicar animaciones de forma segura
   const setAnimationSafely = (animName) => {
-    console.log(`🎭 setAnimationSafely: ${animName} para rol ${currentRole} (${currentGender})`);
+    const timestamp = new Date().toLocaleTimeString();
+    console.log(`🎭 [${timestamp}] setAnimationSafely: "${animName}" para rol ${currentRole} (${currentGender})`);
     
     if (!actions || Object.keys(actions).length === 0) {
-      console.warn(`⚠️ Actions no disponibles para ${currentRole}, reintentando...`);
+      console.warn(`⚠️ [${timestamp}] Actions no disponibles para ${currentRole}, reintentando...`);
       
       setTimeout(() => {
         if (actions && actions[animName]) {
-          console.log(`✅ Retry exitoso: ${animName} para ${currentRole}`);
+          console.log(`✅ [${timestamp}] Retry exitoso: ${animName} para ${currentRole}`);
           setAnimation(animName);
         } else {
-          console.error(`❌ Retry fallido: ${animName} para ${currentRole}`);
+          console.error(`❌ [${timestamp}] Retry fallido: ${animName} para ${currentRole}`);
         }
       }, 300);
       return;
     }
     
     if (actions[animName]) {
-      console.log(`✅ Aplicando animación: ${animName} para ${currentRole} (${currentGender})`);
+      console.log(`✅ [${timestamp}] APLICANDO animación: "${animName}" para ${currentRole} (${currentGender})`);
+      console.log(`🎬 [${timestamp}] Animación anterior era: "${animation}"`);
       setAnimation(animName);
+      console.log(`🎬 [${timestamp}] Animación cambiada a: "${animName}"`);
     } else {
-      console.warn(`❌ Animación "${animName}" no encontrada para ${currentRole}`);
-      console.log(`Disponibles:`, Object.keys(actions));
+      console.warn(`❌ [${timestamp}] Animación "${animName}" NO encontrada para ${currentRole}`);
+      console.log(`📋 [${timestamp}] Animaciones disponibles (${Object.keys(actions).length}):`, Object.keys(actions));
       
       // Buscar fallback
-      const fallbacks = ['Idle', 'Talking_1', Object.keys(actions)[0]];
+      const fallbacks = ['Idle', 'Talking_1', 'Talking_0', Object.keys(actions)[0]];
       for (const fallback of fallbacks) {
         if (actions[fallback]) {
-          console.log(`🔄 Usando fallback: ${fallback}`);
+          console.log(`🔄 [${timestamp}] Usando fallback: "${fallback}"`);
           setAnimation(fallback);
           break;
         }
@@ -267,6 +275,61 @@ export function Avatar(props) {
     useGLTF.preload("/models/male_animations.glb");
     
     console.log("✅ Archivos de animaciones precargados");
+  }, []);
+
+  // Listener para animaciones de Realtime API
+  useEffect(() => {
+    const handleRealtimeAnimation = (event) => {
+      const animationData = event.detail;
+      const timestamp = new Date().toLocaleTimeString();
+      
+      console.log(`🎭 [${timestamp}] AVATAR recibiendo evento Realtime:`, {
+        animation: animationData.animation,
+        counter: animationData.animationCounter || 'N/A',
+        isRealtimeAnimation: animationData.isRealtimeAnimation
+      });
+      
+      if (animationData.isRealtimeAnimation) {
+        console.log(`🎭 [${timestamp}] AVATAR procesando animación #${animationData.animationCounter || 'N/A'}: ${animationData.animation}`);
+        console.log(`📊 [${timestamp}] Lipsync data recibido:`, {
+          mouthCues: animationData.lipsync?.mouthCues?.length || 0,
+          duration: animationData.lipsync?.metadata?.duration || 0,
+          timestamp: animationData.timestamp
+        });
+        
+        // Aplicar animación directamente sin audio
+        console.log(`🎬 [${timestamp}] Aplicando animación: ${animationData.animation}`);
+        setAnimationSafely(animationData.animation || "Talking_0");
+        setFacialExpression(animationData.facialExpression || "default");
+        
+        // Aplicar lipsync usando sistema Realtime
+        if (animationData.animation !== 'Idle') {
+          console.log(`💋 [${timestamp}] ACTIVANDO lipsync Realtime dinámico...`);
+          
+          // Activar sistema Realtime de lipsync
+          setRealtimeLipsync(animationData.lipsync || defaultLipsync);
+          setIsRealtimeLipsyncActive(true);
+          setRealtimeStartTime(Date.now());
+          console.log(`💋 [${timestamp}] Lipsync Realtime ACTIVADO con ${animationData.lipsync?.mouthCues?.length || 0} mouth cues`);
+          
+        } else {
+          // Para Idle, desactivar lipsync Realtime
+          console.log(`💤 [${timestamp}] Idle detectado - DESACTIVANDO lipsync Realtime`);
+          setIsRealtimeLipsyncActive(false);
+          setRealtimeLipsync(null);
+          setRealtimeStartTime(null);
+          console.log(`💤 [${timestamp}] Lipsync Realtime DESACTIVADO`);
+        }
+      }
+    };
+
+    // Agregar listener
+    window.addEventListener('realtime-animation', handleRealtimeAnimation);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('realtime-animation', handleRealtimeAnimation);
+    };
   }, []);
 
   useEffect(() => {
@@ -397,20 +460,37 @@ export function Avatar(props) {
   }, [audio]);
 
   useEffect(() => {
+    const timestamp = new Date().toLocaleTimeString();
+    
     // Verificar que la animación existe
     if (actions && animation && actions[animation]) {
+      console.log(`🎬 [${timestamp}] EJECUTANDO animación "${animation}" con Three.js`);
+      console.log(`🎬 [${timestamp}] Mixer stats:`, mixer?.stats);
+      
       actions[animation].timeScale = 0.5;
       actions[animation]
         .reset()
         .fadeIn(mixer && mixer.stats.actions.inUse === 0 ? 0 : 0.5)
         .play();
       
+      console.log(`✅ [${timestamp}] Animación "${animation}" INICIADA exitosamente`);
+      
       // Verificar también en la función de limpieza
       return () => {
         if (actions && animation && actions[animation]) {
+          console.log(`🛑 [${timestamp}] Deteniendo animación "${animation}"`);
           actions[animation].fadeOut(0.5);
         }
       };
+    } else {
+      if (!actions) {
+        console.warn(`⚠️ [${timestamp}] No hay actions disponibles para ejecutar "${animation}"`);
+      } else if (!animation) {
+        console.warn(`⚠️ [${timestamp}] No hay animación definida para ejecutar`);
+      } else if (!actions[animation]) {
+        console.warn(`⚠️ [${timestamp}] La animación "${animation}" no existe en actions`);
+        console.log(`📋 [${timestamp}] Actions disponibles:`, Object.keys(actions));
+      }
     }
   }, [animation, actions, mixer]);
 
@@ -475,12 +555,14 @@ export function Avatar(props) {
     lerpMorphTarget("eyeBlinkLeft", blink || winkLeft ? 1 : 0, 0.5);
     lerpMorphTarget("eyeBlinkRight", blink || winkRight ? 1 : 0, 0.5);
 
-    // LIPSYNC
+    // LIPSYNC SYSTEM - Soporte para chat tradicional Y Realtime API
     if (setupMode) {
       return;
     }
 
     const appliedMorphTargets = [];
+    
+    // 1. Sistema tradicional (chat con elemento audio)
     if (isPlaying && message && lipsync && audio) {
       const currentAudioTime = audio.currentTime;
       
@@ -523,6 +605,69 @@ export function Avatar(props) {
         } else {
           lerpMorphTarget(corresponding["D"], 0.9, 0.3);
           appliedMorphTargets.push(corresponding["D"]);
+        }
+      }
+    }
+    
+    // 2. Sistema Realtime (WebRTC, sin elemento audio)
+    else if (isRealtimeLipsyncActive && realtimeLipsync && realtimeStartTime) {
+      const currentRealtimeTime = (Date.now() - realtimeStartTime) / 1000; // Convertir a segundos
+      
+      const lastCue = realtimeLipsync.mouthCues[realtimeLipsync.mouthCues.length - 1];
+      const isWithinDataRange = currentRealtimeTime <= lastCue.end;
+      
+      // Log periódico para debug (cada 100 frames aproximadamente)
+      if (Math.floor(currentRealtimeTime * 60) % 100 === 0) {
+        console.log(`💋 REALTIME LIPSYNC: Tiempo=${currentRealtimeTime.toFixed(2)}s, Activo=${isRealtimeLipsyncActive}, Data hasta ${lastCue.end}s`);
+      }
+      
+      if (isWithinDataRange) {
+        for (let i = 0; i < realtimeLipsync.mouthCues.length; i++) {
+          const mouthCue = realtimeLipsync.mouthCues[i];
+          if (
+            currentRealtimeTime >= mouthCue.start &&
+            currentRealtimeTime <= mouthCue.end
+          ) {
+            const visemeKey = mouthCue.value;
+            const morphTarget = corresponding[visemeKey];
+            
+            const intensity = vowelIntensity[visemeKey] || 1.0;
+            
+            appliedMorphTargets.push(morphTarget);
+            lerpMorphTarget(morphTarget, intensity, 0.25);
+            
+            // Log ocasional para verificar aplicación
+            if (i % 50 === 0) {
+              console.log(`💋 APLICANDO: ${visemeKey} → ${morphTarget} (intensidad: ${intensity})`);
+            }
+            break;
+          }
+        }
+      } else {
+        // Fallback a patrón cíclico cuando no hay más data
+        const cycleDuration = 0.8;
+        const cyclePosition = (currentRealtimeTime % cycleDuration) / cycleDuration;
+        
+        if (cyclePosition < 0.2) {
+          lerpMorphTarget(corresponding["X"], 0.3, 0.2);
+          appliedMorphTargets.push(corresponding["X"]);
+        } else if (cyclePosition < 0.3) {
+          lerpMorphTarget(corresponding["F"], 0.8, 0.3);
+          appliedMorphTargets.push(corresponding["F"]);
+        } else if (cyclePosition < 0.5) {
+          lerpMorphTarget(corresponding["A"], 1.5, 0.3);
+          appliedMorphTargets.push(corresponding["A"]);
+        } else if (cyclePosition < 0.7) {
+          lerpMorphTarget(corresponding["C"], 1.2, 0.3);
+          appliedMorphTargets.push(corresponding["C"]);
+        } else {
+          lerpMorphTarget(corresponding["D"], 0.9, 0.3);
+          appliedMorphTargets.push(corresponding["D"]);
+        }
+        
+        // Log cuando entramos en modo fallback
+        if (Math.floor(currentRealtimeTime * 10) % 50 === 0) {
+          console.log(`💋 FALLBACK REALTIME: Usando patrón cíclico (tiempo=${currentRealtimeTime.toFixed(2)}s > ${lastCue.end}s)`);
         }
       }
     }
@@ -610,6 +755,9 @@ export function Avatar(props) {
       
       if (nodes.EyeLeft && nodes.EyeLeft.morphTargetDictionary) {
         console.log("  ✅ EyeLeft morph targets disponibles");
+        const morphTargets = Object.keys(nodes.EyeLeft.morphTargetDictionary);
+        const lipsyncTargets = Object.values(corresponding).filter(target => morphTargets.includes(target));
+        console.log(`  💋 ${lipsyncTargets.length}/9 morph targets de lipsync encontrados:`, lipsyncTargets);
       } else {
         console.error("  ❌ No se encontró EyeLeft o morphTargetDictionary");
       }
@@ -626,6 +774,14 @@ export function Avatar(props) {
       }
     }
   }, [nodes, scene, currentRole, currentGender, modelPath, animationPath, actions]);
+
+  // Log de estado del sistema Realtime lipsync
+  useEffect(() => {
+    console.log(`💋 ESTADO REALTIME LIPSYNC: 
+      Activo: ${isRealtimeLipsyncActive}
+      Data disponible: ${realtimeLipsync ? realtimeLipsync.mouthCues.length + ' mouth cues' : 'No'}
+      Tiempo inicio: ${realtimeStartTime ? new Date(realtimeStartTime).toLocaleTimeString() : 'No establecido'}`);
+  }, [isRealtimeLipsyncActive, realtimeLipsync, realtimeStartTime]);
 
   useEffect(() => {
     let blinkTimeout;

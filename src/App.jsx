@@ -6,6 +6,8 @@ import { SimpleUI } from "./components/SimpleUI";
 import SubtitlesContext from './components/subtitles';
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatEventListener, useChat } from './hooks/useChat';
+import { HybridChatEventListener, useHybridChat } from './hooks/useHybridChat';
+import { useUniversalChat } from './hooks/useUniversalChat';
 import ElegantSubtitles from "./components/ElegantSubtitles";
 import RoleGuard from "./components/RoleGuard";
 import { isGovContext, getGovConfig } from './utils/roleUtils';
@@ -21,8 +23,8 @@ function App() {
       console.log("Rol activo:", roleId);
     }
   }, []);
-  // Obtener estados del contexto
-  const { processingStatus, pollingEnabled, pollingSessionId } = useChat();
+  // Obtener estados del contexto usando hook universal
+  const { processingStatus, pollingEnabled, pollingSessionId, isUsingLocalMode } = useUniversalChat();
   
   // Estado para controlar la visibilidad y texto
   const [showSubtitles, setShowSubtitles] = useState(false);
@@ -202,7 +204,8 @@ function App() {
               isActive={showSubtitles && pollingEnabled}
             />
             
-            <ChatEventListener />
+            {/* Event listeners - intentar híbrido primero */}
+            {currentRole === 'researcher' ? <HybridChatEventListener /> : <ChatEventListener />}
           </SubtitlesContext.Provider>
       </div>
     </RoleGuard>

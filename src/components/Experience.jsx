@@ -4,12 +4,12 @@ import {
   Environment,
 } from "@react-three/drei";
 import { Suspense, useEffect, useRef } from "react";
-import { useChat } from "../hooks/useChat";
+import { useUniversalChat } from "../hooks/useUniversalChat";
 import { Avatar } from "./Avatar";
 
 export const Experience = () => {
   const cameraControls = useRef();
-  const { cameraZoomed } = useChat();
+  const { cameraZoomed } = useUniversalChat();
 
   useEffect(() => {
     cameraControls.current.setLookAt(0, 2, 5, 0, 1.5, 0);

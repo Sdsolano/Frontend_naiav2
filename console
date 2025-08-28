@@ -1,0 +1,515 @@
+🔍 DIAGNÓSTICO PARA ROL: researcher (female)
+Avatar.jsx:608 📦 Modelo cargado: /models/investigator.glb
+Avatar.jsx:609 🎭 Animaciones cargadas: /models/animations.glb
+Avatar.jsx:612   ✅ EyeLeft morph targets disponibles
+Avatar.jsx:618   ✅ 39 animaciones disponibles: (39) ['Angry', 'Armature.001|Armature|Angry', 'Armature.001|Armature|Crying', 'Armature.001|Armature|happy_expressions', 'Armature.001|Armature|Idle', 'Armature.001|Armature|Laughing', 'Armature.001|Armature|one_arm_up_talking', 'Armature.001|Armature|put_hand_on_chin', 'Armature.001|Armature|raising_two_arms_talking', 'Armature.001|Armature|Rumba', 'Armature.001|Armature|standing_greeting', 'Armature.001|Armature|Talking_0', 'Armature.001|Armature|Talking_1', 'Armature.001|Armature|Talking_2', 'Armature.001|Armature|Terrified', 'Armature.001|Armature|waiting', 'Armature.001|Idle.001', 'Armature.001|mixamo.com|Layer0', 'Armature.001|mixamo.com|Layer0.001', 'Armature.001|mixamo.com|Layer0.002', 'Armature.001|mixamo.com|Layer0.004', 'Armature.001|mixamo.com|Layer0.005', 'Armature.001|mixamo.com|Layer0.006', 'Armature.001|mixamo.com|Layer0.007', 'Armature.001|waiting', 'Crying', 'happy_expressions', 'Idle', 'Laughing', 'one_arm_up_talking', 'put_hand_on_chin', 'raising_two_arms_talking', 'Rumba', 'standing_greeting', 'Talking_0', 'Talking_1', 'Talking_2', 'Terrified', 'Thinking']
+Avatar.jsx:620   ✅ Animación 'Idle' encontrada
+chunk-DMI3PZCF.js?v=89f8e0f2:16980 [Violation] 'requestAnimationFrame' handler took 316ms
+Avatar.jsx:214 🎭 setAnimationSafely: Idle para rol researcher (female)
+Avatar.jsx:231 ✅ Aplicando animación: Idle para researcher (female)
+useUserImage.jsx:91 📸 Stream de cámara obtenido correctamente
+useUserImage.jsx:50 📸 Video reproducción iniciada con éxito (desde setVideoElement)
+useUserImage.jsx:102 📸 Video reproducción iniciada con éxito
+SimpleUI.jsx:139 🎥 Inicialización de cámara: exitosa
+SimpleUI.jsx:142 🎥 Asignando elemento de video al hook
+useUserImage.jsx:41 📸 Elemento de video asignado
+useUserImage.jsx:50 📸 Video reproducción iniciada con éxito (desde setVideoElement)
+useUserImage.jsx:102 📸 Video reproducción iniciada con éxito
+Grammarly.js:2 [Violation] Added non-passive event listener to a scroll-blocking 'mousewheel' event. Consider marking event handler as 'passive' to make the page more responsive. See https://www.chromestatus.com/feature/5745543795965952
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+v @ Grammarly.js:2
+m @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+s @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+t.connect @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+g @ Grammarly.js:2
+c @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+g @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+t._subscribe @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+t._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+g @ Grammarly.js:2
+c @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+g @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+mount @ g2.common.chunk.js:1
+il @ Grammarly.js:2
+bl @ Grammarly.js:2
+_l @ Grammarly.js:2
+vl @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+yc @ Grammarly.js:2
+ac @ Grammarly.js:2
+Hr @ Grammarly.js:2
+tc @ Grammarly.js:2
+enqueueSetState @ Grammarly.js:2
+v.setState @ Grammarly.js:2
+_handleValue @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e.next @ Grammarly.js:2
+t._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+t.next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+_onSourceValue @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e.next @ Grammarly.js:2
+t._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+t.next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+set @ Grammarly.js:2
+_init @ g2.common.chunk.js:1
+(anonymous) @ g2.common.chunk.js:1
+e.next @ Grammarly.js:2
+t._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+t._subscribe @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+t._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+t.next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+set @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e.next @ Grammarly.js:2
+t._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+v @ Grammarly.js:2
+m @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+s @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+Grammarly.js:2 [Violation] Added non-passive event listener to a scroll-blocking 'touchmove' event. Consider marking event handler as 'passive' to make the page more responsive. See https://www.chromestatus.com/feature/5745543795965952
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+v @ Grammarly.js:2
+m @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+s @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+t.connect @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+g @ Grammarly.js:2
+c @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+g @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+t._subscribe @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+t._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+g @ Grammarly.js:2
+c @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+g @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+mount @ g2.common.chunk.js:1
+il @ Grammarly.js:2
+bl @ Grammarly.js:2
+_l @ Grammarly.js:2
+vl @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+yc @ Grammarly.js:2
+ac @ Grammarly.js:2
+Hr @ Grammarly.js:2
+tc @ Grammarly.js:2
+enqueueSetState @ Grammarly.js:2
+v.setState @ Grammarly.js:2
+_handleValue @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e.next @ Grammarly.js:2
+t._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+t.next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+_onSourceValue @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e.next @ Grammarly.js:2
+t._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+t.next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+set @ Grammarly.js:2
+_init @ g2.common.chunk.js:1
+(anonymous) @ g2.common.chunk.js:1
+e.next @ Grammarly.js:2
+t._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+t._subscribe @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+t._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+t.next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+set @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e.next @ Grammarly.js:2
+t._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+v @ Grammarly.js:2
+m @ Grammarly.js:2
+a._next @ Grammarly.js:2
+t.next @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+e._trySubscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+s @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+o @ Grammarly.js:2
+e.subscribe @ Grammarly.js:2
+(anonymous) @ Grammarly.js:2
+SimpleUI.jsx:146 🎥 Intentando captura inicial después de espera
+useUserImage.jsx:480 📸 Programando captura inicial...
+useUserImage.jsx:123 📸 Cámara inicializada y lista para capturar
+SimpleUI.jsx:146 🎥 Intentando captura inicial después de espera
+SimpleUI.jsx:137 🎥 Iniciando configuración de cámara...
+useUserImage.jsx:62 📸 Usando stream de cámara existente
+SimpleUI.jsx:139 🎥 Inicialización de cámara: exitosa
+SimpleUI.jsx:142 🎥 Asignando elemento de video al hook
+useUserImage.jsx:41 📸 Elemento de video asignado
+useUserImage.jsx:50 📸 Video reproducción iniciada con éxito (desde setVideoElement)
+useUserImage.jsx:102 📸 Video reproducción iniciada con éxito
+useUserImage.jsx:489 📸 Cámara no disponible para captura inicial, omitiendo
+SimpleUI.jsx:146 🎥 Intentando captura inicial después de espera
+SimpleUI.jsx:240 📱 UI: Enviando mensaje: "Hola"
+useUserImage.jsx:253 📸 Capturando imagen (640x640)
+useHybridChat.jsx:669 🔍 DEBUG DECISIÓN:
+useHybridChat.jsx:670   - Mensaje: "Hola"
+useHybridChat.jsx:671   - Rol actual: "1"
+useHybridChat.jsx:672   - requiresBackend("Hola"): false
+useHybridChat.jsx:673   - shouldUseLocal: false
+useHybridChat.jsx:683 🏢 USANDO BACKEND - Funciones complejas requeridas
+useHybridChat.jsx:718 🏢 Enviando mensaje al backend...
+RoleGuard.jsx:57 👤 Contexto normal - usando AuthGuard
+RoleGuard.jsx:57 👤 Contexto normal - usando AuthGuard
+PollingManager.jsx:225 🔄 [Polling] Cambio de sesión: 0 -> 1
+SimpleUI.jsx:137 🎥 Iniciando configuración de cámara...
+useUserImage.jsx:62 📸 Usando stream de cámara existente
+App.jsx:89 💡 Nueva sesión de polling detectada: 1
+useHybridChat.jsx:116 Backend request cancelled
+SimpleUI.jsx:139 🎥 Inicialización de cámara: exitosa
+SimpleUI.jsx:142 🎥 Asignando elemento de video al hook
+useUserImage.jsx:41 📸 Elemento de video asignado
+useHybridChat.jsx:730 ⚠️ Respuesta cancelada o null
+RoleGuard.jsx:57 👤 Contexto normal - usando AuthGuard
+RoleGuard.jsx:57 👤 Contexto normal - usando AuthGuard
+SimpleUI.jsx:338 📱 UI: Mensaje finalizado, notificando...
+useHybridChat.jsx:624 🔄 Avatar: onMessagePlayed llamado desde Avatar.jsx
+useSimpleVoice.jsx:79 🎭 Avatar terminó de hablar - reanudando reconocimiento
+SimpleUI.jsx:349 🔄 UI: Evento avatar-audio-ended recibido
+SimpleUI.jsx:162 🔄 Audio finalizado, capturando imagen de reacción...
+useUserImage.jsx:449 📸 Cámara no disponible, omitiendo captura
+SimpleUI.jsx:165 📸 Imagen post-audio enviada: falló
+RoleGuard.jsx:57 👤 Contexto normal - usando AuthGuard
+RoleGuard.jsx:57 👤 Contexto normal - usando AuthGuard
+App.jsx:173 🔍 Estado de UI: pollingEnabled=false, processingStatus=Pensando, mostrar=false, texto="", latestStatus="", tiempoDesdeInicio=1755716011889ms
+useUserImage.jsx:50 📸 Video reproducción iniciada con éxito (desde setVideoElement)
+useUserImage.jsx:102 📸 Video reproducción iniciada con éxito
+RoleGuard.jsx:57 👤 Contexto normal - usando AuthGuard
+RoleGuard.jsx:57 👤 Contexto normal - usando AuthGuard
+useUserImage.jsx:293 📸 Imagen capturada: 33787 bytes
+useUserImage.jsx:326 📸 Procesando imagen de cola (descartando 0 imágenes antiguas)
+useUserImage.jsx:333 📸 Subiendo imagen al servidor... 33787 bytes
+useUserImage.jsx:340 📸 URL de la solicitud: http://127.0.0.1:8000/api/v1/chat/images/
+SimpleUI.jsx:250 📸 Imagen pre-mensaje enviada: éxito
+SimpleUI.jsx:137 🎥 Iniciando configuración de cámara...
+useUserImage.jsx:62 📸 Usando stream de cámara existente
+SimpleUI.jsx:139 🎥 Inicialización de cámara: exitosa
+SimpleUI.jsx:142 🎥 Asignando elemento de video al hook
+useUserImage.jsx:41 📸 Elemento de video asignado
+useUserImage.jsx:50 📸 Video reproducción iniciada con éxito (desde setVideoElement)
+useUserImage.jsx:102 📸 Video reproducción iniciada con éxito
+useUserImage.jsx:347 ✅ Imagen subida correctamente
+SimpleUI.jsx:146 🎥 Intentando captura inicial después de espera
+RoleGuard.jsx:57 👤 Contexto normal - usando AuthGuard
+RoleGuard.jsx:57 👤 Contexto normal - usando AuthGuard
+PollingManager.jsx:51 🔄 [Polling] Polling habilitado - iniciando
+PollingManager.jsx:51 🔄 [Polling] Programando inicio de polling con retraso de 5000ms
+App.jsx:60 💡 Polling activado en tiempo: 1755716014905
+SimpleUI.jsx:146 🎥 Intentando captura inicial después de espera
+PollingManager.jsx:51 🔄 [Polling] Iniciando polling con intervalo de 2000ms
+PollingManager.jsx:51 🔄 [Polling] Ejecutando consulta #1
+PollingManager.jsx:261 🔄 [Polling] Consultando estado (sesión 1)
+PollingManager.jsx:294 ✅ [Polling] Estado recibido (sesión 1): "null"
+PollingManager.jsx:45 🔄 [Polling] ⚠️ La consulta devolvió null
+log @ PollingManager.jsx:45
+executePoll @ PollingManager.jsx:128
+await in executePoll
+(anonymous) @ PollingManager.jsx:90
+setTimeout
+startPolling @ PollingManager.jsx:80
+(anonymous) @ PollingManager.jsx:156
+commitHookEffectListMount @ chunk-WPLG3Z2Y.js?v=89f8e0f2:16936
+commitPassiveMountOnFiber @ chunk-WPLG3Z2Y.js?v=89f8e0f2:18184
+commitPassiveMountEffects_complete @ chunk-WPLG3Z2Y.js?v=89f8e0f2:18157
+commitPassiveMountEffects_begin @ chunk-WPLG3Z2Y.js?v=89f8e0f2:18147
+commitPassiveMountEffects @ chunk-WPLG3Z2Y.js?v=89f8e0f2:18137
+flushPassiveEffectsImpl @ chunk-WPLG3Z2Y.js?v=89f8e0f2:19518
+flushPassiveEffects @ chunk-WPLG3Z2Y.js?v=89f8e0f2:19475
+(anonymous) @ chunk-WPLG3Z2Y.js?v=89f8e0f2:19356
+workLoop @ chunk-WPLG3Z2Y.js?v=89f8e0f2:197
+flushWork @ chunk-WPLG3Z2Y.js?v=89f8e0f2:176
+performWorkUntilDeadline @ chunk-WPLG3Z2Y.js?v=89f8e0f2:384
+App.jsx:72 ⏱️ Retraso de 7000ms completado, ahora se mostrarán los estados
+PollingManager.jsx:51 🔄 [Polling] Ejecutando consulta #2
+PollingManager.jsx:261 🔄 [Polling] Consultando estado (sesión 1)
+PollingManager.jsx:294 ✅ [Polling] Estado recibido (sesión 1): "null
