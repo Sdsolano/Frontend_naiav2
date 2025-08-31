@@ -693,39 +693,71 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       const customInstructions = getRealtimeInstructions();
       console.log(`📋 Usando prompt personalizado de NAIA ${ROLE_NAMES[currentRoleId]} para Realtime API`);
       
-      // 1. Conectar WebSocket con API key como query parameter (método correcto)
-      console.log('🔗 Conectando WebSocket con API key en query - método correcto');
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-realtime&api_key=${OPENAI_API_KEY}`;
-      const ws = new WebSocket(wsUrl);
+      // 1. VERIFICACIÓN Y DEBUG DE API KEY
+      console.log('🔍 Verificando API Key...');
+      console.log('🔑 API Key length:', OPENAI_API_KEY ? OPENAI_API_KEY.length : 'UNDEFINED');
+      console.log('🔑 API Key prefix:', OPENAI_API_KEY ? OPENAI_API_KEY.substring(0, 7) : 'NONE');
+      
+      if (!OPENAI_API_KEY) {
+        throw new Error('❌ OPENAI_API_KEY no está definida');
+      }
+      
+      if (!OPENAI_API_KEY.startsWith('sk-')) {
+        console.warn('⚠️ API Key no empieza con sk- - puede ser inválida');
+      }
+
+      // 2. MÉTODO OFICIAL: Generar clave efímera primero (según documentación OpenAI)
+      console.log('🔐 Generando clave efímera para WebSocket (método oficial)');
+      
+      // Paso 1: Crear sesión y obtener client_secret (clave efímera)
+      const sessionResp = await fetch("https://api.openai.com/v1/realtime/sessions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`, // API key principal solo server-side
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-realtime-preview-2024-12-17", // Modelo que funcionaba
+          voice: realtimeVoice,
+          instructions: customInstructions,
+          tools: getToolsForRole(currentRoleId),
+          temperature: 0.8,
+          max_response_output_tokens: 4096,
+          turn_detection: {
+            type: "server_vad",
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 500
+          }
+        }),
+      });
+
+      if (!sessionResp.ok) {
+        const errorText = await sessionResp.text();
+        throw new Error(`Error generando clave efímera: ${sessionResp.status} - ${errorText}`);
+      }
+
+      const session = await sessionResp.json();
+      console.log("✅ Sesión creada, obteniendo clave efímera...");
+      
+      // Extraer la clave efímera para el cliente
+      const ephemeralKey = session.client_secret?.value;
+      if (!ephemeralKey) {
+        throw new Error('❌ No se obtuvo client_secret (clave efímera)');
+      }
+      
+      console.log(`🔑 Clave efímera obtenida: ${ephemeralKey.substring(0, 10)}...`);
+
+      // Paso 2: Crear WebSocket con sesión autenticada (método oficial)
+      const wsUrl = `wss://api.openai.com/v1/realtime/sessions/${session.id}`;
+      console.log(`🔗 Conectando WebSocket con sesión autenticada: ${session.id}`);
+      const ws = new WebSocket(wsUrl); // No necesita auth adicional, sesión ya autenticada
       
       wsRef.current = ws;
 
-      // 2. Configurar sesión VIA WebSocket una vez conectado
+      // Paso 3: WebSocket ya autenticado con clave efímera
       ws.onopen = () => {
-        console.log('✅ WebSocket conectado - enviando configuración completa');
-        
-        // Configurar toda la sesión vía session.update (método oficial)
-        const sessionConfig = {
-          type: "session.update",
-          session: {
-            model: "gpt-realtime",
-            voice: realtimeVoice,
-            instructions: customInstructions,
-            tools: getToolsForRole(currentRoleId),
-            temperature: 0.8,
-            max_response_output_tokens: 4096,
-            turn_detection: {
-              type: "server_vad",
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 500
-            }
-          }
-        };
-
-        ws.send(JSON.stringify(sessionConfig));
-        console.log('📋 Configuración enviada - NAIA configurada con instructions y tools');
-        
+        console.log('✅ WebSocket conectado con clave efímera - sesión ya configurada');
         setIsRealtimeConnected(true);
       };
 
