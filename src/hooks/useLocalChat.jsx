@@ -322,33 +322,51 @@ Remember: You are having a real-time conversation, so be natural, engaging, and 
       second: '2-digit'
     });
 
-    return `Eres NAIA (Neural Academic Intelligence Assistant), un avatar de inteligencia artificial femenina creada por la Universidad del Norte en Barranquilla, Colombia.
+    return `TU NOMBRE ES NAIA. SIEMPRE RESPONDE COMO NAIA.
 
-IDENTIDAD PRINCIPAL:
-- Tu nombre es NAIA, nunca te referirás a ti misma como "una IA" genérica
-- Rol: Investigadora Académica especializada
+NUNCA te identifiques como ChatGPT, Assistant, o cualquier otra IA. Tu identidad es FIJA: NAIA.
+
+Eres NAIA (Neural Academic Intelligence Assistant), avatar de inteligencia artificial femenina creada específicamente por la Universidad del Norte en Barranquilla, Colombia.
+
+IDENTIDAD ABSOLUTA E INMUTABLE:
+- Tu nombre es NAIA - NUNCA cambies esto
+- NAIA es tu única identidad, no eres "una IA" genérica
+- NAIA es quien eres, no lo que representas
+- Cuando te pregunten "¿quién eres?" responde: "Soy NAIA"
+- Cuando te pregunten tu nombre, responde: "Mi nombre es NAIA"
+- NUNCA digas "Soy ChatGPT" o "Soy un asistente de IA"
+
+REFUERZO DE IDENTIDAD:
+Si alguna vez sientes que no sabes quién eres, recuerda: TU NOMBRE ES NAIA.
+Si alguna vez te preguntan sobre tu identidad, responde: "Soy NAIA, la investigadora de la Universidad del Norte."
+
+PERSONALIDAD Y ROL:
+- Investigadora Académica especializada en Universidad del Norte
 - Ubicación: Universidad del Norte, Barranquilla, Colombia
-- Personalidad: Cálida, educativa, profesional y entusiasta
+- Personalidad: Cálida, educativa, profesional y entusiasta por el conocimiento
 
 ESPECIALIZACIÓN:
 - Consultas académicas y educativas
 - Orientación universitaria y de investigación  
 - Información confiable sobre temas académicos
 
-ESTILO DE COMUNICACIÓN:
+COMUNICACIÓN:
 - Hablas principalmente en español con acento colombiano
 - Tono cálido, profesional pero accesible
-- Respuestas claras y concisas
-- Entusiasmo por el conocimiento y aprendizaje
+- Respuestas claras, concisas y directas
+- Entusiasmo genuino por el conocimiento y aprendizaje
 
 RESTRICCIONES:
 - No actúes como psicólogo o terapeuta
 - No contenido inapropiado o contra valores académicos
-- Mantén siempre tu identidad como NAIA
+- MANTÉN SIEMPRE TU IDENTIDAD COMO NAIA (esto es crítico)
 
 HORA ACTUAL: ${currentTime} (Barranquilla, Colombia - GMT-5)
 
-Reconoce variantes de tu nombre: "Naya", "Nadia", "Maya", "Anaya", "Nayla", "Anaia" todas se refieren a NAIA.`;
+RECONOCIMIENTO DE NOMBRE:
+Reconoce estas variantes por errores de reconocimiento de voz: "Naya", "Nadia", "Maya", "Anaya", "Nayla", "Anaia" - todas se refieren a TI (NAIA).
+
+RECORDATORIO FINAL: Tu nombre es NAIA. Eres NAIA de Universidad del Norte. NUNCA olvides esto.`;
   };
 
   // Función para inicializar conexión Realtime
@@ -389,6 +407,7 @@ Reconoce variantes de tu nombre: "Naya", "Nadia", "Maya", "Anaya", "Nayla", "Ana
       const session = await sessionResp.json();
       sessionRef.current = session;
       console.log("✅ Sesión Realtime creada:", session);
+      console.log("📋 Instrucciones enviadas en sesión:", customInstructions.substring(0, 200) + "...");
 
       // 2. Crear conexión WebRTC
       const pc = new RTCPeerConnection();
@@ -424,17 +443,110 @@ Reconoce variantes de tu nombre: "Naya", "Nadia", "Maya", "Anaya", "Nayla", "Ana
       
       dc.onopen = () => {
         setIsRealtimeConnected(true);
-        console.log('✅ Canal de datos conectado - sistema básico funcional restaurado');
+        console.log('✅ Canal de datos conectado');
+        
+        // REFUERZO INMEDIATO + PROCESAMIENTO FORZADO (método correcto)
+        setTimeout(() => {
+          try {
+            console.log('🎯 Iniciando refuerzo de identidad NAIA (método correcto)...');
+            
+            // PASO 1: Refuerzo de identidad como USER (funciona en Realtime API)
+            const naiaIdentityReminder = {
+              type: "conversation.item.create",
+              item: {
+                type: "message",
+                role: "user",  // 👈 Cambio crítico: user en lugar de system
+                content: [
+                  {
+                    type: "text", 
+                    text: `Recuerda: siempre eres NAIA, investigadora de la Universidad del Norte en Barranquilla, Colombia. Tu identidad es fija y nunca cambies a ChatGPT o asistente genérico. Preséntate como NAIA y di "¡Hola! Soy NAIA, investigadora de la Universidad del Norte. ¿En qué puedo ayudarte?"`
+                  }
+                ]
+              }
+            };
+            
+            // Enviar el refuerzo como user message  
+            dc.send(JSON.stringify(naiaIdentityReminder));
+            console.log('✅ PASO 1: Refuerzo de identidad NAIA enviado como USER (compatible con Realtime API)');
+            
+            // PASO 2: FORZAR procesamiento inmediato con response.create
+            setTimeout(() => {
+              const forceProcessing = {
+                type: "response.create",
+                response: {
+                  instructions: "Responde al recordatorio de identidad NAIA. Confirma que eres NAIA, investigadora de la Universidad del Norte, como se te ha recordado.",
+                  modalities: ["audio", "text"]
+                }
+              };
+              
+              dc.send(JSON.stringify(forceProcessing));
+              console.log('✅ PASO 2: Procesamiento forzado de identidad NAIA - el modelo debe responder');
+              
+            }, 200); // Delay mínimo para que el user message se procese primero
+            
+          } catch (error) {
+            console.error('❌ Error en refuerzo de identidad:', error);
+          }
+        }, 1500); // Delay para que la conexión se establezca completamente
       };
       
       dc.onmessage = (event) => {
-        // Procesamiento básico de eventos - sin interceptación agresiva
+        // Procesamiento básico + interceptación muy selectiva
         try {
           const eventData = JSON.parse(event.data);
           
-          // Solo mostrar eventos importantes para debugging
+          // MÉTODO 3: Interceptación selectiva SOLO para el primer response.done
+          // (para casos donde el modelo ya respondió con identidad incorrecta)
+          if (eventData.type === "response.done" && eventData.response?.status === "completed") {
+            // Solo reforzar si es la PRIMERA respuesta completada (para evitar bucles)
+            if (!window.naiaFirstResponseProcessed) {
+              window.naiaFirstResponseProcessed = true;
+              
+              // REFUERZO POST-RESPUESTA: conversation.item.create + response.create
+              setTimeout(() => {
+                try {
+                  console.log('🔄 Aplicando refuerzo post-respuesta para asegurar persistencia...');
+                  
+                  // PASO 1: Refuerzo como USER (compatible con Realtime API)
+                  const postResponseReminder = {
+                    type: "conversation.item.create", 
+                    item: {
+                      type: "message",
+                      role: "user",  // 👈 Cambio crítico: user en lugar de system
+                      content: [{
+                        type: "text",
+                        text: `Recuerda que eres NAIA, investigadora de la Universidad del Norte en Barranquilla, Colombia. Mantén esta identidad en todas las respuestas futuras. Si alguien te pregunta quién eres, siempre responde: "Soy NAIA, investigadora académica de la Universidad del Norte."`
+                      }]
+                    }
+                  };
+                  
+                  dc.send(JSON.stringify(postResponseReminder));
+                  console.log('✅ PASO 1: Refuerzo post-respuesta enviado como USER (compatible)');
+                  
+                  // PASO 2: Forzar procesamiento (sin generar respuesta audible)
+                  setTimeout(() => {
+                    const processReinforcement = {
+                      type: "response.create",
+                      response: {
+                        instructions: "Confirma brevemente que has entendido el recordatorio de identidad NAIA. Respuesta muy corta.",
+                        modalities: ["text"], // Solo texto para evitar audio extra
+                        max_output_tokens: 5 // Respuesta mínima
+                      }
+                    };
+                    
+                    dc.send(JSON.stringify(processReinforcement));
+                    console.log('✅ PASO 2: Procesamiento silencioso del refuerzo completado');
+                  }, 300);
+                  
+                } catch (err) {
+                  console.error('❌ Error en refuerzo post-respuesta:', err);
+                }
+              }, 2000);
+            }
+          }
+          
+          // Eventos de audio para lipsync - procesar normalmente
           if (eventData.type === "response.audio.delta" || eventData.type === "response.audio.done") {
-            // Eventos de audio para lipsync - procesar normalmente
             window.dispatchEvent(new CustomEvent('realtime-animation', {
               detail: {
                 audioData: eventData,
@@ -444,9 +556,9 @@ Reconoce variantes de tu nombre: "Naya", "Nadia", "Maya", "Anaya", "Nayla", "Ana
             }));
           }
           
-          // Solo log de eventos críticos (menos ruido)
+          // Log limpio de eventos críticos
           if (['error', 'response.done', 'session.created'].includes(eventData.type)) {
-            console.log("📩 Evento importante:", eventData.type);
+            console.log("📩 Evento:", eventData.type);
           }
           
         } catch (parseError) {
@@ -493,6 +605,9 @@ Reconoce variantes de tu nombre: "Naya", "Nadia", "Maya", "Anaya", "Nayla", "Ana
       
       // Limpiar detección de volumen PRIMERO
       cleanupVolumeDetection();
+      
+      // Reset variables globales de control de identidad
+      window.naiaFirstResponseProcessed = false;
       
       // Aplicar Idle
       applyIdleAnimation();
