@@ -706,96 +706,87 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
         console.warn('⚠️ API Key no empieza con sk- - puede ser inválida');
       }
 
-      // 2. MÉTODO OFICIAL: Generar clave efímera primero (según documentación OpenAI)
-      console.log('🔐 Generando clave efímera para WebSocket (método oficial)');
+      // 2. MÉTODO OFICIAL: Subprotocols para autenticación (según documentación OpenAI)
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-realtime`;
+      const subprotocols = [
+        "realtime",
+        "openai-insecure-api-key." + OPENAI_API_KEY
+      ];
       
-      // Paso 1: Crear sesión y obtener client_secret (clave efímera)
-      const sessionResp = await fetch("https://api.openai.com/v1/realtime/sessions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`, // API key principal solo server-side
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-realtime-preview-2024-12-17", // Modelo que funcionaba
-          voice: realtimeVoice,
-          instructions: customInstructions,
-          tools: getToolsForRole(currentRoleId),
-          temperature: 0.8,
-          max_response_output_tokens: 4096,
-          turn_detection: {
-            type: "server_vad",
-            threshold: 0.5,
-            prefix_padding_ms: 300,
-            silence_duration_ms: 500
-          }
-        }),
-      });
-
-      if (!sessionResp.ok) {
-        const errorText = await sessionResp.text();
-        throw new Error(`Error generando clave efímera: ${sessionResp.status} - ${errorText}`);
-      }
-
-      const session = await sessionResp.json();
-      console.log("✅ Sesión creada, obteniendo clave efímera...");
-      
-      // Extraer la clave efímera para el cliente
-      const ephemeralKey = session.client_secret?.value;
-      if (!ephemeralKey) {
-        throw new Error('❌ No se obtuvo client_secret (clave efímera)');
-      }
-      
-      console.log(`🔑 Clave efímera obtenida: ${ephemeralKey.substring(0, 10)}...`);
-
-      // Paso 2: Crear WebSocket con sesión autenticada (método oficial)
-      const wsUrl = `wss://api.openai.com/v1/realtime/sessions/${session.id}`;
-      console.log(`🔗 Conectando WebSocket con sesión autenticada: ${session.id}`);
-      const ws = new WebSocket(wsUrl); // No necesita auth adicional, sesión ya autenticada
+      console.log('🔗 Conectando WebSocket con subprotocols (método oficial)...');
+      const ws = new WebSocket(wsUrl, subprotocols);
       
       wsRef.current = ws;
 
-      // Paso 3: WebSocket ya autenticado con clave efímera
+      // 3. Configurar event handlers
       ws.onopen = () => {
-        console.log('✅ WebSocket conectado con clave efímera - sesión ya configurada');
+        console.log('✅ WebSocket conectado exitosamente');
+        
+        // Configurar toda la sesión una vez conectado
+        const sessionConfig = {
+          type: "session.update",
+          session: {
+            model: "gpt-realtime",
+            voice: realtimeVoice,
+            instructions: customInstructions,
+            tools: getToolsForRole(currentRoleId),
+            temperature: 0.8,
+            max_response_output_tokens: 4096,
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 500
+            }
+          }
+        };
+
+        console.log('📋 Enviando configuración de sesión:', sessionConfig);
+        ws.send(JSON.stringify(sessionConfig));
+        
         setIsRealtimeConnected(true);
+        console.log('🚀 NAIA Realtime conectada y configurada');
       };
 
-      // 4. Manejo de eventos del servidor
+      // 4. Manejo de mensajes (estructura mejorada con switch)
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📩 Evento del modelo:', data.type);
+          console.log('📩 Evento recibido:', data.type);
 
-          if (data.type === 'session.updated') {
-            console.log('✅ Sesión actualizada - NAIA configurada correctamente');
-          }
-
-          // Manejo de function calls del GPT-Realtime 2025
-          if (data.type === "response.function_call_arguments.done") {
-            console.log(`🔧 Function call detectado: ${data.name}`, data.arguments);
-            executeFunctionCall(data.name, data.arguments, wsRef.current);
-          }
-
-          // Eventos de audio para lipsync y animaciones
-          if (data.type === 'response.audio.delta') {
-            // Procesar audio delta para lipsync
-            window.dispatchEvent(new CustomEvent('realtime-animation', {
-              detail: {
-                audioData: data,
-                lipsync: generateDynamicLipsync(data),
-                animation: 'Talking_0'
-              }
-            }));
-          }
-
-          if (data.type === 'response.done') {
-            console.log('✅ Respuesta completada');
-            setIsProcessing(false);
-          }
-
-          if (data.type === 'error') {
-            console.error('❌ Error del modelo:', data.error);
+          // Manejo específico de eventos
+          switch (data.type) {
+            case 'session.updated':
+              console.log('✅ Sesión actualizada correctamente');
+              break;
+              
+            case 'response.audio.delta':
+              // Audio streaming para lipsync y animaciones
+              window.dispatchEvent(new CustomEvent('realtime-animation', {
+                detail: {
+                  audioData: data,
+                  lipsync: generateDynamicLipsync(data),
+                  animation: 'Talking_0'
+                }
+              }));
+              break;
+              
+            case 'response.function_call_arguments.done':
+              console.log(`🔧 Function call: ${data.name}`, data.arguments);
+              executeFunctionCall(data.name, data.arguments, ws);
+              break;
+              
+            case 'response.done':
+              console.log('✅ Respuesta completada');
+              setIsProcessing(false);
+              break;
+              
+            case 'error':
+              console.error('❌ Error del modelo:', data.error);
+              break;
+              
+            default:
+              console.log('📩 Evento no manejado:', data.type);
           }
 
         } catch (parseError) {
@@ -803,26 +794,71 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
         }
       };
 
-      // 5. Manejo de errores y desconexión
+      // 5. Manejo de errores
       ws.onerror = (error) => {
         console.error('❌ Error WebSocket:', error);
         setIsProcessing(false);
         setIsRealtimeConnected(false);
       };
 
-      ws.onclose = () => {
-        console.log('🔌 WebSocket desconectado');
+      // 6. Manejo de desconexión
+      ws.onclose = (event) => {
+        console.log('🔌 WebSocket desconectado. Code:', event.code, 'Reason:', event.reason);
         setIsRealtimeConnected(false);
         setIsProcessing(false);
       };
 
-      console.log('🚀 Conexión Realtime establecida');
+      console.log('🚀 Conexión Realtime iniciada');
       return true;
 
     } catch (error) {
       console.error('❌ Error inicializando Realtime:', error);
       setIsRealtimeConnected(false);
       return false;
+    }
+  }, []);
+
+  // Función auxiliar para enviar audio al modelo
+  const sendAudioToRealtime = useCallback((audioData) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.warn('⚠️ WebSocket no está conectado');
+      return;
+    }
+
+    try {
+      const audioMessage = {
+        type: "input_audio_buffer.append",
+        audio: audioData // Base64 encoded audio
+      };
+
+      wsRef.current.send(JSON.stringify(audioMessage));
+      console.log('🎤 Audio enviado al modelo');
+    } catch (error) {
+      console.error('❌ Error enviando audio:', error);
+    }
+  }, []);
+
+  // Función auxiliar para solicitar respuesta
+  const requestRealtimeResponse = useCallback(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.warn('⚠️ WebSocket no está conectado');
+      return;
+    }
+
+    try {
+      const responseRequest = {
+        type: "response.create",
+        response: {
+          modalities: ["text", "audio"],
+          instructions: "Responde como NAIA de forma natural y conversacional."
+        }
+      };
+
+      wsRef.current.send(JSON.stringify(responseRequest));
+      setIsProcessing(true);
+      console.log('🤖 Solicitando respuesta del modelo');
+    } catch (error) {
+      console.error('❌ Error solicitando respuesta:', error);
     }
   }, []);
 
@@ -1113,6 +1149,9 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
     disconnectRealtime,
     isRealtimeConnected,
     audioRef,
+    // Funciones auxiliares Realtime
+    sendAudioToRealtime,
+    requestRealtimeResponse,
     // Realtime animations - simplificadas
     isRealtimeSpeaking
   };
