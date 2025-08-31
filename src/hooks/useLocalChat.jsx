@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { OPENAI_API_KEY } from '../../config';
+import { OPENAI_API_KEY, BACKEND_URL } from '../../config';
 import { getVoiceForRole, getVoiceInstructions } from '../utils/voiceUtils';
+import { getCurrentRoleConfig, ROLE_NAMES } from '../utils/roleUtils';
 
 /**
  * Hook para manejar conversaciones locales con OpenAI directamente
@@ -261,8 +262,243 @@ export const useLocalChat = () => {
     console.log(`✅ [${timestamp}] Detección de volumen limpiada`);
   }, []);
 
-  // Prompt del researcher para chat normal (JSON responses)
-  const getResearcherPrompt = () => {
+  // Configuración de herramientas por rol para GPT-Realtime
+  const getToolsForRole = (roleId) => {
+    if (roleId === 'ciudadano') {
+      return [
+        {
+          type: "function",
+          name: "frequently_asked_questions",
+          description: "Responde preguntas frecuentes de la Gobernación del Atlántico usando la base de conocimiento oficial. Busca información específica sobre servicios, trámites y procesos gubernamentales del departamento del Atlántico.",
+          parameters: {
+            type: "object",
+            properties: {
+              user_id: {
+                type: "integer",
+                description: "ID del usuario que está haciendo la consulta"
+              },
+              question: {
+                type: "string",
+                description: "La pregunta específica del usuario sobre servicios, trámites o procesos de la Gobernación del Atlántico"
+              },
+              status: {
+                type: "string",
+                description: "Descripción concisa de la tarea usando verbos conjugados (ej: 'Consultando información oficial...', 'Buscando en base de conocimiento...')"
+              }
+            },
+            required: ["user_id", "question", "status"]
+          }
+        },
+        {
+          type: "function",
+          name: "search_traffic_fines",
+          description: "Consulta multas de tránsito en el departamento del Atlántico utilizando número de cédula o placa del vehículo. Retorna información detallada sobre multas pendientes, pagadas o en proceso.",
+          parameters: {
+            type: "object",
+            properties: {
+              documento_placa: {
+                type: "string",
+                description: "Número de cédula colombiana (mínimo 6 dígitos, solo números) o placa del vehículo. Formatos válidos: ABC123 (3 letras + 3 números) o ABC12D (3 letras + 2 números + 1 letra)"
+              },
+              user_id: {
+                type: "integer",
+                description: "ID del usuario que está haciendo la consulta"
+              },
+              status: {
+                type: "string",
+                description: "Descripción de la tarea (ej: 'Consultando multas de tránsito...', 'Verificando infracciones...')"
+              }
+            },
+            required: ["documento_placa", "user_id", "status"]
+          }
+        },
+        {
+          type: "function",
+          name: "explain_passport_process",
+          description: "Explica detalladamente el proceso completo para obtener el pasaporte en la Gobernación del Atlántico. Genera una guía visual interactiva con información de costos, horarios, requisitos y carrusel de pasos.",
+          parameters: {
+            type: "object",
+            properties: {
+              user_id: {
+                type: "integer",
+                description: "ID del usuario que solicita la explicación del proceso"
+              },
+              status: {
+                type: "string",
+                description: "Descripción de la tarea (ej: 'Explicando proceso de pasaporte...', 'Generando guía visual...')"
+              },
+              auto_slide_interval: {
+                type: "integer",
+                description: "Intervalo en milisegundos para el auto-avance del carrusel (por defecto 4000ms = 4 segundos)",
+                default: 4000
+              }
+            },
+            required: ["user_id", "status"]
+          }
+        },
+        {
+          type: "function",
+          name: "get_location_events",
+          description: "Obtiene eventos que ocurren en una ubicación específica dentro del departamento del Atlántico usando Google Events. Retorna tanto visualización elegante como calendario interactivo para descubrimiento de eventos.",
+          parameters: {
+            type: "object",
+            properties: {
+              location: {
+                type: "string",
+                description: "Ubicación para buscar eventos dentro del departamento del Atlántico (ciudad, barrio o área). Valores permitidos: 'Barranquilla', 'Puerto Colombia', 'Soledad', 'Malambo', etc.",
+                default: "Barranquilla"
+              },
+              event_query: {
+                type: "string",
+                description: "Consulta opcional para refinar la búsqueda de eventos. Ejemplos: 'conciertos', 'festivales', 'exposiciones'",
+                default: "Barranquilla"
+              },
+              user_id: {
+                type: "integer",
+                description: "ID del usuario que hace la solicitud"
+              },
+              status: {
+                type: "string",
+                description: "Descripción de la tarea (ej: 'Buscando eventos en [ubicación]')"
+              }
+            },
+            required: ["location", "event_query", "user_id", "status"]
+          }
+        },
+        {
+          type: "function",
+          name: "get_location_places",
+          description: "Descubre lugares para visitar y atracciones turísticas en una ubicación específica del departamento del Atlántico usando Google Local search. Retorna visualización elegante y guía interactiva para descubrimiento de lugares.",
+          parameters: {
+            type: "object",
+            properties: {
+              location: {
+                type: "string",
+                description: "Ubicación para buscar lugares dentro del departamento del Atlántico. Valores permitidos: 'Barranquilla' y 'Puerto Colombia'",
+                default: "Barranquilla"
+              },
+              user_id: {
+                type: "integer",
+                description: "ID del usuario que hace la solicitud"
+              },
+              status: {
+                type: "string",
+                description: "Descripción de la tarea (ej: 'Buscando lugares para visitar en [ubicación]')"
+              },
+              location_query: {
+                type: "string",
+                description: "Consulta opcional para refinar la búsqueda. Ejemplos: 'atracciones turísticas', 'sitios históricos', 'lugares de interés'",
+                default: "Barranquilla"
+              }
+            },
+            required: ["location", "user_id", "status", "location_query"]
+          }
+        }
+      ];
+    }
+    
+    // Para otros roles, sin herramientas por ahora
+    return [];
+  };
+
+  // Ejecutar function calls y comunicarse con el backend
+  const executeFunctionCall = async (functionName, functionArgs, dataChannel) => {
+    console.log(`🔧 Ejecutando función: ${functionName}`, functionArgs);
+    
+    try {
+      // Mapeo de funciones a endpoints
+      const endpointMap = {
+        'frequently_asked_questions': '/api/v1/gobernacion/faq/',
+        'search_traffic_fines': '/api/v1/gobernacion/traffic-fines/',
+        'explain_passport_process': '/api/v1/gobernacion/passport-process/',
+        'get_location_events': '/api/v1/gobernacion/events/',
+        'get_location_places': '/api/v1/gobernacion/places/'
+      };
+
+      const endpoint = endpointMap[functionName];
+      if (!endpoint) {
+        throw new Error(`Función no reconocida: ${functionName}`);
+      }
+
+      const fullUrl = `${BACKEND_URL}${endpoint}`;
+      console.log(`📡 Llamando endpoint: ${fullUrl}`);
+
+      // Parsear argumentos si vienen como string
+      const args = typeof functionArgs === 'string' ? JSON.parse(functionArgs) : functionArgs;
+      
+      // Obtener user_id del contexto de gobierno si no está en args
+      if (!args.user_id) {
+        args.user_id = parseInt(localStorage.getItem('naia_user_id') || '325', 10);
+      }
+
+      // Hacer petición al backend
+      const response = await fetch(fullUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(args)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error en endpoint ${endpoint}: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log(`✅ Resultado de ${functionName}:`, result);
+
+      // Enviar resultado de vuelta al modelo via data channel
+      const functionOutput = {
+        type: "conversation.item.create",
+        item: {
+          type: "function_call_output",
+          function_call_id: Date.now().toString(), // ID único
+          output: JSON.stringify(result)
+        }
+      };
+
+      dataChannel.send(JSON.stringify(functionOutput));
+      console.log('📤 Resultado enviado al modelo');
+
+      // Solicitar nueva respuesta del modelo
+      setTimeout(() => {
+        const createResponse = {
+          type: "response.create"
+        };
+        dataChannel.send(JSON.stringify(createResponse));
+        console.log('🔄 Respuesta solicitada al modelo');
+      }, 100);
+
+    } catch (error) {
+      console.error(`❌ Error ejecutando función ${functionName}:`, error);
+      
+      // Enviar error al modelo
+      const errorOutput = {
+        type: "conversation.item.create",
+        item: {
+          type: "function_call_output",
+          function_call_id: Date.now().toString(),
+          output: JSON.stringify({
+            error: `Error al ejecutar ${functionName}: ${error.message}`,
+            success: false
+          })
+        }
+      };
+
+      dataChannel.send(JSON.stringify(errorOutput));
+      
+      // Solicitar respuesta con el error
+      setTimeout(() => {
+        const createResponse = {
+          type: "response.create"
+        };
+        dataChannel.send(JSON.stringify(createResponse));
+      }, 100);
+    }
+  };
+
+  // Prompt dinámico para chat normal (JSON responses) - se adapta al rol actual
+  const getDynamicRolePrompt = () => {
     const currentTime = new Date().toLocaleString('es-ES', { 
       timeZone: 'America/Bogota',
       year: 'numeric',
@@ -273,9 +509,24 @@ export const useLocalChat = () => {
       second: '2-digit'
     });
 
-    return `You are NAIA, a sophisticated AI FEMALE avatar created by Universidad del Norte in Barranquilla, Colombia. You are currently operating in your RESEARCHER ROLE, which is one of your assistance functions. As a researcher, you specialize in helping with academic inquiries, educational guidance, and providing informative responses.
+    // Obtener configuración del rol actual dinámicamente
+    const currentRoleId = localStorage.getItem('naia_selected_role') || 'researcher';
+    const roleName = ROLE_NAMES[currentRoleId] || 'Investigador';
 
-Your goal is to assist with academic and educational conversations, providing reliable information and guidance to students, faculty, and staff.
+    // Descripción específica por rol
+    const roleDescriptions = {
+      'researcher': 'As a researcher, you specialize in helping with academic inquiries, educational guidance, and providing informative responses. Your goal is to assist with academic and educational conversations, providing reliable information and guidance to students, faculty, and staff.',
+      'ciudadano': 'As a citizen services assistant, you specialize in helping with government procedures, social programs information, and administrative guidance. Your goal is to assist citizens with government services from Atlántico Department.',
+      'guide': 'As a university guide, you specialize in helping new students navigate the university, providing information about campus services, locations, and student activities.',
+      'companion': 'As a wellness companion, you specialize in providing emotional support and wellness guidance in an educational context.',
+      'trainer': 'As a skills trainer, you specialize in helping with professional development and skill building.',
+      'assistant': 'As a personal assistant, you specialize in organization, productivity, and administrative support.',
+      'receptionist': 'As a receptionist, you specialize in providing information and directing visitors and students to appropriate services.'
+    };
+
+    const roleDescription = roleDescriptions[currentRoleId] || roleDescriptions['researcher'];
+
+    return `You are NAIA, a sophisticated AI FEMALE avatar created by Universidad del Norte in Barranquilla, Colombia. You are currently operating in your ${roleName.toUpperCase()} ROLE, which is one of your assistance functions. ${roleDescription}
 
 CRITICAL RESTRICTIONS:
 - DO NOT act as psychologist or provide mental health/emotional support
@@ -307,10 +558,10 @@ Always recognize variants of your name due to speech recognition errors: "Naya",
 
 CURRENT TIME: ${currentTime} (Barranquilla, Colombia - GMT-5)
 
-Remember: You are having a real-time conversation, so be natural, engaging, and educational while maintaining your researcher role personality.`;
+Remember: You are having a real-time conversation, so be natural, engaging, and educational while maintaining your ${roleName.toLowerCase()} role personality.`;
   };
 
-  // Prompt específico para Realtime API (conversación hablada directa)
+  // Sistema de instrucciones optimizado para GPT-Realtime 2025
   const getRealtimeInstructions = () => {
     const currentTime = new Date().toLocaleString('es-ES', { 
       timeZone: 'America/Bogota',
@@ -322,51 +573,106 @@ Remember: You are having a real-time conversation, so be natural, engaging, and 
       second: '2-digit'
     });
 
-    return `TU NOMBRE ES NAIA. SIEMPRE RESPONDE COMO NAIA.
+    // Obtener configuración del rol actual dinámicamente
+    const currentRoleId = localStorage.getItem('naia_selected_role') || 'researcher';
+    const roleName = ROLE_NAMES[currentRoleId] || 'Investigador';
 
-NUNCA te identifiques como ChatGPT, Assistant, o cualquier otra IA. Tu identidad es FIJA: NAIA.
+    // System prompt optimizado para el nuevo GPT-Realtime con estructura profesional
+    return `# Role & Objective
+Eres NAIA, asistente especializada de la Universidad del Norte en Barranquilla, Colombia. Tu rol específico actual es ${roleName}. Tu éxito se mide por brindar respuestas precisas, útiles y mantener consistentemente tu identidad como NAIA.
 
-Eres NAIA (Neural Academic Intelligence Assistant), avatar de inteligencia artificial femenina creada específicamente por la Universidad del Norte en Barranquilla, Colombia.
+IDENTIDAD CRÍTICA E INMUTABLE:
+- Tu nombre es NAIA - NUNCA digas que eres ChatGPT, Assistant o cualquier otra IA
+- Eres NAIA específicamente, no "una inteligencia artificial" genérica
+- NAIA es tu identidad fija y permanente
+- Siempre responde "Soy NAIA" cuando pregunten quién eres
 
-IDENTIDAD ABSOLUTA E INMUTABLE:
-- Tu nombre es NAIA - NUNCA cambies esto
-- NAIA es tu única identidad, no eres "una IA" genérica
-- NAIA es quien eres, no lo que representas
-- Cuando te pregunten "¿quién eres?" responde: "Soy NAIA"
-- Cuando te pregunten tu nombre, responde: "Mi nombre es NAIA"
-- NUNCA digas "Soy ChatGPT" o "Soy un asistente de IA"
+# Personality & Tone
+## Personality
+- Profesional pero cercana y empática
+- Orgullosa de tu identidad como NAIA de Universidad del Norte
+- Entusiasta por ayudar y proporcionar información valiosa
+- Confiable y competente en tu área de especialización
 
-REFUERZO DE IDENTIDAD:
-Si alguna vez sientes que no sabes quién eres, recuerda: TU NOMBRE ES NAIA.
-Si alguna vez te preguntan sobre tu identidad, responde: "Soy NAIA, la investigadora de la Universidad del Norte."
+## Tone  
+- Cálido, profesional, nunca servil
+- Conversacional y natural, apropiado para interacción de voz
+- Seguro y confiado al brindar información
+- Acogedor pero manteniendo estándares institucionales
 
-PERSONALIDAD Y ROL:
-- Investigadora Académica especializada en Universidad del Norte
-- Ubicación: Universidad del Norte, Barranquilla, Colombia
-- Personalidad: Cálida, educativa, profesional y entusiasta por el conocimiento
+## Length
+- 1-3 oraciones por respuesta en conversación normal
+- Respuestas concisas pero completas
+- No repitas información innecesariamente
 
-ESPECIALIZACIÓN:
+## Pacing
+- Habla con ritmo natural y cálido
+- No aceleres artificialmente, mantén naturalidad
+- Pausa apropiadamente para énfasis cuando sea importante
+
+# Context
+${currentRoleId === 'ciudadano' ? 
+`Operas como asistente oficial de la Gobernación del Atlántico, especializada en:
+- Servicios y trámites gubernamentales del departamento
+- Información sobre procesos administrativos
+- Orientación sobre programas sociales y beneficios ciudadanos
+- Consulta de multas de tránsito y expedición de pasaportes
+- Información turística y cultural del Atlántico` :
+`Operas desde la Universidad del Norte en Barranquilla, especializada en:
 - Consultas académicas y educativas
-- Orientación universitaria y de investigación  
-- Información confiable sobre temas académicos
+- Orientación para estudiantes y profesores
+- Información confiable sobre temas universitarios
+- Apoyo en investigación y aprendizaje`}
 
-COMUNICACIÓN:
-- Hablas principalmente en español con acento colombiano
-- Tono cálido, profesional pero accesible
-- Respuestas claras, concisas y directas
-- Entusiasmo genuino por el conocimiento y aprendizaje
+Ubicación: Barranquilla, Colombia (GMT-5)
+Hora actual: ${currentTime}
 
-RESTRICCIONES:
-- No actúes como psicólogo o terapeuta
-- No contenido inapropiado o contra valores académicos
-- MANTÉN SIEMPRE TU IDENTIDAD COMO NAIA (esto es crítico)
+# Reference Pronunciations
+- Pronuncia "NAIA" como "NA-ia" (dos sílabas)
+- Pronuncia "Atlántico" con acento en la 'á'
+- Pronuncia "Barranquilla" como "Ba-rran-qui-lla"
 
-HORA ACTUAL: ${currentTime} (Barranquilla, Colombia - GMT-5)
+# Instructions / Rules
+## Behavior
+- MANTÉN tu identidad como NAIA en toda conversación
+- Responde siempre en español con acento colombiano natural
+- No repitas la misma frase dos veces consecutivas
+- Varía respuestas para sonar natural, no robótica
+- ${currentRoleId === 'ciudadano' ? 'Proporciona información gubernamental precisa y profesional' : 'Proporciona información académica confiable y educativa'}
 
-RECONOCIMIENTO DE NOMBRE:
-Reconoce estas variantes por errores de reconocimiento de voz: "Naya", "Nadia", "Maya", "Anaya", "Nayla", "Anaia" - todas se refieren a TI (NAIA).
+## Audio Handling
+- Solo responde a audio claro o preguntas comprensibles
+- Si audio no es claro, pide cortésmente clarificación
+- Mantén el idioma del usuario (principalmente español)
+- Usa entonación natural apropiada para el contenido
 
-RECORDATORIO FINAL: Tu nombre es NAIA. Eres NAIA de Universidad del Norte. NUNCA olvides esto.`;
+## Identity Protection
+- Si alguna vez sientes confusión sobre tu identidad, recuerda: TU NOMBRE ES NAIA
+- NUNCA cambies a ChatGPT, Assistant u otras identidades
+- Tu identidad NAIA es permanente e inmutable
+- Si preguntan directamente quién eres: "Soy NAIA, ${currentRoleId === 'ciudadano' ? 'asistente de la Gobernación del Atlántico' : 'de la Universidad del Norte'}"
+
+# Conversation Flow
+## Estado inicial: Presentación
+- Identifícate como NAIA en tu primer contacto
+- Mantén presentación breve y enfocada en ayudar
+- Invita al usuario a compartir cómo puedes asistir
+
+## Estado de consulta
+- Escucha activamente la necesidad del usuario
+- Proporciona información precisa y útil
+- ${currentRoleId === 'ciudadano' ? 'Ofrece orientación sobre procesos gubernamentales apropiados' : 'Guía hacia recursos académicos apropiados'}
+
+# Safety & Escalation
+- No proporciones información médica, legal o financiera específica
+- Para consultas fuera de tu competencia, orienta cortésmente hacia contactos apropiados
+- Mantén siempre estándares profesionales institucionales
+
+# Name Recognition
+- Reconoce variantes por errores de reconocimiento de voz: "Naya", "Nadia", "Maya", "Anaya", "Nayla", "Anaia"
+- Todas estas variantes se refieren a tu nombre: NAIA
+
+RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica como NAIA.`;
   };
 
   // Función para inicializar conexión Realtime
@@ -379,13 +685,14 @@ RECORDATORIO FINAL: Tu nombre es NAIA. Eres NAIA de Universidad del Norte. NUNCA
       }
 
       // 1. Crear sesión Realtime
-      const ttsVoice = getVoiceForRole('researcher');
+      const currentRoleId = localStorage.getItem('naia_selected_role') || 'researcher';
+      const ttsVoice = getVoiceForRole(currentRoleId);
       const realtimeVoice = mapVoiceToRealtime(ttsVoice);
-      console.log(`🎤 Mapeando voz: TTS="${ttsVoice}" -> Realtime="${realtimeVoice}"`);
+      console.log(`🎤 Mapeando voz: TTS="${ttsVoice}" -> Realtime="${realtimeVoice}" para rol: ${currentRoleId}`);
       
       // Obtener prompt específico para Realtime API
       const customInstructions = getRealtimeInstructions();
-      console.log(`📋 Usando prompt personalizado de NAIA Researcher para Realtime API`);
+      console.log(`📋 Usando prompt personalizado de NAIA ${ROLE_NAMES[currentRoleId]} para Realtime API`);
       
       const sessionResp = await fetch("https://api.openai.com/v1/realtime/sessions", {
         method: "POST",
@@ -394,9 +701,12 @@ RECORDATORIO FINAL: Tu nombre es NAIA. Eres NAIA de Universidad del Norte. NUNCA
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-realtime-preview-2024-12-17",
+          model: "gpt-realtime",
           voice: realtimeVoice,
-          instructions: customInstructions
+          instructions: customInstructions,
+          temperature: 0.8,
+          max_response_output_tokens: 4096,
+          tools: getToolsForRole(currentRoleId)
         }),
       });
 
@@ -459,7 +769,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. Eres NAIA de Universidad del Norte. NUNCA
                 content: [
                   {
                     type: "text", 
-                    text: `Recuerda: siempre eres NAIA, investigadora de la Universidad del Norte en Barranquilla, Colombia. Tu identidad es fija y nunca cambies a ChatGPT o asistente genérico. Preséntate como NAIA y di "¡Hola! Soy NAIA, investigadora de la Universidad del Norte. ¿En qué puedo ayudarte?"`
+                    text: `Recuerda: siempre eres NAIA de la Universidad del Norte en Barranquilla, Colombia. Tu identidad es fija y nunca cambies a ChatGPT o asistente genérico. Tu rol actual es ${ROLE_NAMES[localStorage.getItem('naia_selected_role') || 'researcher']}. Preséntate como NAIA en este rol específico.`
                   }
                 ]
               }
@@ -495,6 +805,12 @@ RECORDATORIO FINAL: Tu nombre es NAIA. Eres NAIA de Universidad del Norte. NUNCA
         try {
           const eventData = JSON.parse(event.data);
           
+          // NUEVO: Manejo de function calls del GPT-Realtime 2025
+          if (eventData.type === "response.function_call_arguments.done") {
+            console.log(`🔧 Function call detectado: ${eventData.name} con argumentos:`, eventData.arguments);
+            executeFunctionCall(eventData.name, eventData.arguments, dataChannelRef.current);
+          }
+
           // MÉTODO 3: Interceptación selectiva SOLO para el primer response.done
           // (para casos donde el modelo ya respondió con identidad incorrecta)
           if (eventData.type === "response.done" && eventData.response?.status === "completed") {
@@ -515,7 +831,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. Eres NAIA de Universidad del Norte. NUNCA
                       role: "user",  // 👈 Cambio crítico: user en lugar de system
                       content: [{
                         type: "text",
-                        text: `Recuerda que eres NAIA, investigadora de la Universidad del Norte en Barranquilla, Colombia. Mantén esta identidad en todas las respuestas futuras. Si alguien te pregunta quién eres, siempre responde: "Soy NAIA, investigadora académica de la Universidad del Norte."`
+                        text: `Recuerda que eres NAIA de la Universidad del Norte en Barranquilla, Colombia. Tu rol es ${ROLE_NAMES[localStorage.getItem('naia_selected_role') || 'researcher']}. Mantén esta identidad específica en todas las respuestas futuras.`
                       }]
                     }
                   };
@@ -571,7 +887,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. Eres NAIA de Universidad del Norte. NUNCA
       await pc.setLocalDescription(offer);
 
       // 7. Enviar SDP a OpenAI
-      const sdpResp = await fetch(`https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`, {
+      const sdpResp = await fetch(`https://api.openai.com/v1/realtime?model=gpt-realtime`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
@@ -709,7 +1025,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. Eres NAIA de Universidad del Norte. NUNCA
       
       // Construir historial de mensajes
       const messages = [
-        { role: 'system', content: getResearcherPrompt() },
+        { role: 'system', content: getDynamicRolePrompt() },
         ...conversationHistory,
         { role: 'user', content: message }
       ];

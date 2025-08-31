@@ -1,0 +1,180 @@
+# ENDPOINTS DE LA GOBERNACIÓN DEL ATLÁNTICO - DOCUMENTACIÓN TÉCNICA
+
+Base URL: /api/v1/gobernacion/
+
+## 1. PREGUNTAS FRECUENTES
+**Endpoint:** `/api/v1/gobernacion/faq/`
+**Método:** POST
+**Función:** frequently_asked_questions
+
+### Descripción:
+Responde preguntas frecuentes de la Gobernación del Atlántico usando la base de conocimiento oficial. Busca información específica sobre servicios, trámites y procesos gubernamentales del departamento del Atlántico.
+
+### Parámetros requeridos:
+```json
+{
+    "user_id": 123,
+    "question": "¿Cómo tramitar un certificado laboral?",
+    "status": "Consultando información oficial..."
+}
+```
+
+### Detalles de parámetros:
+- **user_id** (integer): ID del usuario que está haciendo la consulta
+- **question** (string): La pregunta específica del usuario sobre servicios, trámites o procesos de la Gobernación del Atlántico
+- **status** (string): Descripción concisa de la tarea usando verbos conjugados (ej: 'Consultando información oficial...', 'Buscando en base de conocimiento...')
+
+---
+
+## 2. CONSULTA DE MULTAS DE TRÁNSITO
+**Endpoint:** `/api/v1/gobernacion/traffic-fines/`
+**Método:** POST
+**Función:** search_traffic_fines
+
+### Descripción:
+Consulta multas de tránsito en el departamento del Atlántico utilizando número de cédula o placa del vehículo. Retorna información detallada sobre multas pendientes, pagadas o en proceso.
+
+### Parámetros requeridos:
+```json
+{
+    "documento_placa": "1034567890",
+    "user_id": 123,
+    "status": "Consultando multas de tránsito..."
+}
+```
+
+### Detalles de parámetros:
+- **documento_placa** (string): Número de cédula colombiana (mínimo 6 dígitos, solo números) o placa del vehículo
+  - Formatos de cédula: 123456, 1234567, 12345678, 1034567890
+  - Formatos de placa válidos: 
+    - ABC123 (3 letras + 3 números)
+    - ABC12D (3 letras + 2 números + 1 letra)
+- **user_id** (integer): ID del usuario que está haciendo la consulta
+- **status** (string): Descripción de la tarea (ej: 'Consultando multas de tránsito...', 'Verificando infracciones...')
+
+---
+
+## 3. PROCESO DE EXPEDICIÓN DE PASAPORTE
+**Endpoint:** `/api/v1/gobernacion/passport-process/`
+**Método:** POST
+**Función:** explain_passport_process
+
+### Descripción:
+Explica detalladamente el proceso completo para obtener el pasaporte en la Gobernación del Atlántico. Genera una guía visual interactiva con información de costos, horarios, requisitos y carrusel de pasos.
+
+### Parámetros requeridos:
+```json
+{
+    "user_id": 123,
+    "status": "Explicando proceso de pasaporte..."
+}
+```
+
+### Parámetros opcionales:
+```json
+{
+    "auto_slide_interval": 4000
+}
+```
+
+### Detalles de parámetros:
+- **user_id** (integer): ID del usuario que solicita la explicación del proceso
+- **status** (string): Descripción de la tarea (ej: 'Explicando proceso de pasaporte...', 'Generando guía visual...')
+- **auto_slide_interval** (integer, opcional): Intervalo en milisegundos para el auto-avance del carrusel (por defecto 4000ms = 4 segundos)
+
+---
+
+## 4. EVENTOS EN UBICACIONES DEL ATLÁNTICO
+**Endpoint:** `/api/v1/gobernacion/events/`
+**Método:** POST
+**Función:** get_location_events
+
+### Descripción:
+Obtiene eventos que ocurren en una ubicación específica dentro del departamento del Atlántico usando Google Events. Retorna tanto visualización elegante como calendario interactivo para descubrimiento de eventos.
+
+### Parámetros requeridos:
+```json
+{
+    "location": "Barranquilla",
+    "event_query": "conciertos",
+    "user_id": 123,
+    "status": "Buscando eventos en Barranquilla"
+}
+```
+
+### Detalles de parámetros:
+- **location** (string): Ubicación para buscar eventos dentro del departamento del Atlántico (ciudad, barrio o área)
+  - Valores permitidos: "Barranquilla", "Puerto Colombia", "Soledad", "Malambo", etc.
+  - Por defecto: "Barranquilla"
+- **event_query** (string): Consulta opcional para refinar la búsqueda de eventos
+  - Ejemplos: 'conciertos', 'festivales', 'exposiciones'
+  - Por defecto: "Barranquilla"
+- **user_id** (integer): ID del usuario que hace la solicitud
+- **status** (string): Descripción de la tarea (ej: 'Buscando eventos en [ubicación]')
+
+---
+
+## 5. LUGARES TURÍSTICOS EN EL ATLÁNTICO
+**Endpoint:** `/api/v1/gobernacion/places/`
+**Método:** POST
+**Función:** get_location_places
+
+### Descripción:
+Descubre lugares para visitar y atracciones turísticas en una ubicación específica del departamento del Atlántico usando Google Local search. Retorna visualización elegante y guía interactiva para descubrimiento de lugares.
+
+### Parámetros requeridos:
+```json
+{
+    "location": "Barranquilla",
+    "user_id": 123,
+    "status": "Buscando lugares para visitar en Barranquilla",
+    "location_query": "sitios turísticos"
+}
+```
+
+### Detalles de parámetros:
+- **location** (string): Ubicación para buscar lugares dentro del departamento del Atlántico
+  - Valores permitidos: "Barranquilla" y "Puerto Colombia"
+  - Por defecto: "Barranquilla"
+- **user_id** (integer): ID del usuario que hace la solicitud
+- **status** (string): Descripción de la tarea (ej: 'Buscando lugares para visitar en [ubicación]')
+- **location_query** (string): Consulta opcional para refinar la búsqueda
+  - Ejemplos: 'atracciones turísticas', 'sitios históricos', 'lugares de interés'
+  - Por defecto: "Barranquilla"
+
+---
+
+## ENDPOINTS ADICIONALES
+
+### Health Check
+**Endpoint:** `/api/v1/gobernacion/health/`
+**Método:** GET
+**Descripción:** Verifica el estado de salud del servicio de gobernación
+
+### Available Functions
+**Endpoint:** `/api/v1/gobernacion/functions/`
+**Método:** GET
+**Descripción:** Retorna lista de funciones disponibles en el servicio
+
+---
+
+## NOTAS IMPORTANTES:
+
+
+2. **Content-Type:** Usar 'application/json' para requests POST
+3. **Idioma:** Los parámetros 'status' deben estar en el mismo idioma de la consulta del usuario
+4. **Validación:** Las placas y cédulas son validadas automáticamente por el sistema
+5. **Respuestas visuales:** Las funciones de eventos y lugares generan contenido visual que se muestra en pantalla
+6. **Municipios válidos:** Para eventos y lugares, usar municipios del departamento del Atlántico:
+   - Barranquilla, Soledad, Malambo, Puerto Colombia, Galapa, Sabanalarga, Baranoa, Juan de Acosta, Luruaco, Palmar de Varela, Santo Tomás, Tubará, Usiacurí
+
+### Ejemplo de uso completo:
+```bash
+curl -X POST https://tu-dominio.com/api/v1/gobernacion/faq/ \
+-H "Content-Type: application/json" \
+-d '{
+    "user_id": 123,
+    "question": "¿Cómo tramitar el servicio social obligatorio?",
+    "status": "Consultando información sobre servicio social obligatorio..."
+}'
+```

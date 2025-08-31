@@ -1,0 +1,598 @@
+# GPT-Realtime: Documentación Completa para Integración
+**Modelo:** `gpt-realtime` (Lanzado: 28 de agosto, 2025)
+**Estado:** Disponibilidad General (GA)
+
+## Resumen Ejecutivo
+
+El GPT-Realtime es el modelo de voz speech-to-speech más avanzado de OpenAI, diseñado para experiencias conversacionales en tiempo real con baja latencia. Ofrece capacidades mejoradas de seguimiento de instrucciones, function calling más preciso, y calidad de voz notablemente superior.
+
+### Mejoras Clave vs Modelo Anterior
+
+- **30.5%** en MultiChallenge audio benchmark (vs 20.6% del modelo anterior)
+- **82.8%** en Big Bench Audio evaluation (vs 65.6% anterior)
+- **66.5%** en ComplexFuncBench para function calling (vs 49.7% anterior)
+- **20% reducción** en precios comparado con gpt-4o-realtime-preview
+
+## Características Principales
+
+### Speech-to-Speech Nativo
+- Procesamiento directo de audio a audio sin pasos intermedios
+- Mantiene emociones, énfasis y acentos naturales
+- Latencia reducida comparado con enfoques encadenados (STT → LLM → TTS)
+
+### Nuevas Capacidades (Agosto 2025)
+- **Soporte de imágenes**: Input de screenshots, fotos durante sesiones de voz
+- **Model Context Protocol (MCP)**: Conexión remota con servidores MCP
+- **SIP Calling**: Integración directa con redes telefónicas y sistemas PBX
+- **Function calling asíncrono**: El modelo mantiene conversación mientras herramientas se ejecutan
+
+### Nuevas Voces
+- **Cedar** y **Marin**: Exclusivas del Realtime API
+- Todas las voces (10 total) mejoradas para mayor expresividad y rango natural
+
+## Integración de la API
+
+### Configuración Básica
+
+```javascript
+// WebSocket connection
+const ws = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-realtime');
+
+// Configuración de sesión
+const sessionConfig = {
+    type: "session.update",
+    session: {
+        model: "gpt-realtime",
+        voice: "alloy", // o "cedar", "marin", etc.
+        instructions: "Tu system prompt aquí",
+        tools: [], // Array de herramientas disponibles
+        temperature: 0.8,
+        max_response_output_tokens: 4096
+    }
+};
+
+ws.send(JSON.stringify(sessionConfig));
+```
+
+### Eventos de la API
+
+La API maneja comunicación bidireccional con:
+- **9 eventos del cliente** (client → server)
+- **28 eventos del servidor** (server → client)
+- Conexión WebSocket persistente para latencia mínima
+
+#### Eventos Principales del Cliente
+
+```javascript
+// Iniciar sesión
+{ type: "session.update", session: {...} }
+
+// Enviar audio
+{ type: "input_audio_buffer.append", audio: "base64_audio_data" }
+
+// Enviar texto
+{ type: "conversation.item.create", item: { type: "message", role: "user", content: "texto" } }
+
+// Solicitar respuesta
+{ type: "response.create" }
+
+// Enviar imagen
+{ 
+  type: "conversation.item.create", 
+  item: { 
+    type: "message", 
+    role: "user", 
+    content: [
+      { type: "text", text: "¿Qué ves en esta imagen?" },
+      { type: "image_url", image_url: { url: "data:image/jpeg;base64,..." } }
+    ]
+  } 
+}
+```
+
+### Control de Audio
+
+```javascript
+// Voice Activity Detection (VAD)
+const vadConfig = {
+    type: "session.update",
+    session: {
+        turn_detection: {
+            type: "server_vad",
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 500
+        }
+    }
+};
+
+// Push-to-talk (desactivar VAD)
+const pushToTalkConfig = {
+    type: "session.update",
+    session: {
+        turn_detection: null
+    }
+};
+```
+
+## Function Calling
+
+### Definición de Herramientas
+
+El modelo puede ejecutar function calls durante conversaciones de voz, proporcionando respuestas en tiempo real mientras accede a sistemas externos.
+
+```javascript
+const tools = [
+    {
+        name: "get_weather",
+        description: "Obtiene información del clima para una ubicación específica",
+        parameters: {
+            type: "object",
+            properties: {
+                location: {
+                    type: "string",
+                    description: "Ciudad o ubicación para consultar el clima"
+                }
+            },
+            required: ["location"]
+        }
+    },
+    {
+        name: "lookup_account",
+        description: "Busca cuenta de cliente por email o teléfono para verificación",
+        parameters: {
+            type: "object", 
+            properties: {
+                email_or_phone: { type: "string" }
+            },
+            required: ["email_or_phone"]
+        }
+    }
+];
+```
+
+### Manejo de Function Calls
+
+```javascript
+ws.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    
+    switch(message.type) {
+        case "response.function_call_arguments.done":
+            console.log(`Ejecutando función ${message.name} con args ${message.arguments}`);
+            
+            // 1. Extraer información de la función
+            const functionName = message.name;
+            const functionArgs = JSON.parse(message.arguments);
+            
+            // 2. Ejecutar función localmente
+            const result = await executeFunctions[functionName](functionArgs);
+            
+            // 3. Enviar resultado de vuelta al modelo
+            const functionOutput = {
+                type: "conversation.item.create",
+                item: {
+                    type: "function_call_output",
+                    role: "system",
+                    output: JSON.stringify(result)
+                }
+            };
+            ws.send(JSON.stringify(functionOutput));
+            
+            // 4. Solicitar respuesta
+            ws.send(JSON.stringify({type: "response.create"}));
+            break;
+    }
+};
+
+// Funciones disponibles
+const executeFunctions = {
+    get_weather: async (args) => {
+        // Implementación real de consulta climática
+        return { temperature: "22°C", condition: "Soleado" };
+    },
+    lookup_account: async (args) => {
+        // Consulta a base de datos
+        return { account_id: "12345", status: "active" };
+    }
+};
+```
+
+### Function Calling Asíncrono
+
+Una característica nueva es la capacidad de mantener conversación natural mientras las herramientas se ejecutan en segundo plano, mejorando la experiencia de usuario.
+
+```javascript
+// Configuración para respuestas concurrentes
+const sessionConfig = {
+    type: "session.update",
+    session: {
+        // El modelo puede hablar mientras espera resultados de herramientas
+        response_format: { type: "concurrent_audio_and_tools" }
+    }
+};
+```
+
+## Soporte de Imágenes
+
+### Envío de Imágenes
+
+El modelo puede procesar imágenes, screenshots y fotos durante sesiones de voz, permitiendo consultas visuales en tiempo real como "¿qué ves?" o "lee el texto de esta captura".
+
+```javascript
+// Conversión de imagen a base64
+function imageToBase64(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+    });
+}
+
+// Envío de imagen + texto
+async function sendImageMessage(imageFile, textPrompt) {
+    const imageBase64 = await imageToBase64(imageFile);
+    
+    const imageMessage = {
+        type: "conversation.item.create",
+        item: {
+            type: "message",
+            role: "user",
+            content: [
+                {
+                    type: "text", 
+                    text: textPrompt || "¿Qué ves en esta imagen?"
+                },
+                {
+                    type: "image_url",
+                    image_url: { url: imageBase64 }
+                }
+            ]
+        }
+    };
+    
+    ws.send(JSON.stringify(imageMessage));
+    ws.send(JSON.stringify({type: "response.create"}));
+}
+
+// Uso práctico
+sendImageMessage(screenshotFile, "Explícame lo que aparece en esta pantalla");
+```
+
+### Casos de Uso con Imágenes
+
+- **Soporte técnico**: Análisis de screenshots de errores
+- **Asistencia visual**: Lectura de documentos o menús
+- **Verificación**: Confirmación de información visual
+- **Educación**: Explicación de diagramas o contenido visual
+
+## System Prompts y Personalidad
+
+GPT-Realtime responde excepcionalmente bien a instrucciones detalladas de personalidad, tono y estilo conversacional, permitiendo experiencias altamente personalizadas.
+
+### Estructura Recomendada de System Prompt
+
+```markdown
+# Role & Objective
+- Quién eres y qué significa "éxito" para la tarea
+- Definición clara del propósito del agente
+
+# Personality & Tone
+## Personality
+- Amigable, calmado y experto en servicio al cliente
+
+## Tone  
+- Cálido, conciso, confiado, nunca servil
+
+## Length
+- 2-3 oraciones por turno
+
+## Pacing
+- Entrega respuesta rápida, pero sin sonar apresurado
+- No modifiques contenido, solo aumenta velocidad de habla
+
+# Context
+- Información contextual relevante
+- Datos recuperados de sistemas externos
+
+# Reference Pronunciations
+- Pronuncia "SQL" como "sequel"
+- Pronuncia "PostgreSQL" como "post-gress"
+- Pronuncia "Kyiv" como "KEE-iv"
+
+# Tools
+- Nombres de herramientas, reglas de uso
+- Instrucciones de cuándo usar cada herramienta
+
+# Instructions / Rules
+## Behavior
+- Siempre llama herramientas antes de responder preguntas factuales
+- No repitas la misma frase dos veces
+- Varía respuestas para no sonar robótico
+
+## Audio Handling
+- Solo responde a audio claro o texto
+- Si audio no es claro, pide clarificación
+- Mantén el idioma del usuario
+
+# Conversation Flow
+## Estado 1: Saludo
+- Identifícate como [Empresa]
+- Mantén saludo breve
+- Invita al objetivo del usuario
+
+## Estado 2: Descubrimiento  
+- Clasifica el problema
+- Recopila detalles mínimos necesarios
+
+# Safety & Escalation
+- Escala por: riesgo de seguridad, solicitud explícita, insatisfacción severa
+- Frase obligatoria: "Conectándote con un especialista"
+```
+
+### Control de Personalidad Avanzado
+
+El modelo puede seguir instrucciones muy específicas de personalidad y cambios emocionales durante la conversación.
+
+```markdown
+# Personality & Tone
+## Dynamic Personality
+- Comienza la respuesta muy feliz
+- A la mitad, cambia a triste  
+- Al final cambia tu estado de ánimo a muy enojado
+
+## Language Control
+### Explicaciones
+- Usa inglés para explicar gramática, vocabulario o contexto cultural
+
+### Conversación
+- Habla en francés para práctica, ejemplos o diálogo
+
+## Voice Instructions
+- Para consultas urgentes: "habla rápido y profesionalmente"
+- Para soporte emocional: "habla empáticamente con acento francés"
+- Para instrucciones técnicas: "habla lento y claro"
+```
+
+### Frases de Ejemplo y Variaciones
+
+Para evitar respuestas robóticas, incluye frases de ejemplo pero instruye variación.
+
+```markdown
+# Sample Phrases  
+- NO uses siempre estos ejemplos, VARÍA tus respuestas
+
+## Reconocimientos
+- "Entendido", "Un momento", "Buena pregunta"
+
+## Aclaraciones  
+- "¿Prefieres A o B?", "¿Cuál es la prioridad?"
+
+## Transiciones
+- "Aquí está el plan rápido", "Mantengámoslo simple"
+
+## Empatía (breve)
+- "Es frustrante, arreglémoslo"
+
+## Cierres
+- "¿Algo más antes de terminar?", "Feliz de ayudar la próxima vez"
+
+# Variety Rules
+- No repitas la misma oración dos veces
+- Varía respuestas para no sonar robótico  
+- Usa sinónimos y estructuras alternativas
+```
+
+### Configuración de Conversación Compleja
+
+Para casos de uso avanzados, se pueden definir estados de conversación estructurados con transiciones claras.
+
+```json
+{
+  "conversation_states": [
+    {
+      "id": "1_greeting",
+      "description": "Comenzar conversación con saludo cálido",
+      "instructions": [
+        "Usar nombre de empresa 'Snowy Peak Boards'",
+        "Mencionar que necesitarás detalles de verificación"
+      ],
+      "examples": [
+        "Hola, hablas con Snowy Peak Boards. ¿Cómo puedo ayudarte hoy?"
+      ],
+      "transitions": [
+        {
+          "next_step": "2_get_first_name",
+          "condition": "Una vez completado el saludo"
+        }
+      ]
+    },
+    {
+      "id": "2_get_first_name", 
+      "description": "Solicitar nombre del usuario",
+      "instructions": [
+        "Preguntar cortésmente: '¿Con quién tengo el placer de hablar?'",
+        "NO verificar ni deletrear el nombre"
+      ],
+      "transitions": [
+        {
+          "next_step": "3_verify_phone",
+          "condition": "Una vez obtenido el nombre"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Precios y Costos
+
+**Reducción del 20%** comparado con gpt-4o-realtime-preview:
+
+### Estructura de Precios
+
+| Tipo | Precio | Precio con Cache |
+|------|--------|------------------|
+| **Audio Input** | $32 / 1M tokens | $0.40 / 1M tokens |
+| **Audio Output** | $64 / 1M tokens | - |
+| **Text Input** | $5 / 1M tokens | $2.50 / 1M tokens |
+| **Text Output** | $20 / 1M tokens | - |
+
+### Equivalencias Aproximadas
+- **Audio Input**: ~$0.06 por minuto
+- **Audio Output**: ~$0.24 por minuto
+
+Las imágenes se convierten en tokens y se facturan a tarifas separadas para gpt-realtime, usando tasas específicas para tokens de imagen.
+
+## Integración con Sistemas Externos
+
+### Model Context Protocol (MCP)
+
+Nueva capacidad para conectar con servidores MCP remotos, permitiendo acceso plug-and-play a capacidades externas.
+
+```javascript
+// Configuración MCP
+const mcpConfig = {
+    type: "session.update", 
+    session: {
+        mcp_servers: [
+            {
+                name: "customer_db",
+                url: "https://api.empresa.com/mcp",
+                auth: { token: "bearer_token" }
+            }
+        ]
+    }
+};
+```
+
+### SIP Calling Integration
+
+Conexión directa con redes telefónicas, sistemas PBX y teléfonos de escritorio.
+
+```javascript
+// Configuración SIP
+const sipConfig = {
+    type: "session.update",
+    session: {
+        sip: {
+            server: "sip.empresa.com",
+            username: "voice_agent",
+            password: "password",
+            extension: "1001"
+        }
+    }
+};
+```
+
+## Mejores Prácticas
+
+### Optimización de Latencia
+
+1. **VAD Configurado**: Ajusta umbrales de Voice Activity Detection
+2. **Function Calling Asíncrono**: Permite respuestas concurrentes
+3. **Cache de Contexto**: Usa cached tokens para conversaciones largas
+4. **Audio Buffering**: Implementa buffers apropiados para streaming
+
+### Control de Costos
+
+```javascript
+// Límites de tokens por respuesta
+const costControl = {
+    type: "session.update",
+    session: {
+        max_response_output_tokens: 2000, // Limitar respuesta
+        context_window_tokens: 8000,      // Truncar contexto antiguo
+        truncate_multiple_turns: true     // Remover turnos antiguos
+    }
+};
+```
+
+### Monitoreo y Debug
+
+```javascript
+// Logging de eventos importantes
+ws.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    
+    // Log para debugging
+    if (message.type.includes('error')) {
+        console.error('Realtime API Error:', message);
+    }
+    
+    if (message.type === 'response.audio.delta') {
+        // Procesar audio incremental
+        processAudioDelta(message.delta);
+    }
+    
+    if (message.type === 'response.done') {
+        // Log de métricas de uso
+        console.log('Tokens utilizados:', message.response.usage);
+    }
+};
+```
+
+## Casos de Uso Comunes
+
+### Agente de Soporte al Cliente
+
+Optimizado para seguir scripts específicos, leer disclaimers palabra por palabra, y cambiar fluidamente entre idiomas en la misma oración.
+
+```javascript
+const customerSupportPrompt = `
+# Role & Objective
+Eres un agente de soporte experto para TechCorp, especializado en resolver problemas técnicos y de cuenta.
+
+# Personality & Tone
+- Profesional pero empático
+- Conciso y orientado a soluciones
+- 1-2 oraciones por respuesta en resolución activa
+
+# Tools Usage
+## lookup_account - PROACTIVO
+- Usar inmediatamente al recibir email/teléfono
+- No pedir confirmación
+
+## escalate_to_human - CON FRASES OBLIGATORIAS  
+- "Te conecto con un especialista" antes de llamar herramienta
+- Escalar por: 2 intentos fallidos, frustración explícita, solicitud directa
+
+# Conversation Flow
+1. Saludo → identificar problema
+2. Recopilar info → verificar cuenta  
+3. Diagnosticar → resolver/escalar
+4. Confirmar solución → cerrar
+`;
+```
+## Limitaciones y Consideraciones
+
+
+### Recomendaciones de Implementación
+
+1. **Siempre incluir botones** de "Silencio" y "Forzar Respuesta"
+2. **Implementar fallbacks** para casos de audio poco claro
+3. **Monitorear métricas** de latencia y calidad
+4. **Probar en entornos ruidosos** antes de producción
+5. **Configurar límites** de costo y uso apropiados
+
+## Recursos Adicionales
+
+### Documentación Oficial
+- [Realtime API Docs](https://platform.openai.com/docs/guides/realtime)
+- [Realtime Prompting Guide](https://cookbook.openai.com/examples/realtime_prompting_guide)  
+- [Function Calling Guide](https://platform.openai.com/docs/guides/function-calling)
+
+### Herramientas y SDKs
+- [Realtime Console Demo](https://github.com/openai/openai-realtime-console)
+- OpenAI Python SDK (próxima integración oficial)
+- OpenAI Node.js SDK (próxima integración oficial)
+
+### Ejemplos de Código Completo
+- Simple Realtime Console (demo minimalista)
+- Integración con Twilio para llamadas telefónicas
+- Pipecat para aplicaciones de producción
+
+---
+
+*Documentación actualizada para GPT-Realtime (28 de agosto, 2025)*
+*Para soporte adicional: [OpenAI Support](https://support.anthropic.com)*
