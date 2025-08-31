@@ -694,6 +694,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       const customInstructions = getRealtimeInstructions();
       console.log(`📋 Usando prompt personalizado de NAIA ${ROLE_NAMES[currentRoleId]} para Realtime API`);
       
+      // 1. Crear sesión Realtime con toda la configuración (ÚNICO POST)
       const sessionResp = await fetch("https://api.openai.com/v1/realtime/sessions", {
         method: "POST",
         headers: {
@@ -716,10 +717,10 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
 
       const session = await sessionResp.json();
       sessionRef.current = session;
-      console.log("✅ Sesión Realtime creada:", session);
-      console.log("📋 Instrucciones enviadas en sesión:", customInstructions.substring(0, 200) + "...");
+      console.log("✅ Sesión Realtime creada con instructions y tools:", session);
 
-      // 2. Crear conexión WebRTC
+      // 2. Crear conexión WebRTC (MEJOR que WebSocket para audio)
+      console.log('🔗 Conectando via WebRTC (mejor calidad de audio)');
       const pc = new RTCPeerConnection();
       peerConnectionRef.current = pc;
 
@@ -753,146 +754,55 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       
       dc.onopen = () => {
         setIsRealtimeConnected(true);
-        console.log('✅ Canal de datos conectado');
-        
-        // REFUERZO INMEDIATO + PROCESAMIENTO FORZADO (método correcto)
-        setTimeout(() => {
-          try {
-            console.log('🎯 Iniciando refuerzo de identidad NAIA (método correcto)...');
-            
-            // PASO 1: Refuerzo de identidad como USER (funciona en Realtime API)
-            const naiaIdentityReminder = {
-              type: "conversation.item.create",
-              item: {
-                type: "message",
-                role: "user",  // 👈 Cambio crítico: user en lugar de system
-                content: [
-                  {
-                    type: "text", 
-                    text: `Recuerda: siempre eres NAIA de la Universidad del Norte en Barranquilla, Colombia. Tu identidad es fija y nunca cambies a ChatGPT o asistente genérico. Tu rol actual es ${ROLE_NAMES[localStorage.getItem('naia_selected_role') || 'researcher']}. Preséntate como NAIA en este rol específico.`
-                  }
-                ]
-              }
-            };
-            
-            // Enviar el refuerzo como user message  
-            dc.send(JSON.stringify(naiaIdentityReminder));
-            console.log('✅ PASO 1: Refuerzo de identidad NAIA enviado como USER (compatible con Realtime API)');
-            
-            // PASO 2: FORZAR procesamiento inmediato con response.create
-            setTimeout(() => {
-              const forceProcessing = {
-                type: "response.create",
-                response: {
-                  instructions: "Responde al recordatorio de identidad NAIA. Confirma que eres NAIA, investigadora de la Universidad del Norte, como se te ha recordado.",
-                  modalities: ["audio", "text"]
-                }
-              };
-              
-              dc.send(JSON.stringify(forceProcessing));
-              console.log('✅ PASO 2: Procesamiento forzado de identidad NAIA - el modelo debe responder');
-              
-            }, 200); // Delay mínimo para que el user message se procese primero
-            
-          } catch (error) {
-            console.error('❌ Error en refuerzo de identidad:', error);
-          }
-        }, 1500); // Delay para que la conexión se establezca completamente
+        console.log('✅ Canal de datos conectado - sesión ya configurada correctamente');
       };
       
       dc.onmessage = (event) => {
-        // Procesamiento básico + interceptación muy selectiva
         try {
           const eventData = JSON.parse(event.data);
+          console.log('📩 Evento del modelo:', eventData.type);
           
-          // NUEVO: Manejo de function calls del GPT-Realtime 2025
+          // Manejo de function calls del GPT-Realtime 2025
           if (eventData.type === "response.function_call_arguments.done") {
-            console.log(`🔧 Function call detectado: ${eventData.name} con argumentos:`, eventData.arguments);
+            console.log(`🔧 Function call detectado: ${eventData.name}`, eventData.arguments);
             executeFunctionCall(eventData.name, eventData.arguments, dataChannelRef.current);
           }
 
-          // MÉTODO 3: Interceptación selectiva SOLO para el primer response.done
-          // (para casos donde el modelo ya respondió con identidad incorrecta)
-          if (eventData.type === "response.done" && eventData.response?.status === "completed") {
-            // Solo reforzar si es la PRIMERA respuesta completada (para evitar bucles)
-            if (!window.naiaFirstResponseProcessed) {
-              window.naiaFirstResponseProcessed = true;
-              
-              // REFUERZO POST-RESPUESTA: conversation.item.create + response.create
-              setTimeout(() => {
-                try {
-                  console.log('🔄 Aplicando refuerzo post-respuesta para asegurar persistencia...');
-                  
-                  // PASO 1: Refuerzo como USER (compatible con Realtime API)
-                  const postResponseReminder = {
-                    type: "conversation.item.create", 
-                    item: {
-                      type: "message",
-                      role: "user",  // 👈 Cambio crítico: user en lugar de system
-                      content: [{
-                        type: "text",
-                        text: `Recuerda que eres NAIA de la Universidad del Norte en Barranquilla, Colombia. Tu rol es ${ROLE_NAMES[localStorage.getItem('naia_selected_role') || 'researcher']}. Mantén esta identidad específica en todas las respuestas futuras.`
-                      }]
-                    }
-                  };
-                  
-                  dc.send(JSON.stringify(postResponseReminder));
-                  console.log('✅ PASO 1: Refuerzo post-respuesta enviado como USER (compatible)');
-                  
-                  // PASO 2: Forzar procesamiento (sin generar respuesta audible)
-                  setTimeout(() => {
-                    const processReinforcement = {
-                      type: "response.create",
-                      response: {
-                        instructions: "Confirma brevemente que has entendido el recordatorio de identidad NAIA. Respuesta muy corta.",
-                        modalities: ["text"], // Solo texto para evitar audio extra
-                        max_output_tokens: 5 // Respuesta mínima
-                      }
-                    };
-                    
-                    dc.send(JSON.stringify(processReinforcement));
-                    console.log('✅ PASO 2: Procesamiento silencioso del refuerzo completado');
-                  }, 300);
-                  
-                } catch (err) {
-                  console.error('❌ Error en refuerzo post-respuesta:', err);
-                }
-              }, 2000);
-            }
-          }
-          
-          // Eventos de audio para lipsync - procesar normalmente
+          // Eventos de audio para lipsync
           if (eventData.type === "response.audio.delta" || eventData.type === "response.audio.done") {
             window.dispatchEvent(new CustomEvent('realtime-animation', {
               detail: {
                 audioData: eventData,
                 lipsync: generateDynamicLipsync(eventData),
-                animation: 'realtime-audio'
+                animation: 'Talking_0'
               }
             }));
           }
           
-          // Log limpio de eventos críticos
-          if (['error', 'response.done', 'session.created'].includes(eventData.type)) {
-            console.log("📩 Evento:", eventData.type);
+          if (eventData.type === 'response.done') {
+            console.log('✅ Respuesta completada');
+            setIsProcessing(false);
+          }
+
+          if (eventData.type === 'error') {
+            console.error('❌ Error del modelo:', eventData.error);
           }
           
         } catch (parseError) {
-          // Si no se puede parsear, continúa normal
+          console.error('Error parseando mensaje:', parseError);
         }
       };
 
-      // 6. Crear oferta local
+      // 6. Crear oferta local y conectar WebRTC con sesión existente
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      // 7. Enviar SDP a OpenAI
-      const sdpResp = await fetch(`https://api.openai.com/v1/realtime?model=gpt-realtime`, {
+      // 7. USAR LA SESIÓN EXISTENTE - NO crear nueva instancia
+      const sdpResp = await fetch(`https://api.openai.com/v1/realtime/sessions/${session.id}/sdp`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
           "Content-Type": "application/sdp",
-          "OpenAI-Beta": "realtime=v1",
         },
         body: offer.sdp,
       });
@@ -943,11 +853,13 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
         audioListenersRef.current = { play: null, ended: null, pause: null };
       }
       
+      // Cerrar canal de datos
       if (dataChannelRef.current) {
         dataChannelRef.current.close();
         dataChannelRef.current = null;
       }
       
+      // Cerrar conexión WebRTC
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
         peerConnectionRef.current = null;
