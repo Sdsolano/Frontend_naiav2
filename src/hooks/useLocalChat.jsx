@@ -89,9 +89,9 @@ export const useLocalChat = () => {
 
   // Función simple para aplicar UNA animación random cuando empieza el audio
   const applyTalkingAnimation = useCallback(() => {
-    const animation = getRandomTalkingAnimation();
+      const animation = getRandomTalkingAnimation();
     const timestamp = new Date().toLocaleTimeString();
-    
+      
     console.log(`🎭 [${timestamp}] INICIANDO animación para Realtime: ${animation}`);
     setIsRealtimeSpeaking(true);
     
@@ -693,49 +693,39 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       const customInstructions = getRealtimeInstructions();
       console.log(`📋 Usando prompt personalizado de NAIA ${ROLE_NAMES[currentRoleId]} para Realtime API`);
       
-      // 1. CREAR SESIÓN PRIMERO via HTTP (oficial 2025)
-      console.log('📡 Creando sesión HTTP antes de WebSocket');
-      const sessionResp = await fetch("https://api.openai.com/v1/realtime/sessions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-          "OpenAI-Beta": "realtime=v1"
-        },
-        body: JSON.stringify({
-          model: "gpt-realtime",
-          voice: realtimeVoice,
-          instructions: customInstructions,
-          tools: getToolsForRole(currentRoleId),
-          temperature: 0.8,
-          max_response_output_tokens: 4096,
-          turn_detection: {
-            type: "server_vad",
-            threshold: 0.5,
-            prefix_padding_ms: 300,
-            silence_duration_ms: 500
-          }
-        }),
-      });
-
-      if (!sessionResp.ok) {
-        const errorText = await sessionResp.text();
-        throw new Error(`Error creando sesión: ${sessionResp.status} - ${errorText}`);
-      }
-
-      const session = await sessionResp.json();
-      console.log("✅ Sesión HTTP creada:", session);
-
-      // 2. Conectar WebSocket usando el ID de sesión
-      const wsUrl = `wss://api.openai.com/v1/realtime/sessions/${session.id}`;
-      console.log('🔗 Conectando WebSocket con sesión autenticada:', wsUrl);
+      // 1. Conectar WebSocket con API key como query parameter (método correcto)
+      console.log('🔗 Conectando WebSocket con API key en query - método correcto');
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-realtime&api_key=${OPENAI_API_KEY}`;
       const ws = new WebSocket(wsUrl);
       
       wsRef.current = ws;
 
-      // 3. WebSocket conectado (sesión ya autenticada via HTTP)
+      // 2. Configurar sesión VIA WebSocket una vez conectado
       ws.onopen = () => {
-        console.log('✅ WebSocket conectado - sesión ya autenticada y configurada');
+        console.log('✅ WebSocket conectado - enviando configuración completa');
+        
+        // Configurar toda la sesión vía session.update (método oficial)
+        const sessionConfig = {
+          type: "session.update",
+          session: {
+            model: "gpt-realtime",
+            voice: realtimeVoice,
+            instructions: customInstructions,
+            tools: getToolsForRole(currentRoleId),
+            temperature: 0.8,
+            max_response_output_tokens: 4096,
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 500
+            }
+          }
+        };
+
+        ws.send(JSON.stringify(sessionConfig));
+        console.log('📋 Configuración enviada - NAIA configurada con instructions y tools');
+        
         setIsRealtimeConnected(true);
       };
 
