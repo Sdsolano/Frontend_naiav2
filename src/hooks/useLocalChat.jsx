@@ -10,6 +10,7 @@ import { getCurrentRoleConfig, ROLE_NAMES } from '../utils/roleUtils';
 export const useLocalChat = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+  const [functionResults, setFunctionResults] = useState(null);
   const abortControllerRef = useRef(null);
   
   // Realtime API refs
@@ -91,9 +92,7 @@ export const useLocalChat = () => {
   // Función simple para aplicar UNA animación random cuando empieza el audio
   const applyTalkingAnimation = useCallback(() => {
       const animation = getRandomTalkingAnimation();
-    const timestamp = new Date().toLocaleTimeString();
       
-    console.log(`🎭 [${timestamp}] INICIANDO animación para Realtime: ${animation}`);
     setIsRealtimeSpeaking(true);
     
     // Generar lipsync dinámico
@@ -109,8 +108,6 @@ export const useLocalChat = () => {
       timestamp: Date.now()
     };
     
-    console.log(`💋 [${timestamp}] Audio iniciado - aplicando ${animation} con lipsync dinámico`);
-    
         // Enviar evento al Avatar
         window.dispatchEvent(new CustomEvent('realtime-animation', { 
           detail: animationMessage 
@@ -120,8 +117,6 @@ export const useLocalChat = () => {
 
   // Función simple para volver a Idle cuando termina el audio
   const applyIdleAnimation = useCallback(() => {
-    const timestamp = new Date().toLocaleTimeString();
-    console.log(`💤 [${timestamp}] FINALIZANDO audio - volviendo a Idle`);
     setIsRealtimeSpeaking(false);
     isCurrentlyTalkingRef.current = false;
     
@@ -146,8 +141,6 @@ export const useLocalChat = () => {
       timestamp: Date.now()
     };
     
-    console.log(`💤 [${timestamp}] Audio terminado - aplicando Idle con boca cerrada`);
-    
     // Enviar evento al Avatar
     window.dispatchEvent(new CustomEvent('realtime-animation', { 
       detail: idleMessage 
@@ -170,14 +163,12 @@ export const useLocalChat = () => {
       const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
       
       const now = Date.now();
-      const timestamp = new Date().toLocaleTimeString();
       
       if (average > VOLUME_THRESHOLD) {
         // HAY AUDIO REAL
         lastVolumeTimeRef.current = now;
         
         if (!isCurrentlyTalkingRef.current) {
-          console.log(`🔊 [${timestamp}] VOLUMEN DETECTADO (${average.toFixed(1)}) - iniciando animación`);
           isCurrentlyTalkingRef.current = true;
           applyTalkingAnimation();
         }
@@ -187,7 +178,6 @@ export const useLocalChat = () => {
         const silenceDuration = now - lastVolumeTimeRef.current;
         
         if (isCurrentlyTalkingRef.current && silenceDuration > SILENCE_TIMEOUT) {
-          console.log(`💤 [${timestamp}] SILENCIO por ${silenceDuration}ms - volviendo a Idle`);
           applyIdleAnimation();
         }
       }
@@ -195,16 +185,12 @@ export const useLocalChat = () => {
     
     // Monitorear cada 100ms
     volumeCheckIntervalRef.current = setInterval(checkVolume, 100);
-    console.log(`⏰ Monitoring de volumen iniciado (cada 100ms, umbral: ${VOLUME_THRESHOLD}, timeout: ${SILENCE_TIMEOUT}ms)`);
     
   }, [applyTalkingAnimation, applyIdleAnimation]);
 
   // Función para configurar detección de volumen
   const setupVolumeDetection = useCallback((audioStream) => {
     try {
-      const timestamp = new Date().toLocaleTimeString();
-      console.log(`🔊 [${timestamp}] Configurando detección de volumen...`);
-      
       // Crear AudioContext y analyser
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const analyser = audioContext.createAnalyser();
@@ -221,8 +207,6 @@ export const useLocalChat = () => {
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
       
-      console.log(`✅ [${timestamp}] Web Audio API configurado exitosamente`);
-      
       // Iniciar monitoreo de volumen
       startVolumeMonitoring();
       
@@ -233,173 +217,26 @@ export const useLocalChat = () => {
 
   // Función para limpiar detección de volumen
   const cleanupVolumeDetection = useCallback(() => {
-    const timestamp = new Date().toLocaleTimeString();
-    console.log(`🧹 [${timestamp}] Limpiando detección de volumen...`);
     console.trace('Stack trace para cleanup de detección de volumen');
     
     // Limpiar interval
     if (volumeCheckIntervalRef.current) {
-      console.log(`🧹 [${timestamp}] Limpiando interval ID: ${volumeCheckIntervalRef.current}`);
       clearInterval(volumeCheckIntervalRef.current);
       volumeCheckIntervalRef.current = null;
-    } else {
-      console.log(`⚠️ [${timestamp}] No había interval activo para limpiar`);
     }
     
     // Limpiar Web Audio API
     if (audioContextRef.current) {
-      console.log(`🧹 [${timestamp}] Cerrando AudioContext`);
       audioContextRef.current.close();
       audioContextRef.current = null;
-    } else {
-      console.log(`⚠️ [${timestamp}] No había AudioContext activo para cerrar`);
     }
     
     analyserRef.current = null;
     lastVolumeTimeRef.current = 0;
     isCurrentlyTalkingRef.current = false;
     
-    console.log(`✅ [${timestamp}] Detección de volumen limpiada`);
   }, []);
 
-  // Configuración de herramientas por rol para GPT-Realtime
-  const getToolsForRole = (roleId) => {
-    if (roleId === 'ciudadano') {
-      return [
-        {
-          type: "function",
-          name: "frequently_asked_questions",
-          description: "Responde preguntas frecuentes de la Gobernación del Atlántico usando la base de conocimiento oficial. Busca información específica sobre servicios, trámites y procesos gubernamentales del departamento del Atlántico.",
-          parameters: {
-            type: "object",
-            properties: {
-              user_id: {
-                type: "integer",
-                description: "ID del usuario que está haciendo la consulta"
-              },
-              question: {
-                type: "string",
-                description: "La pregunta específica del usuario sobre servicios, trámites o procesos de la Gobernación del Atlántico"
-              },
-              status: {
-                type: "string",
-                description: "Descripción concisa de la tarea usando verbos conjugados (ej: 'Consultando información oficial...', 'Buscando en base de conocimiento...')"
-              }
-            },
-            required: ["user_id", "question", "status"]
-          }
-        },
-        {
-          type: "function",
-          name: "search_traffic_fines",
-          description: "Consulta multas de tránsito en el departamento del Atlántico utilizando número de cédula o placa del vehículo. Retorna información detallada sobre multas pendientes, pagadas o en proceso.",
-          parameters: {
-            type: "object",
-            properties: {
-              documento_placa: {
-                type: "string",
-                description: "Número de cédula colombiana (mínimo 6 dígitos, solo números) o placa del vehículo. Formatos válidos: ABC123 (3 letras + 3 números) o ABC12D (3 letras + 2 números + 1 letra)"
-              },
-              user_id: {
-                type: "integer",
-                description: "ID del usuario que está haciendo la consulta"
-              },
-              status: {
-                type: "string",
-                description: "Descripción de la tarea (ej: 'Consultando multas de tránsito...', 'Verificando infracciones...')"
-              }
-            },
-            required: ["documento_placa", "user_id", "status"]
-          }
-        },
-        {
-          type: "function",
-          name: "explain_passport_process",
-          description: "Explica detalladamente el proceso completo para obtener el pasaporte en la Gobernación del Atlántico. Genera una guía visual interactiva con información de costos, horarios, requisitos y carrusel de pasos.",
-          parameters: {
-            type: "object",
-            properties: {
-              user_id: {
-                type: "integer",
-                description: "ID del usuario que solicita la explicación del proceso"
-              },
-              status: {
-                type: "string",
-                description: "Descripción de la tarea (ej: 'Explicando proceso de pasaporte...', 'Generando guía visual...')"
-              },
-              auto_slide_interval: {
-                type: "integer",
-                description: "Intervalo en milisegundos para el auto-avance del carrusel (por defecto 4000ms = 4 segundos)",
-                default: 4000
-              }
-            },
-            required: ["user_id", "status"]
-          }
-        },
-        {
-          type: "function",
-          name: "get_location_events",
-          description: "Obtiene eventos que ocurren en una ubicación específica dentro del departamento del Atlántico usando Google Events. Retorna tanto visualización elegante como calendario interactivo para descubrimiento de eventos.",
-          parameters: {
-            type: "object",
-            properties: {
-              location: {
-                type: "string",
-                description: "Ubicación para buscar eventos dentro del departamento del Atlántico (ciudad, barrio o área). Valores permitidos: 'Barranquilla', 'Puerto Colombia', 'Soledad', 'Malambo', etc.",
-                default: "Barranquilla"
-              },
-              event_query: {
-                type: "string",
-                description: "Consulta opcional para refinar la búsqueda de eventos. Ejemplos: 'conciertos', 'festivales', 'exposiciones'",
-                default: "Barranquilla"
-              },
-              user_id: {
-                type: "integer",
-                description: "ID del usuario que hace la solicitud"
-              },
-              status: {
-                type: "string",
-                description: "Descripción de la tarea (ej: 'Buscando eventos en [ubicación]')"
-              }
-            },
-            required: ["location", "event_query", "user_id", "status"]
-          }
-        },
-        {
-          type: "function",
-          name: "get_location_places",
-          description: "Descubre lugares para visitar y atracciones turísticas en una ubicación específica del departamento del Atlántico usando Google Local search. Retorna visualización elegante y guía interactiva para descubrimiento de lugares.",
-          parameters: {
-            type: "object",
-            properties: {
-              location: {
-                type: "string",
-                description: "Ubicación para buscar lugares dentro del departamento del Atlántico. Valores permitidos: 'Barranquilla' y 'Puerto Colombia'",
-                default: "Barranquilla"
-              },
-              user_id: {
-                type: "integer",
-                description: "ID del usuario que hace la solicitud"
-              },
-              status: {
-                type: "string",
-                description: "Descripción de la tarea (ej: 'Buscando lugares para visitar en [ubicación]')"
-              },
-              location_query: {
-                type: "string",
-                description: "Consulta opcional para refinar la búsqueda. Ejemplos: 'atracciones turísticas', 'sitios históricos', 'lugares de interés'",
-                default: "Barranquilla"
-              }
-            },
-            required: ["location", "user_id", "status", "location_query"]
-          }
-        }
-      ];
-    }
-    
-    // Para otros roles, sin herramientas por ahora
-    return [];
-  };
 
   // Ejecutar function calls y comunicarse con el backend
   const executeFunctionCall = async (functionName, functionArgs, callId, dataChannel) => {
@@ -447,12 +284,17 @@ export const useLocalChat = () => {
       const result = await response.json();
       console.log(`✅ Resultado de ${functionName}:`, result);
 
+      // 🎯 ACTUALIZAR ESTADO PARA MOSTRAR EN FunctionResultsDisplay
+      console.log('🔍 [DEBUG] Actualizando functionResults con:', result);
+      setFunctionResults(result);
+      console.log('🔍 [DEBUG] setFunctionResults llamado exitosamente');
+
       // Enviar resultado de vuelta al modelo via data channel (según documentación oficial)
       const functionOutput = {
         type: "conversation.item.create",
         item: {
           type: "function_call_output", 
-          call_id: callId, // ✅ Usar call_id que viene del modelo
+          call_id: callId, 
           output: JSON.stringify(result)
         }
       };
@@ -731,7 +573,6 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       const audioElement = audioRef.current || document.createElement("audio");
       audioElement.autoplay = true;
       pc.ontrack = (e) => {
-        console.log('🔊 Stream de audio entrante recibido');
         audioElement.srcObject = e.streams[0];
         
         // Setup volume detection for animations
@@ -753,25 +594,13 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       dc.onopen = () => {
         console.log('✅ Data Channel abierto');
         setIsRealtimeConnected(true);
-        
-        // Enviar instrucciones NAIA via DataChannel (workaround)
-        console.log('📋 Enviando instrucciones NAIA via DataChannel...');
-        const sessionUpdate = {
-          type: "session.update",
-          session: {
-            instructions: customInstructions,
-            tools: getToolsForRole(currentRoleId),
-            turn_detection: {
-              type: "server_vad",
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 200
-            }
-          }
-        };
-        
-        dc.send(JSON.stringify(sessionUpdate));
+      
         console.log('📡 NAIA WebRTC conectada con instrucciones configuradas');
+        
+        // Inicializar sessionRef para function calls
+        sessionRef.current = {
+          currentFunctionCall: null
+        };
       };
 
       dc.onmessage = (event) => {
@@ -791,8 +620,54 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
                 }
               }));
               break;
+
+            // 🔧 NUEVOS EVENTOS PARA FUNCTION CALLING
+            case 'response.output_item.added':
+              console.log('📦 Nuevo item de salida agregado:', data.item?.type);
+              if (data.item?.type === 'function_call') {
+                console.log('🔧 Function call iniciado:', data.item?.name);
+                // Guardar información del function call para ejecutar después
+                sessionRef.current = {
+                  ...sessionRef.current,
+                  currentFunctionCall: {
+                    name: data.item?.name,
+                    call_id: data.item?.call_id
+                  }
+                };
+              }
+              break;
+
+            case 'conversation.item.added':
+              console.log('💬 Item agregado a conversación:', data.item?.type);
+              break;
+
+            case 'response.function_call_arguments.delta':
+              // Los argumentos se construyen en streaming - solo log si necesitas debug
+              // console.log('📝 Delta de argumentos:', data.delta);
+              break;
+
+            case 'response.function_call_arguments.done':
+              console.log('✅ Argumentos de función completados:', data.arguments);
+              
+              // 🚀 EJECUTAR LA FUNCIÓN AQUÍ - ya tenemos toda la información
+              if (sessionRef.current?.currentFunctionCall) {
+                const funcCall = sessionRef.current.currentFunctionCall;
+                console.log(`🔧 EJECUTANDO función inmediatamente: ${funcCall.name}`);
+                console.log(`🆔 Call ID: ${funcCall.call_id}`);
+                console.log(`📋 Argumentos: ${JSON.stringify(data.arguments)}`);
+                
+                executeFunctionCall(funcCall.name, data.arguments, funcCall.call_id, dc);
+                
+                // Limpiar la información guardada
+                sessionRef.current.currentFunctionCall = null;
+              } else {
+                console.warn('⚠️ Argumentos completados pero no hay function call guardado');
+              }
+              break;
               
             case 'response.done':
+              console.log('🏁 Respuesta completada, verificando function calls...');
+              
               // Verificar si la respuesta contiene function call (según documentación oficial)
               if (data.response?.output?.[0]?.type === 'function_call') {
                 const funcCall = data.response.output[0];
@@ -826,7 +701,6 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
 
       // 7. Configurar audio entrante
       pc.ontrack = (event) => {
-        console.log('🔊 Stream de audio entrante recibido');
         const audioElement = audioRef.current;
         if (audioElement && event.streams[0]) {
           audioElement.srcObject = event.streams[0];
@@ -895,7 +769,6 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
     try {
       // Con WebRTC nativo, el audio se transmite automáticamente via RTCPeerConnection
       // Los audio tracks se configuran automáticamente en getUserMedia
-      console.log('🎤 Audio transmitido automáticamente via WebRTC PeerConnection');
     } catch (error) {
       console.error('❌ Error con audio WebRTC:', error);
     }
@@ -912,7 +785,6 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       // Con WebRTC nativo, las respuestas se manejan automáticamente via server_vad
       // El turn_detection configurado en la sesión controla cuándo responder
       setIsProcessing(true);
-      console.log('🤖 Respuesta manejada automáticamente por server_vad WebRTC');
     } catch (error) {
       console.error('❌ Error solicitando respuesta:', error);
     }
@@ -928,6 +800,9 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       
       // Reset variables globales de control de identidad
       window.naiaFirstResponseProcessed = false;
+      
+      // Limpiar function results
+      setFunctionResults(null);
       
       // Aplicar Idle
       applyIdleAnimation();
@@ -1156,11 +1031,15 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       return await response.arrayBuffer();
     } catch (error) {
       if (error.name === 'AbortError') {
-        console.log('Audio generation aborted');
         return null;
       }
       throw error;
     }
+  };
+
+  // Función para limpiar function results
+  const clearFunctionResults = () => {
+    setFunctionResults(null);
   };
 
   // Función para cancelar requests
@@ -1173,8 +1052,6 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
   // Cleanup al desmontar
   useEffect(() => {
     return () => {
-      console.log('🧹 useLocalChat: Cleanup al desmontar hook');
-      
       // Limpiar detección de volumen
       cleanupVolumeDetection();
       
@@ -1205,6 +1082,10 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
     generateAudioFromText,
     cancelRequest,
     isProcessing,
+    // Function results para display
+    functionResults,
+    setFunctionResults,
+    clearFunctionResults,
     // Realtime API functions
     initRealtimeConnection,
     disconnectRealtime,

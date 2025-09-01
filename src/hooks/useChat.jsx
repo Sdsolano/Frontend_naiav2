@@ -158,7 +158,8 @@ class OpenAIAPI {
           input: text,
           voice: VOICE_TYPE,
           instructions: instructions,
-          speed: 1.0
+          speed: 1.0,
+          service_tier: 'priority'
         }),
         signal
       });

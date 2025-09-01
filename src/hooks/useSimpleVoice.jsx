@@ -9,7 +9,8 @@ let lastProcessedTime = 0;
 // Constantes para Always Listening
 const WAKE_WORDS = [
   'naia', 'nadia', 'anaya', 'naya', 'naía', 'ñaia',
-  'oye naia', 'hey naia', 'hola naia',
+  'oye naia', 'hey naia', 'hola daya','oye daya', 'hey daya', 'hola daya',
+  'ok daya',
   'ok naia', "maya", "nayla", "anaia", "oye nadia", "oye anaya", "oye naya", "oye naía", "oye ñaia", "oye maya", "oye nayla", "oye anaia", 'nadie','oye nadie', 'hola naia', "hola nadia", "hola anaya", "hola naya", "hola naía", "hola ñaia", "hola maya", "hola nayla", "hola anaia",'hola nadie','hello naia', "hello nadia", "hello anaya", "hello naya", "hello naía", "hello ñaia", "hello maya", "hello nayla", "hello anaia",'hello nadie','hey naia', "hey nadia", "hey anaya", "hey naya", "hey naía", "hey ñaia", "hey maya", "hey nayla", "hey anaia",'hey nadie'
 ];
 

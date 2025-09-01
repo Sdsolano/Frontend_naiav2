@@ -79,8 +79,23 @@ export const SimpleUI = ({ hidden, ...props }) => {
     isThinking,
     saveConversation,
     pendingMessages,
-    loadConversation,
-    functionResults } = chatHook;
+    loadConversation } = chatHook;
+    // functionResults } = chatHook; // ← REMOVIDO: No usar de chatHook
+
+  // 🎯 USAR FUNCTION RESULTS DIRECTAMENTE DE LOCAL CHAT
+  const functionResults = localChat.functionResults;
+
+  // 🔍 [DEBUG] Log temporal para verificar functionResults
+  useEffect(() => {
+    console.log('🔍 [DEBUG] SimpleUI - useEffect disparado');
+    console.log('🔍 [DEBUG] chatHook.functionResults:', chatHook.functionResults);
+    console.log('🔍 [DEBUG] localChat.functionResults:', localChat.functionResults);
+    console.log('🔍 [DEBUG] functionResults (usado):', functionResults);
+    
+    if (functionResults) {
+      console.log('🔍 [DEBUG] SimpleUI recibió functionResults:', functionResults);
+    }
+  }, [functionResults, localChat.functionResults, chatHook.functionResults]);
 
   // Estado para deshabilitar temporalmente los controles después de enviar
   const [inputDisabled, setInputDisabled] = useState(false);

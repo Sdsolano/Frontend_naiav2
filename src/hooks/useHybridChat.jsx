@@ -236,6 +236,14 @@ export const HybridChatProvider = ({ children }) => {
   // Estado para tracking de modo (local vs backend)
   const [isUsingLocalMode, setIsUsingLocalMode] = useState(false);
 
+  // 🔍 [DEBUG] Log para verificar cambios en functionResults del localChat
+  useEffect(() => {
+    if (isUsingLocalMode && localChat.functionResults) {
+      console.log('🔍 [DEBUG] LocalChat functionResults actualizado:', localChat.functionResults);
+      console.log('🔍 [DEBUG] isUsingLocalMode:', isUsingLocalMode);
+    }
+  }, [localChat.functionResults, isUsingLocalMode]);
+
   // Función para manejar la actualización de estado del servidor (solo para backend)
   const handleStatusUpdate = (status, sessionId) => {
     if (!isUsingLocalMode) {
@@ -802,8 +810,9 @@ export const HybridChatProvider = ({ children }) => {
         saveConversation,
         loadConversation,
         pendingMessages,
-        functionResults,
-        setFunctionResults,
+        // 🎯 Usar function results del local chat cuando está en modo local
+        functionResults: isUsingLocalMode ? localChat.functionResults : functionResults,
+        setFunctionResults: isUsingLocalMode ? localChat.setFunctionResults : setFunctionResults,
         processingStatus,
         pollingSessionId,
         pollingEnabled,
