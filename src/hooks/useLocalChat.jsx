@@ -13,6 +13,9 @@ export const useLocalChat = () => {
   const [functionResults, setFunctionResults] = useState(null);
   const abortControllerRef = useRef(null);
   
+  // 🛡️ Protección contra ejecuciones duplicadas
+  const executedCallIdsRef = useRef(new Set());
+  
   // Realtime API refs
   const wsRef = useRef(null); // Para RTCPeerConnection
   const dataChannelRef = useRef(null); // Para RTCDataChannel
@@ -240,7 +243,19 @@ export const useLocalChat = () => {
 
   // Ejecutar function calls y comunicarse con el backend
   const executeFunctionCall = async (functionName, functionArgs, callId, dataChannel) => {
-    console.log(`🔧 Ejecutando función: ${functionName}`, functionArgs);
+    const timestamp = new Date().toISOString();
+    console.log(`🔧 [${timestamp}] executeFunctionCall INICIADO: ${functionName}`, functionArgs);
+    console.log(`🆔 [${timestamp}] Call ID: ${callId}`);
+    
+    // 🛡️ Verificar si ya se ejecutó esta función con este call_id
+    if (executedCallIdsRef.current.has(callId)) {
+      console.warn(`⚠️ [${timestamp}] DUPLICADO DETECTADO - Call ID ${callId} ya fue ejecutado, omitiendo...`);
+      return;
+    }
+    
+    // Marcar como ejecutado
+    executedCallIdsRef.current.add(callId);
+    console.log(`✅ [${timestamp}] Call ID ${callId} marcado como ejecutado`);
     
     try {
       // Mapeo de funciones a endpoints
@@ -648,6 +663,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
 
             case 'response.function_call_arguments.done':
               console.log('✅ Argumentos de función completados:', data.arguments);
+              console.log('🔍 [DEBUG] sessionRef.current antes de verificar:', sessionRef.current);
               
               // 🚀 EJECUTAR LA FUNCIÓN AQUÍ - ya tenemos toda la información
               if (sessionRef.current?.currentFunctionCall) {
@@ -655,29 +671,34 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
                 console.log(`🔧 EJECUTANDO función inmediatamente: ${funcCall.name}`);
                 console.log(`🆔 Call ID: ${funcCall.call_id}`);
                 console.log(`📋 Argumentos: ${JSON.stringify(data.arguments)}`);
+                console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
                 
                 executeFunctionCall(funcCall.name, data.arguments, funcCall.call_id, dc);
                 
                 // Limpiar la información guardada
+                console.log('🧹 Limpiando sessionRef.currentFunctionCall');
                 sessionRef.current.currentFunctionCall = null;
+                console.log('🔍 [DEBUG] sessionRef.current después de limpiar:', sessionRef.current);
               } else {
                 console.warn('⚠️ Argumentos completados pero no hay function call guardado');
+                console.warn('⚠️ sessionRef.current:', sessionRef.current);
               }
               break;
               
             case 'response.done':
               console.log('🏁 Respuesta completada, verificando function calls...');
               
+              // ✅ COMENTADO: Evitar doble ejecución - ya se ejecuta en 'response.function_call_arguments.done'
               // Verificar si la respuesta contiene function call (según documentación oficial)
-              if (data.response?.output?.[0]?.type === 'function_call') {
-                const funcCall = data.response.output[0];
-                console.log(`🔧 Function call detectado: ${funcCall.name}`, funcCall.arguments);
-                console.log(`🆔 Call ID: ${funcCall.call_id}`);
-                executeFunctionCall(funcCall.name, funcCall.arguments, funcCall.call_id, dc);
-              } else {
+              // if (data.response?.output?.[0]?.type === 'function_call') {
+              //   const funcCall = data.response.output[0];
+              //   console.log(`🔧 Function call detectado: ${funcCall.name}`, funcCall.arguments);
+              //   console.log(`🆔 Call ID: ${funcCall.call_id}`);
+              //   executeFunctionCall(funcCall.name, funcCall.arguments, funcCall.call_id, dc);
+              // } else {
                 console.log('✅ Respuesta completada sin function call');
                 setIsProcessing(false);
-              }
+              // }
               break;
               
             case 'error':
@@ -803,6 +824,10 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       
       // Limpiar function results
       setFunctionResults(null);
+      
+      // 🛡️ Limpiar call IDs ejecutados
+      executedCallIdsRef.current.clear();
+      console.log('🧹 Call IDs ejecutados limpiados');
       
       // Aplicar Idle
       applyIdleAnimation();
