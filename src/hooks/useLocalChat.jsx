@@ -13,7 +13,8 @@ export const useLocalChat = () => {
   const abortControllerRef = useRef(null);
   
   // Realtime API refs
-  const wsRef = useRef(null);
+  const wsRef = useRef(null); // Para RTCPeerConnection
+  const dataChannelRef = useRef(null); // Para RTCDataChannel
   const audioRef = useRef(null);
   const sessionRef = useRef(null);
   
@@ -401,7 +402,7 @@ export const useLocalChat = () => {
   };
 
   // Ejecutar function calls y comunicarse con el backend
-  const executeFunctionCall = async (functionName, functionArgs, webSocket) => {
+  const executeFunctionCall = async (functionName, functionArgs, callId, dataChannel) => {
     console.log(`🔧 Ejecutando función: ${functionName}`, functionArgs);
     
     try {
@@ -446,17 +447,17 @@ export const useLocalChat = () => {
       const result = await response.json();
       console.log(`✅ Resultado de ${functionName}:`, result);
 
-      // Enviar resultado de vuelta al modelo via data channel
+      // Enviar resultado de vuelta al modelo via data channel (según documentación oficial)
       const functionOutput = {
         type: "conversation.item.create",
         item: {
-          type: "function_call_output",
-          function_call_id: Date.now().toString(), // ID único
+          type: "function_call_output", 
+          call_id: callId, // ✅ Usar call_id que viene del modelo
           output: JSON.stringify(result)
         }
       };
 
-      webSocket.send(JSON.stringify(functionOutput));
+      dataChannel.send(JSON.stringify(functionOutput));
       console.log('📤 Resultado enviado al modelo');
 
       // Solicitar nueva respuesta del modelo
@@ -464,7 +465,7 @@ export const useLocalChat = () => {
         const createResponse = {
           type: "response.create"
         };
-        webSocket.send(JSON.stringify(createResponse));
+        dataChannel.send(JSON.stringify(createResponse));
         console.log('🔄 Respuesta solicitada al modelo');
       }, 100);
 
@@ -476,7 +477,7 @@ export const useLocalChat = () => {
         type: "conversation.item.create",
         item: {
           type: "function_call_output",
-          function_call_id: Date.now().toString(),
+          call_id: callId, // ✅ Usar call_id que viene del modelo
           output: JSON.stringify({
             error: `Error al ejecutar ${functionName}: ${error.message}`,
             success: false
@@ -484,14 +485,14 @@ export const useLocalChat = () => {
         }
       };
 
-      webSocket.send(JSON.stringify(errorOutput));
+      dataChannel.send(JSON.stringify(errorOutput));
       
       // Solicitar respuesta con el error
       setTimeout(() => {
         const createResponse = {
           type: "response.create"
         };
-        webSocket.send(JSON.stringify(createResponse));
+        dataChannel.send(JSON.stringify(createResponse));
       }, 100);
     }
   };
@@ -693,92 +694,115 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       const customInstructions = getRealtimeInstructions();
       console.log(`📋 Usando prompt personalizado de NAIA ${ROLE_NAMES[currentRoleId]} para Realtime API`);
       
-      // 1. VERIFICACIÓN Y DEBUG DE API KEY
-      console.log('🔍 Verificando API Key...');
-      console.log('🔑 API Key length:', OPENAI_API_KEY ? OPENAI_API_KEY.length : 'UNDEFINED');
-      console.log('🔑 API Key prefix:', OPENAI_API_KEY ? OPENAI_API_KEY.substring(0, 7) : 'NONE');
+      // IMPLEMENTACIÓN WEBRTC NATIVA según documentación oficial OpenAI
+      console.log('🔗 Implementando WebRTC nativo según documentación oficial...');
       
-      if (!OPENAI_API_KEY) {
-        throw new Error('❌ OPENAI_API_KEY no está definida');
-      }
-      
-      if (!OPENAI_API_KEY.startsWith('sk-')) {
-        console.warn('⚠️ API Key no empieza con sk- - puede ser inválida');
+      // 1. Obtener ephemeral token desde TU backend (según documentación oficial)
+      console.log('🔐 Obteniendo ephemeral token desde backend...');
+      const tokenResponse = await fetch(`${BACKEND_URL}/api/v1/token/realtime/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          roleId: currentRoleId,
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        throw new Error(`Error obteniendo token: ${tokenResponse.status} - ${errorText}`);
       }
 
-      // 2. MÉTODO OFICIAL: Subprotocols para autenticación (según documentación OpenAI)
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-realtime`;
-      const subprotocols = [
-        "realtime",
-        "openai-insecure-api-key." + OPENAI_API_KEY
-      ];
+      const tokenData = await tokenResponse.json();
+      const ephemeralKey = tokenData.client_secret;
       
-      console.log('🔗 Conectando WebSocket con subprotocols (método oficial)...');
-      const ws = new WebSocket(wsUrl, subprotocols);
+      if (!ephemeralKey) {
+        throw new Error('❌ No se obtuvo ephemeral token válido');
+      }
       
-      wsRef.current = ws;
+      console.log(`✅ Ephemeral token obtenido: ${ephemeralKey.substring(0, 10)}...`);
 
-      // 3. Configurar event handlers
-      ws.onopen = () => {
-        console.log('✅ WebSocket conectado exitosamente');
+      // 2. Crear WebRTC PeerConnection (según documentación oficial)
+      console.log('🔗 Configurando WebRTC PeerConnection...');
+      const pc = new RTCPeerConnection();
+
+      // 3. Configurar audio element para reproducir respuestas del modelo
+      const audioElement = audioRef.current || document.createElement("audio");
+      audioElement.autoplay = true;
+      pc.ontrack = (e) => {
+        console.log('🔊 Stream de audio entrante recibido');
+        audioElement.srcObject = e.streams[0];
         
-        // Configurar toda la sesión una vez conectado
-        const sessionConfig = {
+        // Setup volume detection for animations
+        setupVolumeDetection(e.streams[0]);
+      };
+
+      // 4. Agregar track de micrófono local
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: true 
+      });
+      
+      pc.addTrack(stream.getTracks()[0]);
+      console.log('🎤 Micrófono configurado');
+
+      // 5. Configurar Data Channel para eventos (según documentación oficial)
+      const dc = pc.createDataChannel("oai-events");
+
+      // 6. Event listeners para Data Channel
+      dc.onopen = () => {
+        console.log('✅ Data Channel abierto');
+        setIsRealtimeConnected(true);
+        
+        // Enviar instrucciones NAIA via DataChannel (workaround)
+        console.log('📋 Enviando instrucciones NAIA via DataChannel...');
+        const sessionUpdate = {
           type: "session.update",
           session: {
-            model: "gpt-realtime",
-            voice: realtimeVoice,
             instructions: customInstructions,
             tools: getToolsForRole(currentRoleId),
-            temperature: 0.8,
-            max_response_output_tokens: 4096,
             turn_detection: {
               type: "server_vad",
               threshold: 0.5,
               prefix_padding_ms: 300,
-              silence_duration_ms: 500
+              silence_duration_ms: 200
             }
           }
         };
-
-        console.log('📋 Enviando configuración de sesión:', sessionConfig);
-        ws.send(JSON.stringify(sessionConfig));
         
-        setIsRealtimeConnected(true);
-        console.log('🚀 NAIA Realtime conectada y configurada');
+        dc.send(JSON.stringify(sessionUpdate));
+        console.log('📡 NAIA WebRTC conectada con instrucciones configuradas');
       };
 
-      // 4. Manejo de mensajes (estructura mejorada con switch)
-      ws.onmessage = (event) => {
+      dc.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           console.log('📩 Evento recibido:', data.type);
 
           // Manejo específico de eventos
           switch (data.type) {
-            case 'session.updated':
-              console.log('✅ Sesión actualizada correctamente');
-              break;
-              
             case 'response.audio.delta':
               // Audio streaming para lipsync y animaciones
               window.dispatchEvent(new CustomEvent('realtime-animation', {
                 detail: {
-                  audioData: data,
+                  audioData: data.delta,
                   lipsync: generateDynamicLipsync(data),
                   animation: 'Talking_0'
                 }
               }));
               break;
               
-            case 'response.function_call_arguments.done':
-              console.log(`🔧 Function call: ${data.name}`, data.arguments);
-              executeFunctionCall(data.name, data.arguments, ws);
-              break;
-              
             case 'response.done':
-              console.log('✅ Respuesta completada');
-              setIsProcessing(false);
+              // Verificar si la respuesta contiene function call (según documentación oficial)
+              if (data.response?.output?.[0]?.type === 'function_call') {
+                const funcCall = data.response.output[0];
+                console.log(`🔧 Function call detectado: ${funcCall.name}`, funcCall.arguments);
+                console.log(`🆔 Call ID: ${funcCall.call_id}`);
+                executeFunctionCall(funcCall.name, funcCall.arguments, funcCall.call_id, dc);
+              } else {
+                console.log('✅ Respuesta completada sin function call');
+                setIsProcessing(false);
+              }
               break;
               
             case 'error':
@@ -790,23 +814,66 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
           }
 
         } catch (parseError) {
-          console.error('Error parseando mensaje:', parseError);
+          console.error('Error parseando mensaje WebRTC:', parseError);
         }
       };
 
-      // 5. Manejo de errores
-      ws.onerror = (error) => {
-        console.error('❌ Error WebSocket:', error);
+      dc.onerror = (error) => {
+        console.error('❌ Error Data Channel:', error);
         setIsProcessing(false);
         setIsRealtimeConnected(false);
       };
 
-      // 6. Manejo de desconexión
-      ws.onclose = (event) => {
-        console.log('🔌 WebSocket desconectado. Code:', event.code, 'Reason:', event.reason);
-        setIsRealtimeConnected(false);
-        setIsProcessing(false);
+      // 7. Configurar audio entrante
+      pc.ontrack = (event) => {
+        console.log('🔊 Stream de audio entrante recibido');
+        const audioElement = audioRef.current;
+        if (audioElement && event.streams[0]) {
+          audioElement.srcObject = event.streams[0];
+          audioElement.autoplay = true;
+          
+          // Setup volume detection for animations
+          setupVolumeDetection(event.streams[0]);
+        }
       };
+
+      // 6. Crear offer y configurar SDP (según documentación oficial)
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      console.log('📤 Enviando offer a OpenAI según documentación oficial...');
+
+      // 7. Enviar offer a OpenAI usando endpoint correcto (/calls)
+      const baseUrl = "https://api.openai.com/v1/realtime/calls";
+      const model = "gpt-realtime";
+      const sdpResp = await fetch(`${baseUrl}?model=${model}`, {
+        method: "POST",
+        body: offer.sdp, // ✅ Solo SDP, no JSON
+        headers: {
+          Authorization: `Bearer ${ephemeralKey}`,
+          "Content-Type": "application/sdp", // ✅ Content-Type correcto
+        },
+      });
+
+      if (!sdpResp.ok) {
+        const errorText = await sdpResp.text();
+        throw new Error(`Error intercambiando SDP: ${sdpResp.status} - ${errorText}`);
+      }
+
+      const answerSdp = await sdpResp.text(); // ✅ Respuesta como texto, no JSON
+      
+      // 8. Configurar respuesta remota
+      const answer = {
+        type: "answer",
+        sdp: answerSdp,
+      };
+      await pc.setRemoteDescription(answer);
+
+      console.log('✅ WebRTC PeerConnection establecida exitosamente');
+
+      // 11. Guardar referencias para cleanup
+      wsRef.current = pc;
+      dataChannelRef.current = dc;
 
       console.log('🚀 Conexión Realtime iniciada');
       return true;
@@ -818,52 +885,41 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
     }
   }, []);
 
-  // Función auxiliar para enviar audio al modelo
+  // Función auxiliar para enviar audio al modelo (WebRTC nativo)
   const sendAudioToRealtime = useCallback((audioData) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      console.warn('⚠️ WebSocket no está conectado');
+    if (!wsRef.current || !dataChannelRef.current || !isRealtimeConnected) {
+      console.warn('⚠️ WebRTC PeerConnection no está conectada');
       return;
     }
 
     try {
-      const audioMessage = {
-        type: "input_audio_buffer.append",
-        audio: audioData // Base64 encoded audio
-      };
-
-      wsRef.current.send(JSON.stringify(audioMessage));
-      console.log('🎤 Audio enviado al modelo');
+      // Con WebRTC nativo, el audio se transmite automáticamente via RTCPeerConnection
+      // Los audio tracks se configuran automáticamente en getUserMedia
+      console.log('🎤 Audio transmitido automáticamente via WebRTC PeerConnection');
     } catch (error) {
-      console.error('❌ Error enviando audio:', error);
+      console.error('❌ Error con audio WebRTC:', error);
     }
-  }, []);
+  }, [isRealtimeConnected]);
 
-  // Función auxiliar para solicitar respuesta
+  // Función auxiliar para solicitar respuesta (WebRTC nativo)
   const requestRealtimeResponse = useCallback(() => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      console.warn('⚠️ WebSocket no está conectado');
+    if (!wsRef.current || !dataChannelRef.current || !isRealtimeConnected) {
+      console.warn('⚠️ WebRTC PeerConnection no está conectada');
       return;
     }
 
     try {
-      const responseRequest = {
-        type: "response.create",
-        response: {
-          modalities: ["text", "audio"],
-          instructions: "Responde como NAIA de forma natural y conversacional."
-        }
-      };
-
-      wsRef.current.send(JSON.stringify(responseRequest));
+      // Con WebRTC nativo, las respuestas se manejan automáticamente via server_vad
+      // El turn_detection configurado en la sesión controla cuándo responder
       setIsProcessing(true);
-      console.log('🤖 Solicitando respuesta del modelo');
+      console.log('🤖 Respuesta manejada automáticamente por server_vad WebRTC');
     } catch (error) {
       console.error('❌ Error solicitando respuesta:', error);
     }
-  }, []);
+  }, [isRealtimeConnected]);
 
   // Función para desconectar Realtime
-  const disconnectRealtime = useCallback(() => {
+  const disconnectRealtime = useCallback(async () => {
     try {
       console.log('🔄 Desconectando Realtime...');
       
@@ -891,8 +947,13 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
         audioListenersRef.current = { play: null, ended: null, pause: null };
       }
       
-      // Cerrar WebSocket
-      if (wsRef.current) {
+      // Desconectar WebRTC PeerConnection y DataChannel
+      if (dataChannelRef.current) {
+        dataChannelRef.current.close();
+        dataChannelRef.current = null;
+      }
+      
+      if (wsRef.current && typeof wsRef.current.close === 'function') {
         wsRef.current.close();
         wsRef.current = null;
       }
