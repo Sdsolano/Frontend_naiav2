@@ -2,12 +2,14 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { OPENAI_API_KEY, BACKEND_URL } from '../../config';
 import { getVoiceForRole, getVoiceInstructions } from '../utils/voiceUtils';
 import { getCurrentRoleConfig, ROLE_NAMES } from '../utils/roleUtils';
+import { useUser } from '../components/UserContext';
 
 /**
  * Hook para manejar conversaciones locales con OpenAI directamente
  * Usado para conversaciones que no requieren funciones del backend
  */
 export const useLocalChat = () => {
+  const { userId, isUserReady } = useUser(); // Obtener userId dinámico del contexto
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [functionResults, setFunctionResults] = useState(null);
@@ -243,6 +245,7 @@ export const useLocalChat = () => {
     const timestamp = new Date().toISOString();
     console.log(`🔧 [${timestamp}] executeFunctionCall INICIADO: ${functionName}`, functionArgs);
     console.log(`🆔 [${timestamp}] Call ID: ${callId}`);
+    console.log(`👤 [${timestamp}] userId del contexto: ${userId}`);
     
     try {
       // Mapeo de funciones a endpoints
@@ -265,9 +268,15 @@ export const useLocalChat = () => {
       // Parsear argumentos si vienen como string
       const args = typeof functionArgs === 'string' ? JSON.parse(functionArgs) : functionArgs;
       
-      // Obtener user_id del contexto de gobierno si no está en args
-      if (!args.user_id) {
-        args.user_id = parseInt(localStorage.getItem('naia_user_id') || '325', 10);
+      // Obtener user_id del contexto de usuario
+      if (!args.user_id && userId) {
+        args.user_id = userId;
+        console.log(`👤 Usando userId del contexto: ${userId}`);
+      } else if (!args.user_id) {
+        // Fallback para roles que no requieren autenticación (como ciudadano)
+        const fallbackUserId = parseInt(localStorage.getItem('naia_user_id') || '325', 10);
+        args.user_id = fallbackUserId;
+        console.log(`👤 Usando fallback userId del localStorage: ${fallbackUserId}`);
       }
 
       // Hacer petición al backend
@@ -303,15 +312,6 @@ export const useLocalChat = () => {
 
       dataChannel.send(JSON.stringify(functionOutput));
       console.log('📤 Resultado enviado al modelo');
-
-      // Solicitar nueva respuesta del modelo
-      setTimeout(() => {
-        const createResponse = {
-          type: "response.create"
-        };
-        dataChannel.send(JSON.stringify(createResponse));
-        console.log('🔄 Respuesta solicitada al modelo');
-      }, 100);
 
     } catch (error) {
       console.error(`❌ Error ejecutando función ${functionName}:`, error);
@@ -543,6 +543,9 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       
       // 1. Obtener ephemeral token desde TU backend (según documentación oficial)
       console.log('🔐 Obteniendo ephemeral token desde backend...');
+      const finalUserId = userId || parseInt(localStorage.getItem('naia_user_id') || '325', 10);
+      console.log(`👤 initRealtimeConnection - userId del contexto: ${userId}, usando: ${finalUserId}`);
+      
       const tokenResponse = await fetch(`${BACKEND_URL}/api/v1/token/realtime/`, {
         method: "POST",
         headers: {
@@ -550,6 +553,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
         },
         body: JSON.stringify({
           roleId: currentRoleId,
+          user_id: 5,
         }),
       });
 
@@ -605,7 +609,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
         };
       };
 
-      dc.onmessage = (event) => {
+      dc.onmessage = async (event) => {
         try {
           const data = JSON.parse(event.data);
           console.log('📩 Evento recibido:', data.type);
@@ -647,24 +651,18 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               console.log('🏁 Respuesta completada, verificando function calls...');
               
               // ✅ USAR RESPONSE.DONE - Tiene toda la información completa
-              if (data.response?.output && Array.isArray(data.response.output)) {
-                const functionCalls = data.response.output.filter(item => item.type === 'function_call');
-                
-                if (functionCalls.length > 0) {
-                  console.log(`🔧 ${functionCalls.length} function call(s) detectados:`);
-                  
-                  // 🚀 Ejecutar todas las funciones
-                  functionCalls.forEach((funcCall, index) => {
-                    console.log(`🔧 Ejecutando función ${index + 1}/${functionCalls.length}: ${funcCall.name}`);
-                    console.log(`🆔 Call ID: ${funcCall.call_id}`);
-                    
-                    // Parsear argumentos si vienen como string
-                    const args = typeof funcCall.arguments === 'string' 
-                      ? JSON.parse(funcCall.arguments) 
-                      : funcCall.arguments;
-                    
-                    executeFunctionCall(funcCall.name, args, funcCall.call_id, dc);
-                  });
+            if (data.response?.output && Array.isArray(data.response.output)) {
+              const functionCalls = data.response.output.filter(item => item.type === 'function_call');
+              
+              if (functionCalls.length > 0) {
+                await Promise.all(functionCalls.map(funcCall => {
+                  const args = typeof funcCall.arguments === 'string' 
+                    ? JSON.parse(funcCall.arguments) 
+                    : funcCall.arguments;
+                  return executeFunctionCall(funcCall.name, args, funcCall.call_id, dc);
+                }));
+                dc.send(JSON.stringify({ type: "response.create" }));
+
                 } else {
                   console.log('✅ Respuesta completada sin function calls');
                 }
