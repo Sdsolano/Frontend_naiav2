@@ -13,6 +13,7 @@ export const useLocalChat = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [functionResults, setFunctionResults] = useState(null);
+  const [sessionTokens, setSessionTokens] = useState(0);
   const abortControllerRef = useRef(null);
   
   // Realtime API refs
@@ -649,26 +650,56 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               
             case 'response.done':
               console.log('🏁 Respuesta completada, verificando function calls...');
+              if (data.response?.usage) {
+                setSessionTokens(data.response.usage.total_tokens);
+              }
+
+              // 🧠 MANEJO MEJORADO DE MEMORY SUMMARY
+              if (data.response?.metadata?.type === "memory_summary") {
+                console.log('🧠 Resumen de memoria recibido:', data.response);
+                const summaryText = data.response.output?.[0]?.content?.[0]?.text || 
+                                   data.response.output?.[0]?.text || "";
+                
+                if (summaryText) {
+                  console.log('💾 Guardando resumen en backend:', summaryText.substring(0, 100) + '...');
+                  await saveMemoryToBackend(summaryText);
+                } else {
+                  console.log('❌ No se pudo extraer texto del resumen:', data.response.output);
+                }
+
+                // Restaurar modalidades de audio
+                if (dataChannelRef.current) {
+                  console.log('🔄 Restaurando modo audio...');
+                  dataChannelRef.current.send(JSON.stringify({
+                    type: "session.update", 
+                    session: {
+                      type: "realtime",  
+                      output_modalities: ["audio"]
+                    }
+                  }));
+                }
+                break;
+              }
               
               // ✅ USAR RESPONSE.DONE - Tiene toda la información completa
-            if (data.response?.output && Array.isArray(data.response.output)) {
-              const functionCalls = data.response.output.filter(item => item.type === 'function_call');
-              
-              if (functionCalls.length > 0) {
-                await Promise.all(functionCalls.map(funcCall => {
-                  const args = typeof funcCall.arguments === 'string' 
-                    ? JSON.parse(funcCall.arguments) 
-                    : funcCall.arguments;
-                  return executeFunctionCall(funcCall.name, args, funcCall.call_id, dc);
-                }));
-                dc.send(JSON.stringify({ type: "response.create" }));
+              if (data.response?.output && Array.isArray(data.response.output)) {
+                const functionCalls = data.response.output.filter(item => item.type === 'function_call');
+                
+                if (functionCalls.length > 0) {
+                  await Promise.all(functionCalls.map(funcCall => {
+                    const args = typeof funcCall.arguments === 'string' 
+                      ? JSON.parse(funcCall.arguments) 
+                      : funcCall.arguments;
+                    return executeFunctionCall(funcCall.name, args, funcCall.call_id, dc);
+                  }));
+                  dc.send(JSON.stringify({ type: "response.create" }));
 
+                  } else {
+                    console.log('✅ Respuesta completada sin function calls');
+                  }
                 } else {
-                  console.log('✅ Respuesta completada sin function calls');
+                  console.log('✅ Respuesta completada sin output array');
                 }
-              } else {
-                console.log('✅ Respuesta completada sin output array');
-              }
               
               setIsProcessing(false);
               break;
@@ -783,6 +814,87 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
     }
   }, [isRealtimeConnected]);
 
+const generateMemorySummary = useCallback(async () => {
+  if (!dataChannelRef.current) {
+    console.log('❌ No dataChannel disponible para generar resumen');
+    return;
+  }
+  
+  console.log('🧠 Configurando sesión para modo texto...');
+  dataChannelRef.current.send(JSON.stringify({
+    type: "session.update",
+    session: {
+      type: "realtime",
+      output_modalities: ["text"]
+    }
+  }));
+  
+  console.log('🧠 Generando resumen de memoria para guardar en backend...');
+  setTimeout(() => {
+    if (!dataChannelRef.current) {
+      console.log('❌ DataChannel cerrado antes de enviar request de resumen');
+      return;
+    }
+    
+    console.log('📤 Enviando request para generar resumen...');
+    dataChannelRef.current.send(JSON.stringify({
+      type: "response.create",
+      response: {
+        conversation: "none",
+        metadata: { type: "memory_summary" },
+        instructions: `Genera un resumen de esta conversación para mantener continuidad en futuras sesiones.
+
+Formato requerido:
+PÁRRAFO: Explicación general de la conversación, temas tratados, y contexto importante.
+
+DATOS IMPORTANTES:
+- Información personal del usuario (nombre, preferencias, etc.)
+- Contexto específico mencionado
+- Decisiones o conclusiones importantes
+- Cualquier dato que el usuario pidió recordar`
+      }
+    }));
+  }, 500); // ← Aumentar a 500ms
+}, []);
+
+const saveMemoryToBackend = async (summaryText) => {
+  try {
+    console.log('📡 Intentando guardar memoria en backend...');
+    const user_id = 5;
+    const role_id = localStorage.getItem('naia_selected_role') || 'researcher';
+    const finalRoleId = role_id === 'ciudadano' ? 7 : role_id;
+    
+    console.log('📡 Datos a enviar:', { 
+      user_id, 
+      role_id: finalRoleId, 
+      session_tokens: sessionTokens,
+      memory_summary: summaryText.substring(0, 100) + '...' 
+    });
+    
+    const response = await fetch(`${BACKEND_URL}/api/v1/chat/realtime/memory/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id,
+        memory_summary: summaryText,
+        session_tokens: sessionTokens,
+        role_id: finalRoleId // ← Usar finalRoleId aquí
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Error del backend:', response.status, errorText);
+      throw new Error(`Backend error: ${response.status} - ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('✅ Memoria guardada en backend exitosamente:', result);
+  } catch (error) {
+    console.error('❌ Error guardando memoria:', error);
+  }
+};
+
   // Función para desconectar Realtime
   const disconnectRealtime = useCallback(async () => {
     try {
@@ -799,7 +911,20 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       
       // Aplicar Idle
       applyIdleAnimation();
-      
+
+      // if (sessionTokens > 100) {
+      //   console.log('💾 Iniciando proceso de guardado de memoria...');
+      //   console.log(`📊 Tokens de sesión: ${sessionTokens}`);
+      //   await generateMemorySummary();
+      //   // ❌ Aumentar tiempo de espera y agregar verificación
+      //   console.log('⏳ Esperando que se procese y guarde la memoria...');
+      //   await new Promise(resolve => setTimeout(resolve, 5000)); // ← 5 segundos en lugar de 2
+      //   console.log('✅ Tiempo de espera completado');
+      // } else {
+      //   console.log(`ℹ️ No se genera resumen - tokens insuficientes: ${sessionTokens}`);
+      // }
+      // setSessionTokens(0);
+        
       // Limpiar listeners de audio (legacy, ya no se usan pero por seguridad)
       if (audioRef.current) {
         const audioElement = audioRef.current;
@@ -831,7 +956,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
     } catch (error) {
       console.error('❌ Error desconectando Realtime:', error);
     }
-  }, [applyIdleAnimation, cleanupVolumeDetection]);
+  }, [applyIdleAnimation, cleanupVolumeDetection, sessionTokens, generateMemorySummary]);
 
   // Función para determinar si un mensaje requiere el backend
   const requiresBackend = (message) => {
