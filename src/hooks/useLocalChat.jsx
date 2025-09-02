@@ -599,9 +599,9 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       
         console.log('📡 NAIA WebRTC conectada con instrucciones configuradas');
         
-        // Inicializar sessionRef para function calls
+        // ✅ SessionRef simplificado - ya no necesitamos tracking complejo
         sessionRef.current = {
-          currentFunctionCall: null
+          connected: true
         };
       };
 
@@ -623,31 +623,10 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               }));
               break;
 
-            // 🔧 NUEVOS EVENTOS PARA FUNCTION CALLING
+            // 🔧 EVENTOS PARA FUNCTION CALLING - SIMPLIFICADOS
             case 'response.output_item.added':
-              const itemTimestamp = new Date().toISOString();
-              console.log(`📦 [${itemTimestamp}] Nuevo item de salida agregado:`, data.item?.type);
-              if (data.item?.type === 'function_call') {
-                console.log(`🔧 [${itemTimestamp}] Function call iniciado: ${data.item?.name}`);
-                console.log(`🆔 [${itemTimestamp}] Call ID: ${data.item?.call_id}`);
-                
-                // 🔍 Verificar si ya existe un function call pendiente
-                if (sessionRef.current?.currentFunctionCall) {
-                  console.warn(`⚠️ [${itemTimestamp}] ¡YA EXISTE UN FUNCTION CALL PENDIENTE!`);
-                  console.warn(`⚠️ [${itemTimestamp}] Anterior:`, sessionRef.current.currentFunctionCall);
-                  console.warn(`⚠️ [${itemTimestamp}] Nuevo:`, {name: data.item?.name, call_id: data.item?.call_id});
-                }
-                
-                // Guardar información del function call para ejecutar después
-                sessionRef.current = {
-                  ...sessionRef.current,
-                  currentFunctionCall: {
-                    name: data.item?.name,
-                    call_id: data.item?.call_id
-                  }
-                };
-                console.log(`✅ [${itemTimestamp}] Function call guardado:`, sessionRef.current.currentFunctionCall);
-              }
+              console.log('📦 Nuevo item de salida agregado:', data.item?.type);
+              // ✅ Ya no necesitamos guardar nada - response.done tiene todo
               break;
 
             case 'conversation.item.added':
@@ -660,52 +639,40 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               break;
 
             case 'response.function_call_arguments.done':
-              const argsTimestamp = new Date().toISOString();
-              console.log(`✅ [${argsTimestamp}] Argumentos de función completados:`, data.arguments);
-              console.log(`🔍 [${argsTimestamp}] sessionRef.current antes de verificar:`, sessionRef.current);
-              
-              // 🚀 EJECUTAR LA FUNCIÓN AQUÍ - ya tenemos toda la información
-              if (sessionRef.current?.currentFunctionCall) {
-                const funcCall = sessionRef.current.currentFunctionCall;
-                console.log(`🔧 [${argsTimestamp}] EJECUTANDO función inmediatamente: ${funcCall.name}`);
-                console.log(`🆔 [${argsTimestamp}] Call ID: ${funcCall.call_id}`);
-                console.log(`📋 [${argsTimestamp}] Argumentos: ${JSON.stringify(data.arguments)}`);
-                
-                // 🔍 LOG EXTRA: Verificar si este call_id ya se procesó antes
-                if (window.processedCallIds && window.processedCallIds.has(funcCall.call_id)) {
-                  console.warn(`⚠️ [${argsTimestamp}] ¡POSIBLE DUPLICADO! Call ID ${funcCall.call_id} ya fue visto antes`);
-                } else {
-                  if (!window.processedCallIds) window.processedCallIds = new Set();
-                  window.processedCallIds.add(funcCall.call_id);
-                  console.log(`✅ [${argsTimestamp}] Call ID ${funcCall.call_id} registrado como nuevo`);
-                }
-                
-                executeFunctionCall(funcCall.name, data.arguments, funcCall.call_id, dc);
-                
-                // Limpiar la información guardada
-                console.log(`🧹 [${argsTimestamp}] Limpiando sessionRef.currentFunctionCall`);
-                sessionRef.current.currentFunctionCall = null;
-                console.log(`🔍 [${argsTimestamp}] sessionRef.current después de limpiar:`, sessionRef.current);
-              } else {
-                console.warn(`⚠️ [${argsTimestamp}] Argumentos completados pero no hay function call guardado`);
-                console.warn(`⚠️ [${argsTimestamp}] sessionRef.current:`, sessionRef.current);
-              }
+              console.log('✅ Argumentos de función completados - pero usaremos response.done');
+              // ✅ Ya no ejecutamos aquí - response.done tiene la info completa
               break;
               
             case 'response.done':
               console.log('🏁 Respuesta completada, verificando function calls...');
               
-              // ✅ COMENTADO: Evitar doble ejecución - ya se ejecuta en 'response.function_call_arguments.done'
-              // Verificar si la respuesta contiene function call (según documentación oficial)
-              // if (data.response?.output?.[0]?.type === 'function_call') {
-              //   const funcCall = data.response.output[0];
-              //   console.log(`🔧 Function call detectado: ${funcCall.name}`, funcCall.arguments);
-              //   console.log(`🆔 Call ID: ${funcCall.call_id}`);
-              //   executeFunctionCall(funcCall.name, funcCall.arguments, funcCall.call_id, dc);
-              // } else {
-                console.log('✅ Respuesta completada sin function call');
-                setIsProcessing(false);
-              // }
+              // ✅ USAR RESPONSE.DONE - Tiene toda la información completa
+              if (data.response?.output && Array.isArray(data.response.output)) {
+                const functionCalls = data.response.output.filter(item => item.type === 'function_call');
+                
+                if (functionCalls.length > 0) {
+                  console.log(`🔧 ${functionCalls.length} function call(s) detectados:`);
+                  
+                  // 🚀 Ejecutar todas las funciones
+                  functionCalls.forEach((funcCall, index) => {
+                    console.log(`🔧 Ejecutando función ${index + 1}/${functionCalls.length}: ${funcCall.name}`);
+                    console.log(`🆔 Call ID: ${funcCall.call_id}`);
+                    
+                    // Parsear argumentos si vienen como string
+                    const args = typeof funcCall.arguments === 'string' 
+                      ? JSON.parse(funcCall.arguments) 
+                      : funcCall.arguments;
+                    
+                    executeFunctionCall(funcCall.name, args, funcCall.call_id, dc);
+                  });
+                } else {
+                  console.log('✅ Respuesta completada sin function calls');
+                }
+              } else {
+                console.log('✅ Respuesta completada sin output array');
+              }
+              
+              setIsProcessing(false);
               break;
               
             case 'error':
