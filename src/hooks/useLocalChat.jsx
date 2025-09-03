@@ -647,9 +647,110 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               console.log('✅ Argumentos de función completados - pero usaremos response.done');
               // ✅ Ya no ejecutamos aquí - response.done tiene la info completa
               break;
+
+            // 🔧 EVENTOS MCP (Model Context Protocol) - NUEVOS
+            case 'response.mcp_call_arguments.delta':
+              console.log('🔧 MCP Delta de argumentos recibido:', data.delta);
+              // Los argumentos de MCP se construyen en streaming
+              break;
+
+            case 'response.mcp_call_arguments.done':
+              console.log('✅ MCP Argumentos completados:', data);
+              // Los argumentos de MCP están listos
+              break;
+
+            case 'response.mcp_call.in_progress':
+              console.log('⏳ MCP Call en progreso:', data);
+              // OpenAI está ejecutando la llamada MCP
+              break;
+
+            case 'response.mcp_call.completed':
+              console.log('✅ MCP Call completada:', data);
+              console.log('📊 Resultado MCP (del evento):', data.result);
+              // La llamada MCP terminó exitosamente
+              break;
+
+            case 'conversation.item.done':
+              console.log('💬 Item de conversación completado:', data);
+              break;
+
+            case 'response.output_item.done':
+              console.log('📦 Output item completado:', data);
+              
+              // 🔍 EXTRAER RESPUESTA MCP AQUÍ
+              if (data.item && data.item.type === 'mcp_call') {
+                console.log('🎯 === RESPUESTA MCP COMPLETA ===');
+                console.log('🏷️ Servidor:', data.item.server_label);
+                console.log('🛠️ Herramienta:', data.item.name);
+                console.log('📋 Argumentos:', data.item.arguments);
+                console.log('📊 RESULTADO COMPLETO:', data.item.output);
+                
+                // 🎨 TAMBIÉN ACTUALIZAR AQUÍ POR SI ACASO
+                if (data.item.output) {
+                  let mcpResult = data.item.output;
+
+                  // Intentar parsear el output si es JSON string
+                  if (data.item.output && typeof data.item.output === 'string') {
+                    try {
+                      const parsedOutput = JSON.parse(data.item.output);
+                      console.log('📄 Resultado parseado:', parsedOutput);
+                      mcpResult = parsedOutput;
+                    } catch (e) {
+                      console.log('📄 Resultado (texto plano):', data.item.output);
+                      // mcpResult se mantiene como string si no es JSON válido
+                    }
+                  }
+                  
+                  // Actualizar estado para UI - solo el resultado, no el wrapper
+                  console.log('🔍 [DEBUG] Actualizando functionResults con MCP (output_item.done):', mcpResult);
+                  setFunctionResults(mcpResult);
+                }
+                
+                console.log('🎯 === FIN RESPUESTA MCP ===');
+              }
+              break;
+
+            case 'rate_limits.updated':
+              console.log('📊 Rate limits actualizados:', data.rate_limits);
+              break;
+
+            // 🔧 EVENTOS DE SESIÓN Y MCP TOOLS
+            case 'session.created':
+              console.log('🎯 Sesión creada:', data);
+              console.log('🔧 ID de sesión:', data.session?.id);
+              console.log('🛠️ Configuración:', data.session);
+              break;
+
+            case 'mcp_list_tools.in_progress':
+              console.log('⏳ MCP List Tools en progreso:', data);
+              console.log('🔍 Detalles del evento:', JSON.stringify(data, null, 2));
+              break;
+
+            case 'mcp_list_tools.failed':
+              console.log('❌ MCP List Tools FALLÓ:', data);
+              console.log('🚨 ERROR DETALLADO:', JSON.stringify(data, null, 2));
+              
+              // Extraer información específica del error
+              if (data.error) {
+                console.log('💥 Mensaje de error:', data.error.message);
+                console.log('💥 Tipo de error:', data.error.type);
+                console.log('💥 Código de error:', data.error.code);
+              }
+              
+              if (data.details) {
+                console.log('📋 Detalles adicionales:', data.details);
+              }
+              break;
+
+            case 'mcp_list_tools.completed':
+              console.log('✅ MCP List Tools completado exitosamente:', data);
+              console.log('🛠️ Herramientas disponibles:', data.tools);
+              break;
               
             case 'response.done':
               console.log('🏁 Respuesta completada, verificando function calls...');
+              console.log('🔍 Response completa:', JSON.stringify(data.response, null, 2));
+              
               if (data.response?.usage) {
                 setSessionTokens(data.response.usage.total_tokens);
               }
@@ -683,23 +784,94 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               
               // ✅ USAR RESPONSE.DONE - Tiene toda la información completa
               if (data.response?.output && Array.isArray(data.response.output)) {
+                console.log('🔍 Analizando output completo:', data.response.output);
+                
+                for (const item of data.response.output) {
+                  console.log(`📋 Procesando item tipo: ${item.type}`, item);
+                  
+                  if (item.type === "function_call") {
+                    console.log('🔧 Function call detectado:', item);
+                    const args = typeof item.arguments === 'string' 
+                      ? JSON.parse(item.arguments) 
+                      : item.arguments;
+                    await executeFunctionCall(item.name, args, item.call_id, dc);
+                  } else if (item.type === "mcp_call") {
+                    console.log("🔧 MCP Tool Call detectado:", item);
+                    console.log("🏷️ Servidor MCP:", item.server_label);
+                    console.log("🛠️ Herramienta:", item.name);
+                    console.log("📋 Argumentos:", item.arguments);
+                    console.log("📊 Estado:", item.output ? "✅ Completado" : "⏳ Pendiente");
+                    
+                    // 🎯 MOSTRAR RESPUESTA MCP SI ESTÁ DISPONIBLE
+                    if (item.output) {
+                      console.log("🌟 === RESPUESTA MCP FINAL ===");
+                      console.log("📄 Resultado completo:", item.output);
+                      
+                      // 🎨 ACTUALIZAR ESTADO PARA MOSTRAR EN UI (como function calls)
+                      let mcpResult = item.output;
+
+                      // Intentar parsear si es JSON
+                      if (typeof item.output === 'string') {
+                        try {
+                          const parsed = JSON.parse(item.output);
+                          console.log("📋 Datos estructurados:", parsed);
+                          
+                          // Usar el resultado parseado para la UI
+                          mcpResult = parsed;
+                          
+                          // Mostrar información específica según el tipo de herramienta
+                          if (item.name === 'google_drive-list-files' && parsed.files) {
+                            console.log("📁 Archivos encontrados:", parsed.files.length);
+                            parsed.files.forEach((file, index) => {
+                              console.log(`📄 ${index + 1}. ${file.name} (${file.modifiedTime})`);
+                            });
+                          }
+                        } catch (e) {
+                          console.log("📄 Respuesta en texto plano:", item.output);
+                          // mcpResult se mantiene como string si no es JSON válido
+                        }
+                      }
+                      
+                      // 🔍 ACTUALIZAR ESTADO PARA MOSTRAR EN FunctionResultsDisplay
+                      console.log('🔍 [DEBUG] Actualizando functionResults con MCP:', mcpResult);
+                      setFunctionResults(mcpResult);
+                      console.log('🔍 [DEBUG] MCP result guardado para UI');
+                      
+                      console.log("🌟 === FIN RESPUESTA MCP ===");
+                    }
+                    
+                    // OpenAI maneja automáticamente las llamadas MCP
+                    console.log("✅ MCP ejecutado automáticamente por OpenAI");
+                  } else if (item.type === "tool_call") {
+                    console.log("🔧 Tool call detectado (Legacy):", item);
+                    console.log("🔧 Tool name:", item.name);
+                    console.log("🔧 Tool arguments:", item.arguments);
+                    console.log("🔧 Tool result:", item.result);
+                    // OpenAI resuelve automáticamente los tool calls
+                  } else if (item.type === "message") {
+                    console.log('💬 Mensaje de respuesta:', item.content);
+                  } else {
+                    console.log(`❓ Tipo de item no reconocido: ${item.type}`, item);
+                  }
+                }
+                
+                // Verificar si necesitamos crear una respuesta después de function calls O MCP calls
                 const functionCalls = data.response.output.filter(item => item.type === 'function_call');
+                const mcpCalls = data.response.output.filter(item => item.type === 'mcp_call');
+                
+                console.log(`🔍 Function calls encontrados: ${functionCalls.length}`);
+                console.log(`🔍 MCP calls encontrados: ${mcpCalls.length}`);
                 
                 if (functionCalls.length > 0) {
-                  await Promise.all(functionCalls.map(funcCall => {
-                    const args = typeof funcCall.arguments === 'string' 
-                      ? JSON.parse(funcCall.arguments) 
-                      : funcCall.arguments;
-                    return executeFunctionCall(funcCall.name, args, funcCall.call_id, dc);
-                  }));
+                  console.log('📤 Solicitando respuesta después de function calls');
                   dc.send(JSON.stringify({ type: "response.create" }));
-
-                  } else {
-                    console.log('✅ Respuesta completada sin function calls');
-                  }
-                } else {
-                  console.log('✅ Respuesta completada sin output array');
+                } else if (mcpCalls.length > 0) {
+                  console.log('📤 Solicitando respuesta después de MCP calls');
+                  dc.send(JSON.stringify({ type: "response.create" }));
                 }
+              } else {
+                console.log('ℹ️ No hay output array en la respuesta');
+              }
               
               setIsProcessing(false);
               break;
@@ -710,6 +882,19 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               
             default:
               console.log('📩 Evento no manejado:', data.type);
+              
+              // 🔍 ANÁLISIS DETALLADO DE EVENTOS DESCONOCIDOS
+              if (data.type && data.type.includes('mcp')) {
+                console.log('🔧 === EVENTO MCP NO MANEJADO ===');
+                console.log('🏷️ Tipo:', data.type);
+                console.log('📊 Datos completos:', JSON.stringify(data, null, 2));
+                
+                // Buscar errores específicos en eventos MCP
+                if (data.error) {
+                  console.log('💥 Error en MCP:', data.error);
+                }
+                console.log('🔧 === FIN EVENTO MCP ===');
+              }
           }
 
         } catch (parseError) {
