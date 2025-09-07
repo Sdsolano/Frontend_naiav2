@@ -6,6 +6,8 @@ import { useUser } from '../components/UserContext';
 
 const CAPTURE_QUALITY = 0.9;
 const MAX_IMAGE_SIZE = 640;
+const REALTIME_QUALITY = 0.3; // Menor calidad para realtime
+const REALTIME_MAX_SIZE = 320; // Mucho más pequeño para realtime
 const MIN_CAPTURE_INTERVAL = 2000;
 const CAMERA_INIT_DELAY = 3000;
 
@@ -304,6 +306,76 @@ export const useUserImage = () => {
       setIsCapturing(false);
     }
   }, [isReady, isCapturing]);
+
+  // Capturar imagen específicamente optimizada para realtime
+  const captureImageForRealtime = useCallback(async () => {
+    if (!isReady || !streamRef.current) {
+      console.log('📸 No se puede capturar para realtime: cámara no lista');
+      return null;
+    }
+    
+    if (isCapturing) {
+      console.log('📸 Ya hay una captura en curso, omitiendo realtime');
+      return null;
+    }
+    
+    setIsCapturing(true);
+    
+    try {
+      const video = videoRef.current;
+      
+      if (!video || !video.videoWidth || !video.videoHeight) {
+        throw new Error('Video no inicializado para realtime');
+      }
+      
+      console.log(`📸 Capturando imagen REALTIME optimizada (${video.videoWidth}x${video.videoHeight})`);
+      
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      
+      // Dimensiones MUY pequeñas para realtime
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+      
+      let targetWidth, targetHeight;
+      if (width > height) {
+        targetWidth = Math.min(width, REALTIME_MAX_SIZE); // 320px máximo
+        targetHeight = (height / width) * targetWidth;
+      } else {
+        targetHeight = Math.min(height, REALTIME_MAX_SIZE);
+        targetWidth = (width / height) * targetHeight;
+      }
+      
+      // Configurar canvas pequeño
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      
+      // Limpiar canvas
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+      
+      // Dibujar imagen pequeña
+      ctx.drawImage(video, 0, 0, width, height, 0, 0, targetWidth, targetHeight);
+      
+      // Convertir con calidad MUY baja para realtime
+      const blob = await new Promise(resolve => {
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg', REALTIME_QUALITY); // 0.3 calidad
+      });
+      
+      if (!blob || blob.size < 500) {
+        console.warn('📸 Blob de realtime muy pequeño:', blob?.size || 0, 'bytes');
+      } else {
+        console.log('📸 Imagen realtime capturada:', blob.size, 'bytes');
+      }
+      
+      return blob;
+    } catch (error) {
+      console.error('📸 Error capturando imagen para realtime:', error);
+      return null;
+    } finally {
+      setIsCapturing(false);
+    }
+  }, [isReady, isCapturing]);
   
   // Procesar cola de imágenes
   const processImageQueue = useCallback(async () => {
@@ -437,33 +509,46 @@ export const useUserImage = () => {
     }
   }, [userId]);
   
-  // Capturar y subir
-  const captureAndUpload = useCallback(async () => {
-    // Solo subir si realmente podemos acceder a la cámara
-    if (!isUserReady() || !userId) {
-      console.log('📸 Usuario no está listo o userId no disponible, omitiendo captura');
-      return false;
+  // Capturar y subir (o solo capturar si captureOnly = true)
+  const captureAndUpload = useCallback(async (captureOnly = false) => {
+    // Para solo capturar (realtime), no necesitamos userId
+    if (!captureOnly) {
+      if (!isUserReady() || !userId) {
+        console.log('📸 Usuario no está listo o userId no disponible, omitiendo captura');
+        return false;
+      }
     }
+    
     if (!isReady || !isCameraActuallyWorking()) {
-      // No subir nada si no hay cámara disponible
       console.log('📸 Cámara no disponible, omitiendo captura');
-      return false;
+      return captureOnly ? null : false;
     }
     
     try {
-      // Intentar captura normal (sin fallback)
-      const imageBlob = await captureImage();
+      // Intentar captura (usar función optimizada para realtime si es necesario)
+      const imageBlob = captureOnly ? await captureImageForRealtime() : await captureImage();
       
-      // Solo subir si realmente obtuvimos una imagen
-      if (imageBlob && imageBlob.size > 5000) { // Mínimo 5KB para una imagen real
-        return uploadImage(imageBlob);
+      if (imageBlob && imageBlob.size > 1000) { // Reducir umbral para realtime
+        if (captureOnly) {
+          // Solo retornar el blob para realtime
+          console.log('📸 Imagen capturada para realtime:', imageBlob.size, 'bytes');
+          return imageBlob;
+        } else {
+          // Comportamiento normal: subir al backend
+          if (imageBlob.size > 5000) {
+            return uploadImage(imageBlob);
+          } else {
+            console.log('📸 Imagen muy pequeña para backend, omitiendo subida');
+            return false;
+          }
+        }
       } else {
-        console.log('📸 Imagen no válida o muy pequeña, omitiendo subida');
-        return false;
+        console.log('📸 Imagen no válida, omitiendo');
+        return captureOnly ? null : false;
       }
     } catch (error) {
       console.error('Error en captureAndUpload:', error);
-      return false;
+      return captureOnly ? null : false;
     }
   }, [isReady, isCameraActuallyWorking, captureImage, uploadImage, isUserReady, userId]);
   
@@ -529,6 +614,7 @@ export const useUserImage = () => {
     stopCamera,
     setVideoElement,
     captureImage,
+    captureImageForRealtime, // Nueva función optimizada para realtime
     uploadImage,
     captureAndUpload,
     captureInitialImage,

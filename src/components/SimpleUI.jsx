@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useContext } from "react";
 import { useChat } from "../hooks/useChat";
 import { useHybridChat } from "../hooks/useHybridChat";
 import { useLocalChat } from "../hooks/useLocalChat";
@@ -8,6 +8,7 @@ import { Send, Loader, Mic, MicOff, RefreshCw, Camera, Ear, EarOff, Volume2 } fr
 import FunctionResultsDisplay from "./FunctionResultsDisplay";
 import { useNavigate } from "react-router-dom";
 import { getCurrentRoleName } from "../utils/roleUtils";
+import SubtitlesContext from "./subtitles";
 
 // Variable global para evitar envíos duplicados
 let lastSentMessage = '';
@@ -17,6 +18,9 @@ export const SimpleUI = ({ hidden, ...props }) => {
   const navigate = useNavigate();
   const [currentRoleName, setCurrentRoleName] = useState('Investigador');
   const [isGovContext, setIsGovContext] = useState(false);
+  
+  // Conectar al contexto de subtítulos para recibir subtítulos del realtime
+  const subtitlesContext = useContext(SubtitlesContext);
 
   // Función para cambiar de rol con refresh completo de la página
   const handleChangeRole = () => {
@@ -85,17 +89,19 @@ export const SimpleUI = ({ hidden, ...props }) => {
   // 🎯 USAR FUNCTION RESULTS DIRECTAMENTE DE LOCAL CHAT
   const functionResults = localChat.functionResults;
 
-  // 🔍 [DEBUG] Log temporal para verificar functionResults
+  // 🔍 [DEBUG] Log temporal para verificar functionResults y subtítulos
   useEffect(() => {
     console.log('🔍 [DEBUG] SimpleUI - useEffect disparado');
     console.log('🔍 [DEBUG] chatHook.functionResults:', chatHook.functionResults);
     console.log('🔍 [DEBUG] localChat.functionResults:', localChat.functionResults);
     console.log('🔍 [DEBUG] functionResults (usado):', functionResults);
+    console.log('🔍 [DEBUG] subtitlesContext:', subtitlesContext);
+    console.log('🔍 [DEBUG] subtitlesContext?.subtitles:', subtitlesContext?.subtitles);
     
     if (functionResults) {
       console.log('🔍 [DEBUG] SimpleUI recibió functionResults:', functionResults);
     }
-  }, [functionResults, localChat.functionResults, chatHook.functionResults]);
+  }, [functionResults, localChat.functionResults, chatHook.functionResults, subtitlesContext]);
 
   // Estado para deshabilitar temporalmente los controles después de enviar
   const [inputDisabled, setInputDisabled] = useState(false);
@@ -117,6 +123,14 @@ export const SimpleUI = ({ hidden, ...props }) => {
     debugInfo
   } = useUserImage();
   
+  // Configurar callback de contexto visual para realtime
+  useEffect(() => {
+    if (localChat.setVisualContextCallback && captureAndUpload) {
+      localChat.setVisualContextCallback(captureAndUpload);
+      console.log('📸 Callback de contexto visual configurado para realtime');
+    }
+  }, [localChat.setVisualContextCallback, captureAndUpload]);
+
   // Detectar cambios de rol
   useEffect(() => {
     const updateRoleName = () => {
@@ -194,15 +208,24 @@ export const SimpleUI = ({ hidden, ...props }) => {
     };
   }, [isCameraReady, captureAndUpload]);
 
-  // Efecto para actualizar los subtítulos cuando cambia el mensaje
+  // Efecto para actualizar los subtítulos cuando cambia el mensaje (chat normal)
   useEffect(() => {
     if (message && message.text) {
       setCurrentSubtitle(message.text);
-      console.log("📝 Subtítulo actualizado:", message.text);
-    } else {
+      console.log("📝 Subtítulo (chat normal) actualizado:", message.text);
+    } else if (!subtitlesContext?.subtitles) {
+      // Solo limpiar si no hay subtítulos del realtime
       setCurrentSubtitle("");
     }
-  }, [message]);
+  }, [message, subtitlesContext?.subtitles]);
+  
+  // Efecto para actualizar los subtítulos cuando cambian los subtítulos del contexto (realtime)
+  useEffect(() => {
+    if (subtitlesContext?.subtitles) {
+      setCurrentSubtitle(subtitlesContext.subtitles);
+      console.log("📝 Subtítulo (realtime) actualizado:", subtitlesContext.subtitles);
+    }
+  }, [subtitlesContext?.subtitles]);
   
   // Función para manejar la entrada del usuario y capturar imagen anticipadamente
   const handleInputChange = (e) => {
@@ -560,8 +583,8 @@ export const SimpleUI = ({ hidden, ...props }) => {
               disabled={isAvatarResponding || inputDisabled}
               rows={1}
             />
-            
-            {/* 🔧 BOTÓN PRINCIPAL DE VOZ UNIFICADO */}
+            {/*
+           
             <button
               onClick={() => {
                 console.log(`🔘 Click en botón voice - Estado actual: Always=${alwaysListeningMode}, Continuous=${continuousMode}`);
@@ -597,7 +620,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
               )}
             </button>
             
-            {/* Botón de modo continuo manual - Solo cuando no hay modos activos */}
+          
             {!alwaysListeningMode && !continuousMode && (
               <button
                 onClick={toggleContinuousMode}
@@ -608,7 +631,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
               </button>
             )}
             
-            {/* Botón de micrófono manual - Solo cuando no hay modos activos */}
+            
             {!alwaysListeningMode && !continuousMode && (
               <button
                 onClick={toggleListening}
@@ -626,6 +649,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
                 }
               </button>
             )}
+            */}
             
             {/* Botón de enviar */}
             <button
@@ -639,7 +663,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
               {loading ? <Loader className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
             </button>
             
-            {/* Botón de zoom */}
+            {/* Botón de zoom 
             <button
               onClick={() => setCameraZoomed(!cameraZoomed)}
               className="bg-gray-200 hover:bg-gray-300 text-gray-700 p-3 rounded-md flex-shrink-0"
@@ -647,18 +671,19 @@ export const SimpleUI = ({ hidden, ...props }) => {
             >
               {cameraZoomed ? "Alejar" : "Acercar"}
             </button>
+            */}
 
             {/* Botón temporal para Realtime */}
             <button
               onClick={localChat.isRealtimeConnected ? localChat.disconnectRealtime : localChat.initRealtimeConnection}
-              className={`p-3 rounded-md flex-shrink-0 text-sm font-medium ${
+              className={`p-3 rounded-md flex-shrink-0 ${
                 localChat.isRealtimeConnected 
-                  ? "bg-red-500 hover:bg-red-600 text-white" 
-                  : "bg-purple-500 hover:bg-purple-600 text-white"
+                  ? "bg-green-900 hover:bg-green-800 text-white" 
+                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
               }`}
               title={localChat.isRealtimeConnected ? "Desconectar Realtime" : "Conectar Realtime"}
             >
-              {localChat.isRealtimeConnected ? "🔴 RT ON" : "🟣 RT OFF"}
+               <RefreshCw className={`w-5 h-5 ${localChat.isRealtimeConnected ? "animate-spin" : ""}`} />
             </button>
           </div>
 

@@ -39,6 +39,9 @@ export const useLocalChat = () => {
   const lastVolumeTimeRef = useRef(0);
   const isCurrentlyTalkingRef = useRef(false);
 
+  // Referencias para contexto visual en realtime
+  const visualContextCallbackRef = useRef(null);
+
   // Mapear voces de TTS a Realtime API
   const mapVoiceToRealtime = (ttsVoice) => {
     const voiceMapping = {
@@ -156,8 +159,8 @@ export const useLocalChat = () => {
   // Función para monitorear volumen en tiempo real
   const startVolumeMonitoring = useCallback(() => {
     const VOLUME_THRESHOLD = 5; // Umbral de volumen (ajustable)
-    const SILENCE_TIMEOUT = 300; // 300ms de silencio antes de volver a Idle (más responsivo)
-    
+    const SILENCE_TIMEOUT = 0; // 0ms de silencio antes de volver a Idle (más responsivo)
+
     const checkVolume = () => {
       if (!analyserRef.current) return;
       
@@ -626,6 +629,11 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       
         console.log('📡 NAIA WebRTC conectada con instrucciones configuradas');
         
+        // 📸 CAPTURAR CONTEXTO VISUAL INICIAL (sin verificar estado)
+        setTimeout(() => {
+          captureVisualContext('inicio-realtime');
+        }, 2000); // Delay para asegurar que la cámara esté lista
+        
         // ✅ SessionRef simplificado - ya no necesitamos tracking complejo
         sessionRef.current = {
           connected: true
@@ -635,7 +643,6 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       dc.onmessage = async (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📩 Evento recibido:', data.type);
 
           // Manejo específico de eventos
           switch (data.type) {
@@ -772,6 +779,9 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
             case 'response.done':
               console.log('🏁 Respuesta completada, verificando function calls...');
               console.log('🔍 Response completa:', JSON.stringify(data.response, null, 2));
+              
+              // 📸 CAPTURAR CONTEXTO VISUAL INMEDIATAMENTE (sin verificar estado)
+              captureVisualContext('post-respuesta');
               
               if (data.response?.usage) {
                 setSessionTokens(data.response.usage.total_tokens);
@@ -924,8 +934,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               break;
               
             default:
-              console.log('📩 Evento no manejado:', data.type);
-              
+                         
               // 🔍 ANÁLISIS DETALLADO DE EVENTOS DESCONOCIDOS
               if (data.type && data.type.includes('mcp')) {
                 console.log('🔧 === EVENTO MCP NO MANEJADO ===');
@@ -1406,6 +1415,89 @@ const saveMemoryToBackend = async (summaryText) => {
     }
   }, [subtitlesContext]);
 
+  // Función para configurar contexto visual (para usar con useUserImage)
+  const setVisualContextCallback = useCallback((captureFunction) => {
+    visualContextCallbackRef.current = captureFunction;
+    console.log('📸 Visual context callback configurado para realtime');
+  }, []);
+
+  // Función SIMPLIFICADA para capturar imagen directa para realtime
+  const captureRealtimeImage = useCallback(async (reason = 'unknown') => {
+    if (!visualContextCallbackRef.current) {
+      console.warn('📸 Callback de contexto visual no está configurado');
+      return null;
+    }
+
+    console.log(`📸 Capturando imagen para realtime (${reason})`);
+    
+    try {
+      // Obtener el blob de imagen directamente
+      const imageBlob = await visualContextCallbackRef.current(true); // true = solo capturar, no subir
+      
+      if (imageBlob && imageBlob.size > 1000) {
+        console.log(`📸 Imagen para realtime ${reason}: ${imageBlob.size} bytes`);
+        
+        // Convertir blob a base64 para OpenAI
+        const base64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64String = reader.result.split(',')[1]; // Remover prefijo data:image/jpeg;base64,
+            resolve(base64String);
+          };
+          reader.readAsDataURL(imageBlob);
+        });
+        
+        // Verificar tamaño del mensaje antes de enviar
+        const messageSize = base64.length;
+        console.log(`📸 Tamaño del mensaje base64: ${messageSize} caracteres (${Math.round(messageSize/1024)}KB)`);
+        
+        if (messageSize > 50000) { // 50KB aprox
+          console.warn(`📸 Imagen muy grande para datachannel (${Math.round(messageSize/1024)}KB), saltando envío`);
+          return false;
+        }
+        
+        // Enviar imagen SIEMPRE si hay dataChannel (sin verificar estado)
+        if (dataChannelRef.current) {
+          console.log(`📸 Enviando imagen a OpenAI realtime (${reason})`);
+          
+          const imageMessage = {
+            type: "conversation.item.create",
+            previous_item_id: null,
+            item: {
+              type: "message",
+              role: "user",
+              content: [
+                {
+                  type: "input_image",
+                  image_url: `data:image/jpeg;base64,${base64}`
+                }
+              ]
+            }
+          };
+          
+          dataChannelRef.current.send(JSON.stringify(imageMessage));
+          console.log(`✅ Imagen enviada a OpenAI realtime (${reason})`);
+          return true;
+        } else {
+          console.warn(`📸 No hay dataChannel disponible para enviar imagen (${reason})`);
+          return false;
+        }
+      } else {
+        console.warn(`📸 Imagen para realtime ${reason} no válida o muy pequeña`);
+        return false;
+      }
+    } catch (error) {
+      console.error(`📸 Error capturando imagen para realtime ${reason}:`, error);
+      return false;
+    }
+  }, []);
+
+  // Función legacy para compatibilidad (deprecated)
+  const captureVisualContext = useCallback(async (reason = 'unknown') => {
+    console.log(`📸 Usando captura directa para realtime (${reason})`);
+    return await captureRealtimeImage(reason);
+  }, [captureRealtimeImage]);
+
   // Función para cancelar requests
   const cancelRequest = () => {
     if (abortControllerRef.current) {
@@ -1461,6 +1553,9 @@ const saveMemoryToBackend = async (summaryText) => {
     // Realtime animations - simplificadas
     isRealtimeSpeaking,
     // Subtitle functions
-    clearRealtimeSubtitles
+    clearRealtimeSubtitles,
+    // Visual context functions
+    setVisualContextCallback,
+    captureVisualContext
   };
 };

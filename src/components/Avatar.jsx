@@ -618,7 +618,6 @@ export function Avatar(props) {
       
       // Log periódico para debug (cada 100 frames aproximadamente)
       if (Math.floor(currentRealtimeTime * 60) % 100 === 0) {
-        console.log(`💋 REALTIME LIPSYNC: Tiempo=${currentRealtimeTime.toFixed(2)}s, Activo=${isRealtimeLipsyncActive}, Data hasta ${lastCue.end}s`);
       }
       
       if (isWithinDataRange) {
