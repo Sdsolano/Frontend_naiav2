@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useContext } from 'react';
 import { OPENAI_API_KEY, BACKEND_URL } from '../../config';
 import { getVoiceForRole, getVoiceInstructions } from '../utils/voiceUtils';
-import { getCurrentRoleConfig, ROLE_NAMES } from '../utils/roleUtils';
+import { getCurrentRoleConfig, ROLE_NAMES, getCurrentRoleId } from '../utils/roleUtils';
 import { useUser } from '../components/UserContext';
+import SubtitlesContext from '../components/subtitles';
 
 /**
  * Hook para manejar conversaciones locales con OpenAI directamente
@@ -10,6 +11,7 @@ import { useUser } from '../components/UserContext';
  */
 export const useLocalChat = () => {
   const { userId, isUserReady } = useUser(); // Obtener userId dinámico del contexto
+  const subtitlesContext = useContext(SubtitlesContext); // Para mostrar subtítulos en realtime
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [functionResults, setFunctionResults] = useState(null);
@@ -523,6 +525,18 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
   // Función para inicializar conexión Realtime
   const initRealtimeConnection = useCallback(async () => {
     try {
+      // 🔒 Guard simple: Evitar múltiples conexiones simultáneas
+      if (window.naiaRealtimeConnecting === true) {
+        console.log('⚠️ Conexión Realtime ya en proceso, evitando duplicado');
+        return false;
+      }
+      
+      if (isRealtimeConnected) {
+        console.log('⚠️ Realtime ya está conectado, evitando duplicado');
+        return false;
+      }
+      
+      window.naiaRealtimeConnecting = true;
       console.log('🔄 Iniciando conexión Realtime...');
       
       if (!OPENAI_API_KEY) {
@@ -544,8 +558,16 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       
       // 1. Obtener ephemeral token desde TU backend (según documentación oficial)
       console.log('🔐 Obteniendo ephemeral token desde backend...');
-      const finalUserId = userId || parseInt(localStorage.getItem('naia_user_id') || '325', 10);
-      console.log(`👤 initRealtimeConnection - userId del contexto: ${userId}, usando: ${finalUserId}`);
+      
+      // Determinar user_id basado en el rol
+      let finalUserId;
+      if (currentRoleId === 'ciudadano') {
+        finalUserId = 123; // Hardcodeado para ciudadano
+        console.log(`👤 Rol ciudadano - usando user_id hardcodeado: ${finalUserId}`);
+      } else {
+        finalUserId = userId || parseInt(localStorage.getItem('naia_user_id') || '325', 10);
+        console.log(`👤 Rol ${currentRoleId} - userId del contexto: ${userId}, usando: ${finalUserId}`);
+      }
       
       const tokenResponse = await fetch(`${BACKEND_URL}/api/v1/token/realtime/`, {
         method: "POST",
@@ -553,8 +575,8 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          roleId: currentRoleId,
-          user_id: 5,
+          roleId: getCurrentRoleId(),
+          user_id: finalUserId,
         }),
       });
 
@@ -850,6 +872,24 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
                     // OpenAI resuelve automáticamente los tool calls
                   } else if (item.type === "message") {
                     console.log('💬 Mensaje de respuesta:', item.content);
+                    
+                    // 🎯 EXTRAER TRANSCRIPT PARA SUBTÍTULOS
+                    if (item.content && Array.isArray(item.content)) {
+                      for (const contentItem of item.content) {
+                        if (contentItem.type === 'output_audio' && contentItem.transcript) {
+                          console.log('📝 Transcript encontrado para subtítulos:', contentItem.transcript);
+                          
+                          // Mostrar transcript en subtítulos
+                          if (subtitlesContext && subtitlesContext.setSubtitles) {
+                            subtitlesContext.setSubtitles(contentItem.transcript);
+                            console.log('✅ Subtítulos actualizados con transcript del realtime');
+                          } else {
+                            console.warn('⚠️ SubtitlesContext no disponible para mostrar transcript');
+                          }
+                          break; // Solo tomar el primer transcript
+                        }
+                      }
+                    }
                   } else {
                     console.log(`❓ Tipo de item no reconocido: ${item.type}`, item);
                   }
@@ -862,12 +902,15 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
                 console.log(`🔍 Function calls encontrados: ${functionCalls.length}`);
                 console.log(`🔍 MCP calls encontrados: ${mcpCalls.length}`);
                 
+                // SOLO solicitar response.create si hay function calls o MCP calls
                 if (functionCalls.length > 0) {
                   console.log('📤 Solicitando respuesta después de function calls');
                   dc.send(JSON.stringify({ type: "response.create" }));
                 } else if (mcpCalls.length > 0) {
                   console.log('📤 Solicitando respuesta después de MCP calls');
                   dc.send(JSON.stringify({ type: "response.create" }));
+                } else {
+                  console.log('✅ Respuesta normal completada - no se requiere response.create adicional');
                 }
               } else {
                 console.log('ℹ️ No hay output array en la respuesta');
@@ -959,11 +1002,13 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       dataChannelRef.current = dc;
 
       console.log('🚀 Conexión Realtime iniciada');
+      window.naiaRealtimeConnecting = false; // ✅ Limpiar guard en éxito
       return true;
 
     } catch (error) {
       console.error('❌ Error inicializando Realtime:', error);
       setIsRealtimeConnected(false);
+      window.naiaRealtimeConnecting = false; // ✅ Limpiar guard en error
       return false;
     }
   }, []);
@@ -1094,6 +1139,12 @@ const saveMemoryToBackend = async (summaryText) => {
       // Limpiar function results
       setFunctionResults(null);
       
+      // Limpiar subtítulos
+      if (subtitlesContext && subtitlesContext.setSubtitles) {
+        subtitlesContext.setSubtitles('');
+        console.log('🧹 Subtítulos limpiados al desconectar realtime');
+      }
+      
       // Aplicar Idle
       applyIdleAnimation();
 
@@ -1137,9 +1188,11 @@ const saveMemoryToBackend = async (summaryText) => {
       }
       
       setIsRealtimeConnected(false);
+      window.naiaRealtimeConnecting = false; // ✅ Limpiar guard al desconectar
       console.log('✅ Realtime desconectado completamente');
     } catch (error) {
       console.error('❌ Error desconectando Realtime:', error);
+      window.naiaRealtimeConnecting = false; // ✅ Limpiar guard en error también
     }
   }, [applyIdleAnimation, cleanupVolumeDetection, sessionTokens, generateMemorySummary]);
 
@@ -1345,6 +1398,14 @@ const saveMemoryToBackend = async (summaryText) => {
     setFunctionResults(null);
   };
 
+  // Función para limpiar subtítulos (útil cuando inicia nueva conversación)
+  const clearRealtimeSubtitles = useCallback(() => {
+    if (subtitlesContext && subtitlesContext.setSubtitles) {
+      subtitlesContext.setSubtitles('');
+      console.log('🧹 Subtítulos realtime limpiados');
+    }
+  }, [subtitlesContext]);
+
   // Función para cancelar requests
   const cancelRequest = () => {
     if (abortControllerRef.current) {
@@ -1398,6 +1459,8 @@ const saveMemoryToBackend = async (summaryText) => {
     sendAudioToRealtime,
     requestRealtimeResponse,
     // Realtime animations - simplificadas
-    isRealtimeSpeaking
+    isRealtimeSpeaking,
+    // Subtitle functions
+    clearRealtimeSubtitles
   };
 };

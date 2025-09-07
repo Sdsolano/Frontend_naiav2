@@ -8,7 +8,7 @@ export const ROLE_MAPPING = {
   'trainer': 4,
   'receptionist': 5, 
   'companion': 6,
-  'ciudadano': 7  // ← NUEVO: Asistente de Atención al Ciudadano
+  'ciudadano': 7  
 };
 
 export const REVERSE_ROLE_MAPPING = {
@@ -17,8 +17,8 @@ export const REVERSE_ROLE_MAPPING = {
   3: 'assistant',
   4: 'trainer', 
   5: 'receptionist',
-  6: 'companion',  // ← NUEVO: Compañero de bienestar
-  7: 'ciudadano'  // ← NUEVO
+  6: 'companion',  
+  7: 'ciudadano'  
 
 };
 
