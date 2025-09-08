@@ -751,7 +751,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
                     } else {
                       console.warn('⚠️ DataChannel no disponible para response.create después de MCP');
                     }
-                  }, 1000); // 1 segundo para dar tiempo a que se procese el MCP result
+                  }, 100); 
                 } else {
                   console.log('❌ MCP call sin resultado válido - informando al usuario del error');
                   
