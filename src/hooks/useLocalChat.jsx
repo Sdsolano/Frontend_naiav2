@@ -699,6 +699,12 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               // La llamada MCP terminó exitosamente
               break;
 
+            case 'response.mcp_call.failed':
+              console.log('❌ MCP Call FALLÓ:', data);
+              console.log('💥 Error en MCP call:', JSON.stringify(data, null, 2));
+              // No solicitar respuesta automática para MCP calls fallidos
+              break;
+
             case 'conversation.item.done':
               console.log('💬 Item de conversación completado:', data);
               break;
@@ -733,6 +739,31 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
                   // Actualizar estado para UI - solo el resultado, no el wrapper
                   console.log('🔍 [DEBUG] Actualizando functionResults con MCP (output_item.done):', mcpResult);
                   setFunctionResults(mcpResult);
+                  
+                  // 🎯 ENVIAR response.create AUTOMÁTICO PARA MCP - OpenAI NO está generando respuesta automática
+                  console.log('📤 MCP call completado - solicitando respuesta automática...');
+                  
+                  // Esperar un momento para que OpenAI procese el resultado MCP, luego solicitar respuesta
+                  setTimeout(() => {
+                    if (dataChannelRef.current) {
+                      console.log('📤 Enviando response.create después de MCP call');
+                      dataChannelRef.current.send(JSON.stringify({ type: "response.create" }));
+                    } else {
+                      console.warn('⚠️ DataChannel no disponible para response.create después de MCP');
+                    }
+                  }, 1000); // 1 segundo para dar tiempo a que se procese el MCP result
+                } else {
+                  console.log('❌ MCP call sin resultado válido - informando al usuario del error');
+                  
+                  // 🎯 ENVIAR response.create AUTOMÁTICO PARA INFORMAR ERROR
+                  setTimeout(() => {
+                    if (dataChannelRef.current) {
+                      console.log('📤 Enviando response.create para informar error al usuario');
+                      dataChannelRef.current.send(JSON.stringify({ type: "response.create" }));
+                    } else {
+                      console.warn('⚠️ DataChannel no disponible para informar error');
+                    }
+                  }, 1000);
                 }
                 
                 console.log('🎯 === FIN RESPUESTA MCP ===');
@@ -780,7 +811,19 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               console.log('🏁 Respuesta completada, verificando function calls...');
               console.log('🔍 Response completa:', JSON.stringify(data.response, null, 2));
               
-              // 📸 CAPTURAR CONTEXTO VISUAL INMEDIATAMENTE (sin verificar estado)
+              // � DEBUGGING: Verificar si este evento se dispara después de MCP
+              console.log('🚨 DEBUG: response.done disparado');
+              console.log('🚨 DEBUG: data.response existe?', !!data.response);
+              console.log('🚨 DEBUG: data.response.output existe?', !!data.response?.output);
+              console.log('🚨 DEBUG: data.response.output es array?', Array.isArray(data.response?.output));
+              if (data.response?.output) {
+                console.log('🚨 DEBUG: Longitud del output array:', data.response.output.length);
+                data.response.output.forEach((item, index) => {
+                  console.log(`🚨 DEBUG: Item ${index} - tipo: ${item.type}`, item);
+                });
+              }
+              
+              // �📸 CAPTURAR CONTEXTO VISUAL INMEDIATAMENTE (sin verificar estado)
               captureVisualContext('post-respuesta');
               
               if (data.response?.usage) {
@@ -816,7 +859,8 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               
               // ✅ USAR RESPONSE.DONE - Tiene toda la información completa
               if (data.response?.output && Array.isArray(data.response.output)) {
-                console.log('🔍 Analizando output completo:', data.response.output);
+                console.log('� DEBUG: ENTRANDO AL BLOQUE DE ANÁLISIS DE OUTPUT');
+                console.log('�🔍 Analizando output completo:', data.response.output);
                 
                 for (const item of data.response.output) {
                   console.log(`📋 Procesando item tipo: ${item.type}`, item);
@@ -905,20 +949,31 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
                   }
                 }
                 
+                console.log('🚨 DEBUG: LLEGANDO AL BLOQUE DE VERIFICACIÓN DE CALLS');
                 // Verificar si necesitamos crear una respuesta después de function calls O MCP calls
                 const functionCalls = data.response.output.filter(item => item.type === 'function_call');
                 const mcpCalls = data.response.output.filter(item => item.type === 'mcp_call');
                 
+                // ⚠️ FILTRAR MCP CALLS PENDIENTES - Solo responder si están completados
+                const completedMcpCalls = mcpCalls.filter(item => item.output !== undefined && item.output !== null);
+                const pendingMcpCalls = mcpCalls.filter(item => item.output === undefined || item.output === null);
+                
                 console.log(`🔍 Function calls encontrados: ${functionCalls.length}`);
                 console.log(`🔍 MCP calls encontrados: ${mcpCalls.length}`);
+                console.log(`🔍 MCP calls completados: ${completedMcpCalls.length}`);
+                console.log(`🔍 MCP calls pendientes: ${pendingMcpCalls.length}`);
+                console.log('🚨 DEBUG: functionCalls array:', functionCalls);
+                console.log('🚨 DEBUG: mcpCalls array:', mcpCalls);
                 
-                // SOLO solicitar response.create si hay function calls o MCP calls
+                // SOLO solicitar response.create si hay function calls o MCP calls COMPLETADOS
                 if (functionCalls.length > 0) {
                   console.log('📤 Solicitando respuesta después de function calls');
                   dc.send(JSON.stringify({ type: "response.create" }));
-                } else if (mcpCalls.length > 0) {
-                  console.log('📤 Solicitando respuesta después de MCP calls');
+                } else if (completedMcpCalls.length > 0) {
+                  console.log('📤 Solicitando respuesta después de MCP calls completados');
                   dc.send(JSON.stringify({ type: "response.create" }));
+                } else if (pendingMcpCalls.length > 0) {
+                  console.log('⏳ MCP calls aún pendientes - esperando completion antes de responder');
                 } else {
                   console.log('✅ Respuesta normal completada - no se requiere response.create adicional');
                 }
