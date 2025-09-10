@@ -632,7 +632,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
         // 📸 CAPTURAR CONTEXTO VISUAL INICIAL (sin verificar estado)
         setTimeout(() => {
           captureVisualContext('inicio-realtime');
-        }, 2000); // Delay para asegurar que la cámara esté lista
+        }, 500); // Delay para asegurar que la cámara esté lista
         
         // ✅ SessionRef simplificado - ya no necesitamos tracking complejo
         sessionRef.current = {
