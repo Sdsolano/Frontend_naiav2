@@ -260,7 +260,11 @@ export const useLocalChat = () => {
         'search_traffic_fines': '/api/v1/gobernacion/traffic-fines/',
         'explain_passport_process': '/api/v1/gobernacion/passport-process/',
         'get_location_events': '/api/v1/gobernacion/events/',
-        'get_location_places': '/api/v1/gobernacion/places/'
+        'get_location_places': '/api/v1/gobernacion/places/',
+        'why_is_uninorte_at_the_top' : '/api/v1/uniguide/why-uninorte-top/',
+        'engineering_opportunities_at_uninorte': '/api/v1/uniguide/engineering-opportunities/',
+        'electrical_electronic_engineering_future': '/api/v1/uniguide/electrical-engineering-future/',
+        'inscription_process_for_engineering': '/api/v1/uniguide/inscription-process/'
       };
 
       const endpoint = endpointMap[functionName];
