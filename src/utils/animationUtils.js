@@ -1,13 +1,13 @@
 // utils/animationUtils.js - NUEVO ARCHIVO
 export const GENDER_MAPPING = {
   'researcher': 'female',
-  'receptionist': 'female', 
+  'receptionist': 'female',
   'companion': 'female',
   'trainer': 'male',        // ← Masculino
   'guide': 'male',          // ← Masculino
   'assistant': 'male',
-  'ciudadano': 'female'  
-
+  'ciudadano': 'female',
+  'toefl-tutor': 'female'   // ← NUEVO: Tutora TOEFL femenina
 };
 
 /**

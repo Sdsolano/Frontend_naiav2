@@ -10,7 +10,7 @@ import { HybridChatEventListener, useHybridChat } from './hooks/useHybridChat';
 import { useUniversalChat } from './hooks/useUniversalChat';
 import ElegantSubtitles from "./components/ElegantSubtitles";
 import RoleGuard from "./components/RoleGuard";
-import { isGovContext, getGovConfig } from './utils/roleUtils';
+import { isGovContext, getGovConfig, isToeflContext, getToeflConfig } from './utils/roleUtils';
 
 function App() {
   const [subtitles, setSubtitles] = useState('');
@@ -139,31 +139,55 @@ function App() {
   // Detectar y configurar contexto de gobierno
   useEffect(() => {
     const isGovContext = window.location.pathname.startsWith('/gov');
-    
+    const isToeflContext = window.location.pathname.startsWith('/toefl');
+
     if (isGovContext) {
       console.log("🏛️ Contexto de gobierno detectado - configurando automáticamente");
-      
+
       // Configurar rol ciudadano automáticamente
       localStorage.setItem('naia_selected_role', 'ciudadano');
       localStorage.setItem('naia_gov_context', 'true');
       localStorage.setItem('naia_user_id', '325');
-      
+
       // Actualizar estado del rol si es necesario
       if (currentRole !== 'ciudadano') {
         setCurrentRole('ciudadano');
         console.log("🏛️ Rol actualizado a: ciudadano");
       }
-      
+
       // Emitir evento de cambio de rol para notificar otros componentes
-      window.dispatchEvent(new CustomEvent('role-changed', { 
+      window.dispatchEvent(new CustomEvent('role-changed', {
         detail: { roleId: 'ciudadano', roleName: 'Asistente de Atención al Ciudadano', isGov: true }
       }));
+    } else if (isToeflContext) {
+      console.log("📚 Contexto de TOEFL detectado - configurando automáticamente");
+
+      // Configurar rol TOEFL automáticamente
+      localStorage.setItem('naia_selected_role', 'toefl-tutor');
+      localStorage.setItem('naia_toefl_context', 'true');
+      localStorage.setItem('naia_user_id', '123');
+
+      // Actualizar estado del rol si es necesario
+      if (currentRole !== 'toefl-tutor') {
+        setCurrentRole('toefl-tutor');
+        console.log("📚 Rol actualizado a: toefl-tutor");
+      }
+
+      // Emitir evento de cambio de rol para notificar otros componentes
+      window.dispatchEvent(new CustomEvent('role-changed', {
+        detail: { roleId: 'toefl-tutor', roleName: 'Tutora TOEFL Especializada', isToefl: true }
+      }));
     } else {
-      // Si no es contexto gov, limpiar configuración de gobierno
+      // Si no es contexto gov ni toefl, limpiar configuraciones específicas
       if (localStorage.getItem('naia_gov_context') === 'true') {
         localStorage.removeItem('naia_gov_context');
         localStorage.removeItem('naia_user_id');
         console.log("🏛️ Contexto de gobierno desactivado");
+      }
+      if (localStorage.getItem('naia_toefl_context') === 'true') {
+        localStorage.removeItem('naia_toefl_context');
+        localStorage.removeItem('naia_user_id');
+        console.log("📚 Contexto de TOEFL desactivado");
       }
     }
   }, []); 

@@ -119,6 +119,8 @@ const getModelPathForRole = (roleId) => {
       return "/models/receptionist.glb";
     case 'ciudadano':  // ← NUEVO: Asistente de Atención al Ciudadano
       return "/models/ciudadano.glb";
+    case 'toefl-tutor':  // ← NUEVO: Tutora TOEFL (reutiliza companion femenino)
+      return "/models/companion.glb";
     default:
       return "/models/investigator.glb";
 

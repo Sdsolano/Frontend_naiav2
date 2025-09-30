@@ -6,30 +6,32 @@ export const ROLE_MAPPING = {
   'guide': 2,
   'assistant': 3,
   'trainer': 4,
-  'receptionist': 5, 
+  'receptionist': 5,
   'companion': 6,
-  'ciudadano': 7  
+  'ciudadano': 7,
+  'toefl-tutor': 123
 };
 
 export const REVERSE_ROLE_MAPPING = {
   1: 'researcher',
   2: 'guide',
   3: 'assistant',
-  4: 'trainer', 
+  4: 'trainer',
   5: 'receptionist',
-  6: 'companion',  
-  7: 'ciudadano'  
-
+  6: 'companion',
+  7: 'ciudadano',
+  123: 'toefl-tutor'
 };
 
 export const ROLE_NAMES = {
   'researcher': 'Investigador',
   'receptionist': 'Recepcionista',
   'trainer': 'Entrenador de Habilidades',
-  'assistant': 'Asistente Personal', 
+  'assistant': 'Asistente Personal',
   'guide': 'Guía Universitario',
   'companion': 'Compañero de bienestar',
-  'ciudadano': 'Asistente de Atención al Ciudadano'  // ← NUEVO
+  'ciudadano': 'Asistente de Atención al Ciudadano',
+  'toefl-tutor': 'Tutora TOEFL Especializada'
 };
 
 /**
@@ -78,7 +80,7 @@ export const getCurrentRoleName = () => {
  */
 export const isRoleAvailable = (roleId) => {
   // Roles completamente implementados
-  const availableRoles = ['researcher', 'guide', 'companion', 'trainer', 'assistant', 'receptionist', 'ciudadano']; 
+  const availableRoles = ['researcher', 'guide', 'companion', 'trainer', 'assistant', 'receptionist', 'ciudadano', 'toefl-tutor'];
   return availableRoles.includes(roleId);
 };
 
@@ -119,12 +121,36 @@ export const getGovConfig = () => ({
 });
 
 /**
+ * Detecta si estamos en contexto de TOEFL
+ * @returns {boolean} Si estamos en rutas /toefl
+ */
+export const isToeflContext = () => {
+  return window.location.pathname.startsWith('/toefl');
+};
+
+/**
+ * Configuración por defecto para el contexto de TOEFL
+ * @returns {object} Configuración específica de TOEFL
+ */
+export const getToeflConfig = () => ({
+  userId: 123,
+  roleId: 123,
+  roleName: 'Tutora TOEFL Especializada',
+  roleKey: 'toefl-tutor',
+  avatar: 'companion.glb',
+  image: 'Companion_AF.png'
+});
+
+/**
  * Obtiene la configuración de rol considerando el contexto
- * @returns {object} Configuración del rol (normal o gobierno)
+ * @returns {object} Configuración del rol (normal, gobierno o TOEFL)
  */
 export const getContextualRoleConfig = () => {
   if (isGovContext()) {
     return getGovConfig();
+  }
+  if (isToeflContext()) {
+    return getToeflConfig();
   }
   return getCurrentRoleConfig();
 };
