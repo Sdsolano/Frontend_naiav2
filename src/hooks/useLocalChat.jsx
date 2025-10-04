@@ -636,7 +636,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
         // 📸 CAPTURAR CONTEXTO VISUAL INICIAL (sin verificar estado)
         setTimeout(() => {
           captureVisualContext('inicio-realtime');
-        }, 500); // Delay para asegurar que la cámara esté lista
+        }, 2000); // Delay para asegurar que la cámara esté lista
         
         // ✅ SessionRef simplificado - ya no necesitamos tracking complejo
         sessionRef.current = {
@@ -748,26 +748,27 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
                   console.log('📤 MCP call completado - solicitando respuesta automática...');
                   
                   // Esperar un momento para que OpenAI procese el resultado MCP, luego solicitar respuesta
-                  setTimeout(() => {
+
                     if (dataChannelRef.current) {
                       console.log('📤 Enviando response.create después de MCP call');
-                      dataChannelRef.current.send(JSON.stringify({ type: "response.create" }));
+                      dataChannelRef.current.send(JSON.stringify({ type: "response.create",
+                        response: {
+                          instructions: "Using the results from the MCP tool call, generate a concise and relevant response to the user's original query. Be concise and mantain your identity"
+                        }
+                       }));
                     } else {
                       console.warn('⚠️ DataChannel no disponible para response.create después de MCP');
                     }
-                  }, 100); 
+
                 } else {
                   console.log('❌ MCP call sin resultado válido - informando al usuario del error');
                   
-                  // 🎯 ENVIAR response.create AUTOMÁTICO PARA INFORMAR ERROR
-                  setTimeout(() => {
-                    if (dataChannelRef.current) {
-                      console.log('📤 Enviando response.create para informar error al usuario');
-                      dataChannelRef.current.send(JSON.stringify({ type: "response.create" }));
-                    } else {
-                      console.warn('⚠️ DataChannel no disponible para informar error');
+                  dataChannelRef.current.send(JSON.stringify({ type: "response.create",
+                    response: {
+                      instructions: "Error on MCP tool call - no output received. Explain the issue to the user.",
                     }
-                  }, 1000);
+                   }));
+
                 }
                 
                 console.log('🎯 === FIN RESPUESTA MCP ===');
@@ -828,7 +829,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               }
               
               // �📸 CAPTURAR CONTEXTO VISUAL INMEDIATAMENTE (sin verificar estado)
-              // captureVisualContext('post-respuesta');
+              captureVisualContext('post-respuesta');
               
               if (data.response?.usage) {
                 setSessionTokens(data.response.usage.total_tokens);
@@ -1152,7 +1153,7 @@ DATOS IMPORTANTES:
 - Cualquier dato que el usuario pidió recordar`
       }
     }));
-  }, 500); // ← Aumentar a 500ms
+  }, 2000); // ← Aumentar a 500ms
 }, []);
 
 const saveMemoryToBackend = async (summaryText) => {
