@@ -636,7 +636,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
         // 📸 CAPTURAR CONTEXTO VISUAL INICIAL (sin verificar estado)
         setTimeout(() => {
           captureVisualContext('inicio-realtime');
-        }, 500); // Delay para asegurar que la cámara esté lista
+        }, 1500); // Delay para asegurar que la cámara esté lista
         
         // ✅ SessionRef simplificado - ya no necesitamos tracking complejo
         sessionRef.current = {
@@ -828,7 +828,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               }
               
               // �📸 CAPTURAR CONTEXTO VISUAL INMEDIATAMENTE (sin verificar estado)
-              captureVisualContext('post-respuesta');
+              // captureVisualContext('post-respuesta');
               
               if (data.response?.usage) {
                 setSessionTokens(data.response.usage.total_tokens);
