@@ -253,24 +253,84 @@ export const useLocalChat = () => {
     console.log(`🔧 [${timestamp}] executeFunctionCall INICIADO: ${functionName}`, functionArgs);
     console.log(`🆔 [${timestamp}] Call ID: ${callId}`);
     console.log(`👤 [${timestamp}] userId del contexto: ${userId}`);
-    
+
     try {
-      // Mapeo de funciones a endpoints
+      // Obtener rol actual para funciones compartidas
+      const currentRoleId = localStorage.getItem('naia_selected_role') || 'researcher';
+      console.log(`🎭 [${timestamp}] Rol actual: ${currentRoleId}`);
+
+      // ✅ MAPEO COMPLETO DE TOOL NAMES A ENDPOINTS (solo con /functions/)
       const endpointMap = {
+        // ========== GOBERNACIÓN (sin cambios) ==========
         'frequently_asked_questions': '/api/v1/gobernacion/faq/',
         'search_traffic_fines': '/api/v1/gobernacion/traffic-fines/',
         'explain_passport_process': '/api/v1/gobernacion/passport-process/',
         'get_location_events': '/api/v1/gobernacion/events/',
         'get_location_places': '/api/v1/gobernacion/places/',
-        'why_is_uninorte_at_the_top' : '/api/v1/uniguide/why-uninorte-top/',
-        'engineering_opportunities_at_uninorte': '/api/v1/uniguide/engineering-opportunities/',
-        'electrical_electronic_engineering_future': '/api/v1/uniguide/electrical-engineering-future/',
-        'inscription_process_for_engineering': '/api/v1/uniguide/inscription-process/'
+
+        // ========== UNIGUIDE TOOLS (7) ==========
+        'query_university_rag': '/api/v1/uniguide/functions/rag-query/',
+        'get_university_calendar_multi_month': '/api/v1/uniguide/functions/calendar/',
+        'get_virtual_campus_tour': '/api/v1/uniguide/functions/tour/',
+        'search_internet_for_uni_answers': '/api/v1/uniguide/functions/search/',
+
+        // ========== RESEARCHER TOOLS (9) ==========
+        'scholar_search': '/api/v1/researcher/functions/scholar-search/',
+        'write_document': '/api/v1/researcher/functions/document/',
+        'answer_from_user_rag': '/api/v1/researcher/functions/user-documents/',
+        'factual_web_query': '/api/v1/researcher/functions/web-search/',
+        'create_graph': '/api/v1/researcher/functions/graph/',
+        'deep_content_analysis_for_specific_information': '/api/v1/researcher/functions/deep-analysis/',
+
+        // ========== PERSONAL ASSISTANT TOOLS (8) ==========
+        'get_weather': '/api/v1/personal/functions/weather/',
+        'send_email_on_behalf_of_user': '/api/v1/personal/functions/email/',
+        'read_calendar_events': '/api/v1/personal/functions/calendar/',
+        'read_user_emails': '/api/v1/personal/functions/emails/',
+
+        // ========== RECEPCIONIST TOOLS (7) ==========
+        'answer_question_of_uni_premises': '/api/v1/recepcionist/functions/premises/',
+        'query_recepcionist_rag': '/api/v1/recepcionist/functions/menus/',
+        'get_restaurants': '/api/v1/recepcionist/functions/restaurants/',
+
+        // ========== SKILLS TRAINER TOOLS (6) ==========
+        'simulate_job_interview': '/api/v1/skills/functions/interview/',
+        'analyze_professional_appearance': '/api/v1/skills/functions/appearance/',
+        'generate_training_report': '/api/v1/skills/functions/report/',
+        'list_recent_training_reports': '/api/v1/skills/functions/reports/',
+        'get_training_report_html': '/api/v1/skills/functions/report/',
+        'cv_builder': '/api/v1/skills/functions/cv/'
       };
 
-      const endpoint = endpointMap[functionName];
+      // ✅ RESOLVER ENDPOINT según rol para funciones compartidas
+      let endpoint = endpointMap[functionName];
+
+      // Funciones compartidas que varían según el rol
+      if (functionName === 'send_email') {
+        if (currentRoleId === 'guide') endpoint = '/api/v1/uniguide/functions/email/';
+        else if (currentRoleId === 'researcher') endpoint = '/api/v1/researcher/functions/email/';
+        else if (currentRoleId === 'receptionist') endpoint = '/api/v1/recepcionist/functions/email/';
+      } else if (functionName === 'search_contacts_by_name') {
+        if (currentRoleId === 'guide') endpoint = '/api/v1/uniguide/functions/contacts/';
+        else if (currentRoleId === 'assistant') endpoint = '/api/v1/personal/functions/contacts/';
+        else if (currentRoleId === 'receptionist') endpoint = '/api/v1/recepcionist/functions/contacts/';
+      } else if (functionName === 'create_calendar_event') {
+        if (currentRoleId === 'guide') endpoint = '/api/v1/uniguide/functions/calendar-event/';
+        else if (currentRoleId === 'assistant') endpoint = '/api/v1/personal/functions/calendar-event/';
+      } else if (functionName === 'get_current_news') {
+        if (currentRoleId === 'researcher') endpoint = '/api/v1/researcher/functions/news/';
+        else if (currentRoleId === 'assistant') endpoint = '/api/v1/personal/functions/news/';
+      } else if (functionName === 'explain_naia_roles') {
+        if (currentRoleId === 'researcher') endpoint = '/api/v1/researcher/functions/roles/';
+        else if (currentRoleId === 'assistant') endpoint = '/api/v1/personal/functions/roles/';
+      } else if (functionName === 'get_location_events' && currentRoleId === 'receptionist') {
+        endpoint = '/api/v1/recepcionist/functions/events/';
+      } else if (functionName === 'get_location_places' && currentRoleId === 'receptionist') {
+        endpoint = '/api/v1/recepcionist/functions/places/';
+      }
+
       if (!endpoint) {
-        throw new Error(`Función no reconocida: ${functionName}`);
+        throw new Error(`Función no reconocida: ${functionName} para rol: ${currentRoleId}`);
       }
 
       const fullUrl = `${BACKEND_URL}${endpoint}`;
@@ -649,6 +709,11 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
         try {
           const data = JSON.parse(event.data);
 
+          // 🔍 LOG TODOS LOS EVENTOS MCP PARA DEBUG
+          if (data.type && data.type.includes('mcp')) {
+            console.log(`🔧 [MCP EVENT] ${data.type}`, data);
+          }
+
           // Manejo específico de eventos
           switch (data.type) {
             case 'response.audio.delta':
@@ -804,6 +869,22 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               console.log('🎯 Sesión creada:', data);
               console.log('🔧 ID de sesión:', data.session?.id);
               console.log('🛠️ Configuración:', data.session);
+
+              // 🔍 LOG DETALLADO DE MCP SERVERS
+              if (data.session?.mcp_servers) {
+                console.log('🖥️ ========================================');
+                console.log('🖥️ SERVIDORES MCP CONFIGURADOS:');
+                console.log('🖥️ ========================================');
+                Object.keys(data.session.mcp_servers).forEach(serverName => {
+                  const server = data.session.mcp_servers[serverName];
+                  console.log(`📡 Servidor: ${serverName}`);
+                  console.log(`   Estado: ${server.status || 'unknown'}`);
+                  console.log(`   Config completa:`, server);
+                });
+                console.log('🖥️ ========================================');
+              } else {
+                console.warn('⚠️ No hay servidores MCP configurados en la sesión');
+              }
               break;
 
             case 'mcp_list_tools.in_progress':
@@ -812,8 +893,24 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               break;
 
             case 'mcp_list_tools.failed':
-              console.log('❌ MCP List Tools FALLÓ:', data);
-              console.log('🚨 ERROR DETALLADO:', JSON.stringify(data, null, 2));
+              console.error('❌ ========================================');
+              console.error('❌ MCP LIST TOOLS FALLÓ');
+              console.error('❌ ========================================');
+              console.error('📦 Objeto data completo:', data);
+              console.error('📊 JSON stringificado:', JSON.stringify(data, null, 2));
+              console.error('🔍 Propiedades del objeto:', Object.keys(data));
+              console.error('');
+              console.error('💡 POSIBLES CAUSAS:');
+              console.error('   1. Servidor MCP no está corriendo');
+              console.error('   2. Configuración incorrecta en OpenAI');
+              console.error('   3. Problemas de conexión con el servidor MCP');
+              console.error('   4. Timeout al listar herramientas del servidor');
+              console.error('');
+              console.error('🔧 RECOMENDACIONES:');
+              console.error('   1. Verifica que tus servidores MCP estén corriendo');
+              console.error('   2. Revisa tu configuración en la OpenAI Platform');
+              console.error('   3. Intenta desconectar y reconectar el modo realtime');
+              console.error('❌ ========================================');
 
               // Crear objeto de error estructurado para la UI
               const errorInfo = {
