@@ -1762,8 +1762,21 @@ const saveMemoryToBackend = async (summaryText) => {
   // Cleanup al desmontar
   useEffect(() => {
     return () => {
-      // Limpiar detección de volumen
-      cleanupVolumeDetection();
+      // Limpiar interval de volumen
+      if (volumeCheckIntervalRef.current) {
+        clearInterval(volumeCheckIntervalRef.current);
+        volumeCheckIntervalRef.current = null;
+      }
+
+      // Limpiar Web Audio API
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+
+      analyserRef.current = null;
+      lastVolumeTimeRef.current = 0;
+      isCurrentlyTalkingRef.current = false;
 
       // Limpiar listeners de audio (legacy)
       if (audioRef.current) {
@@ -1779,12 +1792,18 @@ const saveMemoryToBackend = async (summaryText) => {
         }
       }
 
-      // Desconectar Realtime si está conectado
-      if (isRealtimeConnected) {
-        disconnectRealtime();
+      // Desconectar WebRTC
+      if (dataChannelRef.current) {
+        dataChannelRef.current.close();
+        dataChannelRef.current = null;
+      }
+
+      if (wsRef.current && typeof wsRef.current.close === 'function') {
+        wsRef.current.close();
+        wsRef.current = null;
       }
     };
-  }, [isRealtimeConnected, disconnectRealtime, cleanupVolumeDetection]); // ✅ Agregar dependencias
+  }, []); // ✅ Array vacío - solo cleanup al desmontar
 
   return {
     requiresBackend,
