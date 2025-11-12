@@ -16,6 +16,7 @@ export const useLocalChat = () => {
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [functionResults, setFunctionResults] = useState(null);
   const [sessionTokens, setSessionTokens] = useState(0);
+  const [mcpErrors, setMcpErrors] = useState([]);
   const abortControllerRef = useRef(null);
   
   // Realtime API refs
@@ -636,7 +637,7 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
         // 📸 CAPTURAR CONTEXTO VISUAL INICIAL (sin verificar estado)
         setTimeout(() => {
           captureVisualContext('inicio-realtime');
-        }, 2000); // Delay para asegurar que la cámara esté lista
+        }, 500); // Delay para asegurar que la cámara esté lista
         
         // ✅ SessionRef simplificado - ya no necesitamos tracking complejo
         sessionRef.current = {
@@ -706,6 +707,25 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
             case 'response.mcp_call.failed':
               console.log('❌ MCP Call FALLÓ:', data);
               console.log('💥 Error en MCP call:', JSON.stringify(data, null, 2));
+
+              // Crear objeto de error estructurado para la UI
+              const mcpCallError = {
+                type: 'response.mcp_call.failed',
+                timestamp: new Date().toISOString(),
+                message: data.error?.message || 'MCP Call falló',
+                errorType: data.error?.type || 'unknown',
+                errorCode: data.error?.code || 'N/A',
+                serverLabel: data.server_label || 'Unknown server',
+                itemId: data.item_id,
+                eventId: data.event_id,
+                fullError: data.error,
+                details: data.details,
+                rawData: data
+              };
+
+              // Agregar error al estado
+              setMcpErrors(prev => [...prev, mcpCallError]);
+
               // No solicitar respuesta automática para MCP calls fallidos
               break;
 
@@ -794,16 +814,54 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
             case 'mcp_list_tools.failed':
               console.log('❌ MCP List Tools FALLÓ:', data);
               console.log('🚨 ERROR DETALLADO:', JSON.stringify(data, null, 2));
-              
+
+              // Crear objeto de error estructurado para la UI
+              const errorInfo = {
+                type: 'mcp_list_tools.failed',
+                timestamp: new Date().toISOString(),
+                message: data.error?.message || 'Error desconocido',
+                errorType: data.error?.type || 'unknown',
+                errorCode: data.error?.code || 'N/A',
+                serverLabel: data.server_label || 'Unknown server',
+                itemId: data.item_id,
+                eventId: data.event_id,
+                fullError: data.error,
+                details: data.details,
+                rawData: data
+              };
+
+              // Agregar error al estado para mostrar en UI
+              setMcpErrors(prev => [...prev, errorInfo]);
+
               // Extraer información específica del error
               if (data.error) {
-                console.log('💥 Mensaje de error:', data.error.message);
-                console.log('💥 Tipo de error:', data.error.type);
-                console.log('💥 Código de error:', data.error.code);
+                console.error('💥 === DETALLES DEL ERROR MCP ===');
+                console.error('📛 Mensaje:', data.error.message || 'Sin mensaje');
+                console.error('🏷️ Tipo:', data.error.type || 'Sin tipo');
+                console.error('🔢 Código:', data.error.code || 'Sin código');
+                console.error('📊 Error completo:', JSON.stringify(data.error, null, 2));
+                console.error('💥 === FIN DETALLES DEL ERROR ===');
               }
-              
+
               if (data.details) {
-                console.log('📋 Detalles adicionales:', data.details);
+                console.error('📋 Detalles adicionales del error:', JSON.stringify(data.details, null, 2));
+              }
+
+              if (data.server_label) {
+                console.error('🖥️ Servidor MCP que falló:', data.server_label);
+              }
+
+              if (data.item_id) {
+                console.error('🆔 Item ID:', data.item_id);
+              }
+
+              if (data.event_id) {
+                console.error('🎯 Event ID:', data.event_id);
+              }
+
+              // Mostrar stack trace si está disponible
+              if (data.error?.stack) {
+                console.error('📚 Stack trace:', data.error.stack);
               }
               break;
 
@@ -994,18 +1052,52 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
               break;
               
             default:
-                         
+
               // 🔍 ANÁLISIS DETALLADO DE EVENTOS DESCONOCIDOS
               if (data.type && data.type.includes('mcp')) {
                 console.log('🔧 === EVENTO MCP NO MANEJADO ===');
                 console.log('🏷️ Tipo:', data.type);
                 console.log('📊 Datos completos:', JSON.stringify(data, null, 2));
-                
+
+                // Información del servidor
+                if (data.server_label) {
+                  console.log('🖥️ Servidor:', data.server_label);
+                }
+
+                // IDs para tracking
+                if (data.item_id) {
+                  console.log('🆔 Item ID:', data.item_id);
+                }
+                if (data.event_id) {
+                  console.log('🎯 Event ID:', data.event_id);
+                }
+
                 // Buscar errores específicos en eventos MCP
                 if (data.error) {
-                  console.log('💥 Error en MCP:', data.error);
+                  console.error('💥 === ERROR EN EVENTO MCP ===');
+                  console.error('📛 Mensaje:', data.error.message || 'Sin mensaje');
+                  console.error('🏷️ Tipo:', data.error.type || 'Sin tipo');
+                  console.error('🔢 Código:', data.error.code || 'Sin código');
+                  console.error('📊 Error completo:', JSON.stringify(data.error, null, 2));
+
+                  // Stack trace si está disponible
+                  if (data.error.stack) {
+                    console.error('📚 Stack trace:', data.error.stack);
+                  }
+
+                  console.error('💥 === FIN ERROR MCP ===');
                 }
+
+                // Detalles adicionales
+                if (data.details) {
+                  console.log('📋 Detalles:', JSON.stringify(data.details, null, 2));
+                }
+
                 console.log('🔧 === FIN EVENTO MCP ===');
+              } else {
+                // Eventos no-MCP desconocidos
+                console.log('❓ Evento desconocido:', data.type);
+                console.log('📊 Datos:', JSON.stringify(data, null, 2));
               }
           }
 
@@ -1467,6 +1559,11 @@ const saveMemoryToBackend = async (summaryText) => {
     setFunctionResults(null);
   };
 
+  // Función para limpiar errores MCP
+  const clearMcpErrors = () => {
+    setMcpErrors([]);
+  };
+
   // Función para limpiar subtítulos (útil cuando inicia nueva conversación)
   const clearRealtimeSubtitles = useCallback(() => {
     if (subtitlesContext && subtitlesContext.setSubtitles) {
@@ -1602,6 +1699,9 @@ const saveMemoryToBackend = async (summaryText) => {
     functionResults,
     setFunctionResults,
     clearFunctionResults,
+    // MCP Error tracking
+    mcpErrors,
+    clearMcpErrors,
     // Realtime API functions
     initRealtimeConnection,
     disconnectRealtime,
