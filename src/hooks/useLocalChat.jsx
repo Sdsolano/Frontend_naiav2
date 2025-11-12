@@ -1764,7 +1764,7 @@ const saveMemoryToBackend = async (summaryText) => {
     return () => {
       // Limpiar detección de volumen
       cleanupVolumeDetection();
-      
+
       // Limpiar listeners de audio (legacy)
       if (audioRef.current) {
         const audioElement = audioRef.current;
@@ -1778,13 +1778,13 @@ const saveMemoryToBackend = async (summaryText) => {
           audioElement.removeEventListener('pause', audioListenersRef.current.pause);
         }
       }
-      
+
       // Desconectar Realtime si está conectado
       if (isRealtimeConnected) {
         disconnectRealtime();
       }
     };
-  }, []); // ← Dependencias vacías para que solo se ejecute al desmontar
+  }, [isRealtimeConnected, disconnectRealtime, cleanupVolumeDetection]); // ✅ Agregar dependencias
 
   return {
     requiresBackend,
