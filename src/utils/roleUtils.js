@@ -9,6 +9,7 @@ export const ROLE_MAPPING = {
   'receptionist': 5,
   'companion': 6,
   'ciudadano': 7,
+  'mompox': 8,
   'toefl-tutor': 123
 };
 
@@ -20,6 +21,7 @@ export const REVERSE_ROLE_MAPPING = {
   5: 'receptionist',
   6: 'companion',
   7: 'ciudadano',
+  8: 'mompox',
   123: 'toefl-tutor'
 };
 
@@ -31,6 +33,7 @@ export const ROLE_NAMES = {
   'guide': 'Guía Universitario',
   'companion': 'Compañero de bienestar',
   'ciudadano': 'Asistente de Atención al Ciudadano',
+  'mompox': 'Asistente de Atencion al Ciudadano - Mompox',
   'toefl-tutor': 'Tutora TOEFL Especializada'
 };
 
@@ -80,7 +83,7 @@ export const getCurrentRoleName = () => {
  */
 export const isRoleAvailable = (roleId) => {
   // Roles completamente implementados
-  const availableRoles = ['researcher', 'guide', 'companion', 'trainer', 'assistant', 'receptionist', 'ciudadano', 'toefl-tutor'];
+  const availableRoles = ['researcher', 'guide', 'companion', 'trainer', 'assistant', 'receptionist', 'ciudadano', 'mompox', 'toefl-tutor'];
   return availableRoles.includes(roleId);
 };
 
@@ -121,9 +124,26 @@ export const getGovConfig = () => ({
 });
 
 /**
- * Detecta si estamos en contexto de TOEFL
- * @returns {boolean} Si estamos en rutas /toefl
+ * Detecta si estamos en contexto de Mompox
+ * @returns {boolean} Si estamos en rutas /mompox
  */
+export const isMompoxContext = () => {
+  return window.location.pathname.startsWith('/mompox');
+};
+
+/**
+ * Configuración por defecto para el contexto de Mompox
+ * @returns {object} Configuración específica de Mompox
+ */
+export const getMompoxConfig = () => ({
+  userId: 325,
+  roleId: 8,
+  roleName: 'Asistente de Atencion al Ciudadano - Mompox',
+  roleKey: 'mompox',
+  avatar: 'ciudadano.glb',
+  image: 'Ciudadano_AF.png'
+});
+
 export const isToeflContext = () => {
   return window.location.pathname.startsWith('/toefl');
 };
@@ -148,6 +168,9 @@ export const getToeflConfig = () => ({
 export const getContextualRoleConfig = () => {
   if (isGovContext()) {
     return getGovConfig();
+  }
+  if (isMompoxContext()) {
+    return getMompoxConfig();
   }
   if (isToeflContext()) {
     return getToeflConfig();

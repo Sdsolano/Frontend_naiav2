@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader } from 'lucide-react';
 import AuthGuard from './AuthGuard';
-import { isGovContext } from '../utils/roleUtils';
+import { isGovContext, isMompoxContext } from '../utils/roleUtils';
+
 
 const RoleGuard = ({ children }) => {
   const navigate = useNavigate();
@@ -18,13 +19,18 @@ const RoleGuard = ({ children }) => {
     } else {
       // Detectar contexto para redirección correcta
       const isGov = isGovContext();
+      const isMompox = isMompoxContext();
       if (isGov) {
         // En contexto gov, redirigir a /gov/naia
         navigate('/gov/naia');
+      } else if (isMompox) {
+        // En contexto mompox, redirigir a /mompox/naia
+        navigate('/mompox/naia');
       } else {
         // En contexto normal, redirigir a /naia
         navigate('/naia');
       }
+
     }
     
     setLoading(false);
@@ -47,16 +53,18 @@ const RoleGuard = ({ children }) => {
 
   // 🚨 CLAVE: Verificar contexto de gobierno
   const isGov = isGovContext();
+  const isMompox = isMompoxContext();
   
-  if (isGov) {
-    // En contexto gov: NO usar AuthGuard, solo verificar rol
-    console.log("🏛️ Contexto gobierno detectado - evitando AuthGuard");
+  if (isGov || isMompox) {
+    // En contexto gov/mompox: NO usar AuthGuard, solo verificar rol
+    console.log("🏛️ Contexto gov/mompox detectado - evitando AuthGuard");
     return children;
   } else {
     // En contexto normal: usar AuthGuard como siempre
     console.log("👤 Contexto normal - usando AuthGuard");
     return <AuthGuard>{children}</AuthGuard>;
   }
+
 };
 
 export default RoleGuard;

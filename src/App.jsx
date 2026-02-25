@@ -10,7 +10,8 @@ import { HybridChatEventListener, useHybridChat } from './hooks/useHybridChat';
 import { useUniversalChat } from './hooks/useUniversalChat';
 import ElegantSubtitles from "./components/ElegantSubtitles";
 import RoleGuard from "./components/RoleGuard";
-import { isGovContext, getGovConfig, isToeflContext, getToeflConfig } from './utils/roleUtils';
+import { isGovContext, getGovConfig, isMompoxContext, getMompoxConfig, isToeflContext, getToeflConfig } from './utils/roleUtils';
+
 
 function App() {
   const [subtitles, setSubtitles] = useState('');
@@ -139,6 +140,7 @@ function App() {
   // Detectar y configurar contexto de gobierno
   useEffect(() => {
     const isGovContext = window.location.pathname.startsWith('/gov');
+    const isMompoxContext = window.location.pathname.startsWith('/mompox');
     const isToeflContext = window.location.pathname.startsWith('/toefl');
 
     if (isGovContext) {
@@ -157,7 +159,25 @@ function App() {
 
       // Emitir evento de cambio de rol para notificar otros componentes
       window.dispatchEvent(new CustomEvent('role-changed', {
-        detail: { roleId: 'ciudadano', roleName: 'Asistente de Atención al Ciudadano', isGov: true }
+        detail: { roleId: 'ciudadano', roleName: 'Asistente de Atencion al Ciudadano', isGov: true }
+      }));
+    } else if (isMompoxContext) {
+      console.log("Contexto de Mompox detectado - configurando automaticamente");
+
+      // Configurar rol mompox automáticamente
+      localStorage.setItem('naia_selected_role', 'mompox');
+      localStorage.setItem('naia_mompox_context', 'true');
+      localStorage.setItem('naia_user_id', '325');
+
+      // Actualizar estado del rol si es necesario
+      if (currentRole !== 'mompox') {
+        setCurrentRole('mompox');
+        console.log("Rol actualizado a: mompox");
+      }
+
+      // Emitir evento de cambio de rol para notificar otros componentes
+      window.dispatchEvent(new CustomEvent('role-changed', {
+        detail: { roleId: 'mompox', roleName: 'Asistente de Atencion al Ciudadano - Mompox', isMompox: true }
       }));
     } else if (isToeflContext) {
       console.log("📚 Contexto de TOEFL detectado - configurando automáticamente");
@@ -178,11 +198,16 @@ function App() {
         detail: { roleId: 'toefl-tutor', roleName: 'Tutora TOEFL Especializada', isToefl: true }
       }));
     } else {
-      // Si no es contexto gov ni toefl, limpiar configuraciones específicas
+      // Si no es contexto gov, mompox ni toefl, limpiar configuraciones específicas
       if (localStorage.getItem('naia_gov_context') === 'true') {
         localStorage.removeItem('naia_gov_context');
         localStorage.removeItem('naia_user_id');
         console.log("🏛️ Contexto de gobierno desactivado");
+      }
+      if (localStorage.getItem('naia_mompox_context') === 'true') {
+        localStorage.removeItem('naia_mompox_context');
+        localStorage.removeItem('naia_user_id');
+        console.log("Contexto de Mompox desactivado");
       }
       if (localStorage.getItem('naia_toefl_context') === 'true') {
         localStorage.removeItem('naia_toefl_context');
@@ -191,6 +216,7 @@ function App() {
       }
     }
   }, []); 
+
   // Log para depuración
   useEffect(() => {
     if (processingStatus !== pollingInfoRef.current.lastStatus) {

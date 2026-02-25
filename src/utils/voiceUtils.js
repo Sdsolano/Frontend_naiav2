@@ -7,6 +7,8 @@ export const ROLE_VOICE_MAPPING = {
   'receptionist': 'shimmer',   // Recepcionista - Voz amigable y cálida  
   'companion': 'alloy',        // Compañera de bienestar - Voz suave y empática
   'ciudadano': 'nova',         // Asistente Ciudadano - Voz femenina clara y profesional
+  'mompox': 'nova',            // Asistente Mompox - Voz femenina clara y profesional
+
 
   // === VOCES MASCULINAS ===
   'trainer': 'onyx',           // Entrenador - Voz energética y motivadora
@@ -103,7 +105,9 @@ export const getVoiceInstructions = (roleId, tts_prompt = null) => {
     'trainer': ", habla con energía y motivación, como un entrenador que inspira confianza",
     'guide': ", usa un tono conocedor y confiable, como un profesor experimentado que guía estudiantes",
     'assistant': ", habla de forma eficiente y organizada, como un asistente profesional muy competente",
-    'ciudadano': ", habla con amabilidad y profesionalismo, como una funcionaria pública que atiende ciudadanos con cortesía y eficiencia"
+    'ciudadano': ", habla con amabilidad y profesionalismo, como una funcionaria pública que atiende ciudadanos con cortesía y eficiencia",
+    'mompox': ", habla con amabilidad y profesionalismo, como una funcionaria pública que atiende ciudadanos con cortesía y eficiencia"
+
 
   };
   

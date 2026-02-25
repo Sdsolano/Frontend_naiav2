@@ -7,7 +7,9 @@ export const GENDER_MAPPING = {
   'guide': 'male',          // ← Masculino
   'assistant': 'male',
   'ciudadano': 'female',
+  'mompox': 'female',
   'toefl-tutor': 'female'   // ← NUEVO: Tutora TOEFL femenina
+
 };
 
 /**

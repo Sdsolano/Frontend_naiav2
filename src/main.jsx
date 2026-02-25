@@ -22,9 +22,12 @@ import { UserProvider } from "./components/UserContext";
 import ProtectedRouteWrapper from "./components/ProtectedRouteWrapper";
 import GovHome from "./components/gov/GovHome";
 import GovRoleSelection from "./components/gov/GovRoleSelection";
+import MompoxHome from "./components/mompox/MompoxHome";
+import MompoxRoleSelection from "./components/mompox/MompoxRoleSelection";
 import ToeflHome from "./components/toefl/ToeflHome";
 import ToeflRoleSelection from "./components/toefl/ToeflRoleSelection";
 import HybridChatTest from "./components/HybridChatTest";
+
 
 // Crear el root una sola vez
 const root = ReactDOM.createRoot(document.getElementById("root"));
@@ -198,9 +201,13 @@ const initializeApp = async () => {
                       <Route path="/gov" element={<GovHome />} />
                       <Route path="/gov/naia" element={ <GovRoleSelection />} />
                       <Route path="/gov/naia/interface" element={<App />} />
+                      <Route path="/mompox" element={<MompoxHome />} />
+                      <Route path="/mompox/naia" element={ <MompoxRoleSelection />} />
+                      <Route path="/mompox/naia/interface" element={<App />} />
                       <Route path="/toefl" element={<ToeflHome />} />
                       <Route path="/toefl/naia" element={ <ToeflRoleSelection />} />
                       <Route path="/toefl/naia/interface" element={<App />} />
+
                     </Routes>
                     <LoginModal />
                   </BrowserRouter>

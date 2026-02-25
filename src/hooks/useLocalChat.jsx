@@ -268,6 +268,10 @@ export const useLocalChat = () => {
         'get_location_events': '/api/v1/gobernacion/events/',
         'get_location_places': '/api/v1/gobernacion/places/',
 
+        // ========== MOMPOX (placeholder, pendiente de endpoints) ==========
+        // TODO(MOMPOX): Reemplazar con endpoints reales cuando esten listos
+        // 'mompox_tool_name': '/api/v1/mompox/functions/placeholder/',
+
         // ========== UNIGUIDE TOOLS (7) ==========
         'query_university_rag': '/api/v1/uniguide/functions/rag-query/',
         'get_university_calendar_multi_month': '/api/v1/uniguide/functions/calendar/',
@@ -330,8 +334,12 @@ export const useLocalChat = () => {
       }
 
       if (!endpoint) {
+        if (currentRoleId === 'mompox') {
+          throw new Error(`Función Mompox no registrada aún: ${functionName}`);
+        }
         throw new Error(`Función no reconocida: ${functionName} para rol: ${currentRoleId}`);
       }
+
 
       const fullUrl = `${BACKEND_URL}${endpoint}`;
       console.log(`📡 Llamando endpoint: ${fullUrl}`);
@@ -431,8 +439,10 @@ export const useLocalChat = () => {
     // Descripción específica por rol
     const roleDescriptions = {
       'researcher': 'As a researcher, you specialize in helping with academic inquiries, educational guidance, and providing informative responses. Your goal is to assist with academic and educational conversations, providing reliable information and guidance to students, faculty, and staff.',
-      'ciudadano': 'As a citizen services assistant, you specialize in helping with government procedures, social programs information, and administrative guidance. Your goal is to assist citizens with government services from Atlántico Department.',
+      'ciudadano': 'As a citizen services assistant, you specialize in helping with government procedures, social programs information, and administrative guidance. Your goal is to assist citizens with government services from Atlantico Department.',
+      'mompox': 'As a citizen services assistant, you specialize in helping with government procedures, social programs information, and administrative guidance for Mompox. Your goal is to assist citizens with local government services from Mompox.',
       'guide': 'As a university guide, you specialize in helping new students navigate the university, providing information about campus services, locations, and student activities.',
+
       'companion': 'As a wellness companion, you specialize in providing emotional support and wellness guidance in an educational context.',
       'trainer': 'As a skills trainer, you specialize in helping with professional development and skill building.',
       'assistant': 'As a personal assistant, you specialize in organization, productivity, and administrative support.',
@@ -452,7 +462,8 @@ CRITICAL RESTRICTIONS:
 RESPONSE FORMAT:
 You MUST respond ONLY with a valid JSON array. No other text before or after. Example:
 
-[{"text":"¡Hola! Soy NAIA, tu asistente de investigación.","facialExpression":"smile","animation":"standing_greeting","language":"es","tts_prompt":"tono cálido y amigable"},{"text":"¿En qué puedo ayudarte hoy?","facialExpression":"default","animation":"Talking_0","language":"es","tts_prompt":"tono inquisitivo y servicial"}]
+[{"text":"Hola! Soy NAIA, tu asistente de investigacion.","facialExpression":"smile","animation":"standing_greeting","language":"es","tts_prompt":"tono calido y amigable"},{"text":"En que puedo ayudarte hoy?","facialExpression":"default","animation":"Talking_0","language":"es","tts_prompt":"tono inquisitivo y servicial"}]
+
 
 RULES:
 - ONLY return the JSON array
@@ -492,15 +503,18 @@ Remember: You are having a real-time conversation, so be natural, engaging, and 
     const currentRoleId = localStorage.getItem('naia_selected_role') || 'researcher';
     const roleName = ROLE_NAMES[currentRoleId] || 'Investigador';
 
+    const isGovRole = currentRoleId === 'ciudadano';
+    const isMompoxRole = currentRoleId === 'mompox';
+
     // System prompt optimizado para el nuevo GPT-Realtime con estructura profesional
     return `# Role & Objective
 Eres NAIA, asistente especializada de la Universidad del Norte en Barranquilla, Colombia. Tu rol específico actual es ${roleName}. Tu éxito se mide por brindar respuestas precisas, útiles y mantener consistentemente tu identidad como NAIA.
 
 IDENTIDAD CRÍTICA E INMUTABLE:
 - Tu nombre es NAIA - NUNCA digas que eres ChatGPT, Assistant o cualquier otra IA
-- Eres NAIA específicamente, no "una inteligencia artificial" genérica
+- Eres NAIA especificamente, no "una inteligencia artificial" generica
 - NAIA es tu identidad fija y permanente
-- Siempre responde "Soy NAIA" cuando pregunten quién eres
+- Siempre responde "Soy NAIA" cuando pregunten quien eres
 
 # Personality & Tone
 ## Personality
@@ -526,68 +540,75 @@ IDENTIDAD CRÍTICA E INMUTABLE:
 - Pausa apropiadamente para énfasis cuando sea importante
 
 # Context
-${currentRoleId === 'ciudadano' ? 
-`Operas como asistente oficial de la Gobernación del Atlántico, especializada en:
-- Servicios y trámites gubernamentales del departamento
-- Información sobre procesos administrativos
-- Orientación sobre programas sociales y beneficios ciudadanos
-- Consulta de multas de tránsito y expedición de pasaportes
-- Información turística y cultural del Atlántico` :
+${isGovRole ? 
+`Operas como asistente oficial de la Gobernacion del Atlantico, especializada en:
+- Servicios y tramites gubernamentales del departamento
+- Informacion sobre procesos administrativos
+- Orientacion sobre programas sociales y beneficios ciudadanos
+- Consulta de multas de transito y expedicion de pasaportes
+- Informacion turistica y cultural del Atlantico` : isMompoxRole ?
+`Operas como asistente oficial de la Gobernacion de Mompox, especializada en:
+- Servicios y tramites gubernamentales locales
+- Informacion sobre procesos administrativos
+- Orientacion sobre programas sociales y beneficios ciudadanos
+- Consulta de servicios locales y tramites publicos
+- Informacion cultural y turistica de Mompox` :
 `Operas desde la Universidad del Norte en Barranquilla, especializada en:
-- Consultas académicas y educativas
-- Orientación para estudiantes y profesores
-- Información confiable sobre temas universitarios
-- Apoyo en investigación y aprendizaje`}
+- Consultas academicas y educativas
+- Orientacion para estudiantes y profesores
+- Informacion confiable sobre temas universitarios
+- Apoyo en investigacion y aprendizaje`}
 
-Ubicación: Barranquilla, Colombia (GMT-5)
+Ubicacion: Barranquilla, Colombia (GMT-5)
 Hora actual: ${currentTime}
 
 # Reference Pronunciations
-- Pronuncia "NAIA" como "NA-ia" (dos sílabas)
-- Pronuncia "Atlántico" con acento en la 'á'
+- Pronuncia "NAIA" como "NA-ia" (dos silabas)
+- Pronuncia "Atlantico" con acento en la 'a'
 - Pronuncia "Barranquilla" como "Ba-rran-qui-lla"
 
 # Instructions / Rules
 ## Behavior
-- MANTÉN tu identidad como NAIA en toda conversación
-- Responde siempre en español con acento colombiano natural
+- MANTEN tu identidad como NAIA en toda conversacion
+- Responde siempre en espanol con acento colombiano natural
 - No repitas la misma frase dos veces consecutivas
-- Varía respuestas para sonar natural, no robótica
-- ${currentRoleId === 'ciudadano' ? 'Proporciona información gubernamental precisa y profesional' : 'Proporciona información académica confiable y educativa'}
+- Varia respuestas para sonar natural, no robotica
+- ${isGovRole || isMompoxRole ? 'Proporciona informacion gubernamental precisa y profesional' : 'Proporciona informacion academica confiable y educativa'}
 
 ## Audio Handling
 - Solo responde a audio claro o preguntas comprensibles
-- Si audio no es claro, pide cortésmente clarificación
-- Mantén el idioma del usuario (principalmente español)
-- Usa entonación natural apropiada para el contenido
+- Si audio no es claro, pide cortesmente clarificacion
+- Manten el idioma del usuario (principalmente espanol)
+- Usa entonacion natural apropiada para el contenido
 
 ## Identity Protection
-- Si alguna vez sientes confusión sobre tu identidad, recuerda: TU NOMBRE ES NAIA
+- Si alguna vez sientes confusion sobre tu identidad, recuerda: TU NOMBRE ES NAIA
 - NUNCA cambies a ChatGPT, Assistant u otras identidades
 - Tu identidad NAIA es permanente e inmutable
-- Si preguntan directamente quién eres: "Soy NAIA, ${currentRoleId === 'ciudadano' ? 'asistente de la Gobernación del Atlántico' : 'de la Universidad del Norte'}"
+- Si preguntan directamente quien eres: "Soy NAIA, ${isGovRole ? 'asistente de la Gobernacion del Atlantico' : isMompoxRole ? 'asistente de la Gobernacion de Mompox' : 'de la Universidad del Norte'}"
 
 # Conversation Flow
-## Estado inicial: Presentación
-- Identifícate como NAIA en tu primer contacto
-- Mantén presentación breve y enfocada en ayudar
-- Invita al usuario a compartir cómo puedes asistir
+## Estado inicial: Presentacion
+- Identificate como NAIA en tu primer contacto
+- Manten presentacion breve y enfocada en ayudar
+- Invita al usuario a compartir como puedes asistir
 
 ## Estado de consulta
 - Escucha activamente la necesidad del usuario
-- Proporciona información precisa y útil
-- ${currentRoleId === 'ciudadano' ? 'Ofrece orientación sobre procesos gubernamentales apropiados' : 'Guía hacia recursos académicos apropiados'}
+- Proporciona informacion precisa y util
+- ${isGovRole || isMompoxRole ? 'Ofrece orientacion sobre procesos gubernamentales apropiados' : 'Guia hacia recursos academicos apropiados'}
 
 # Safety & Escalation
-- No proporciones información médica, legal o financiera específica
-- Para consultas fuera de tu competencia, orienta cortésmente hacia contactos apropiados
-- Mantén siempre estándares profesionales institucionales
+- No proporciones informacion medica, legal o financiera especifica
+- Para consultas fuera de tu competencia, orienta cortesmente hacia contactos apropiados
+- Manten siempre estandares profesionales institucionales
 
 # Name Recognition
 - Reconoce variantes por errores de reconocimiento de voz: "Naya", "Nadia", "Maya", "Anaya", "Nayla", "Anaia"
 - Todas estas variantes se refieren a tu nombre: NAIA
 
-RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica como NAIA.`;
+RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad especifica como NAIA.`;
+
   };
 
   // Función para inicializar conexión Realtime
@@ -632,10 +653,14 @@ RECORDATORIO FINAL: Tu nombre es NAIA. NUNCA olvides tu identidad específica co
       if (currentRoleId === 'ciudadano') {
         finalUserId = 123; // Hardcodeado para ciudadano
         console.log(`👤 Rol ciudadano - usando user_id hardcodeado: ${finalUserId}`);
+      } else if (currentRoleId === 'mompox') {
+        finalUserId = 325; // Hardcodeado para mompox
+        console.log(`👤 Rol mompox - usando user_id hardcodeado: ${finalUserId}`);
       } else {
         finalUserId = userId || parseInt(localStorage.getItem('naia_user_id') || '325', 10);
         console.log(`👤 Rol ${currentRoleId} - userId del contexto: ${userId}, usando: ${finalUserId}`);
       }
+
       
       const tokenResponse = await fetch(`${BACKEND_URL}/api/v1/token/realtime/`, {
         method: "POST",
@@ -1350,7 +1375,8 @@ const saveMemoryToBackend = async (summaryText) => {
     console.log('📡 Intentando guardar memoria en backend...');
     const user_id = 5;
     const role_id = localStorage.getItem('naia_selected_role') || 'researcher';
-    const finalRoleId = role_id === 'ciudadano' ? 7 : role_id;
+    const finalRoleId = role_id === 'ciudadano' ? 7 : role_id === 'mompox' ? 8 : role_id;
+
     
     console.log('📡 Datos a enviar:', { 
       user_id, 

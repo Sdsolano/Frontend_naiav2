@@ -18,6 +18,8 @@ export const SimpleUI = ({ hidden, ...props }) => {
   const navigate = useNavigate();
   const [currentRoleName, setCurrentRoleName] = useState('Investigador');
   const [isGovContext, setIsGovContext] = useState(false);
+  const [isMompoxContext, setIsMompoxContext] = useState(false);
+
   
   // Conectar al contexto de subtítulos para recibir subtítulos del realtime
   const subtitlesContext = useContext(SubtitlesContext);
@@ -38,8 +40,10 @@ export const SimpleUI = ({ hidden, ...props }) => {
   useEffect(() => {
     const checkGovContext = () => {
       const isGov = window.location.pathname.startsWith('/gov');
+      const isMompox = window.location.pathname.startsWith('/mompox');
       setIsGovContext(isGov);
-      console.log(`🏛️ Contexto gubernamental: ${isGov ? 'SÍ' : 'NO'}`);
+      setIsMompoxContext(isMompox);
+      console.log(`🏛️ Contexto gubernamental: ${isGov ? 'SÍ' : 'NO'} | 🏞️ Mompox: ${isMompox ? 'SÍ' : 'NO'}`);
     };
 
     // Verificar al cargar
@@ -49,6 +53,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
     const handleLocationChange = () => {
       checkGovContext();
     };
+
 
     window.addEventListener('popstate', handleLocationChange);
     
@@ -496,9 +501,10 @@ export const SimpleUI = ({ hidden, ...props }) => {
       
       <div className="fixed top-0 left-0 right-0 bottom-0 z-10 flex justify-between p-4 pl-20 flex-col pointer-events-none">
         <div className="self-start backdrop-blur-md bg-white bg-opacity-50 p-4 rounded-lg flex items-center">
-          <h1 className="font-black text-xl">{isGovContext ? 'MAIA' : 'NAIA'}</h1>
+          <h1 className="font-black text-xl">{isGovContext || isMompoxContext ? 'MAIA' : 'NAIA'}</h1>
           
-          {!isGovContext && (
+          {!isGovContext && !isMompoxContext && (
+
             <button
               onClick={handleChangeRole}
               className="ml-4 px-3 py-1 rounded-md bg-blue-950 text-white text-sm font-medium pointer-events-auto hover:bg-blue-900 transition-colors flex items-center gap-1"
