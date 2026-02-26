@@ -268,9 +268,10 @@ export const useLocalChat = () => {
         'get_location_events': '/api/v1/gobernacion/events/',
         'get_location_places': '/api/v1/gobernacion/places/',
 
-        // ========== MOMPOX (placeholder, pendiente de endpoints) ==========
-        // TODO(MOMPOX): Reemplazar con endpoints reales cuando esten listos
-        // 'mompox_tool_name': '/api/v1/mompox/functions/placeholder/',
+        // ========== MOMPOX ==========
+        'mompox_about': '/api/v1/mompox/about/',
+        'about_mompox_inteligente': '/api/v1/mompox/about/',
+        'get_mompox_news': '/api/v1/mompox/news/',
 
         // ========== UNIGUIDE TOOLS (7) ==========
         'query_university_rag': '/api/v1/uniguide/functions/rag-query/',
