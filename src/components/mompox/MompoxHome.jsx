@@ -120,8 +120,8 @@ const MompoxHome = () => {
                   <span className="text-red-600 font-bold text-xl">M</span>
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">MAIA</h1>
-                  <p className="text-red-800 text-sm">Gobernacion de Mompox</p>
+                  <h1 className="text-2xl font-bold">SABIA</h1>
+                  <p className="text-red-800 text-sm">Sistema de Atencion de Bolivar con Inteligencia Artificial</p>
                 </div>
               </div>
             </div>
@@ -172,7 +172,7 @@ const MompoxHome = () => {
                   </div>
 
                   <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-                    Conoce a MAIA, <br />
+                    Conoce a SABIA, <br />
                     <span className="text-orange-300">tu asistente AI</span> de Mompox
                   </h1>
 
@@ -209,7 +209,7 @@ const MompoxHome = () => {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
                 <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4 md:pt-12">
-                  Como puede ayudarte MAIA?
+                  Como puede ayudarte SABIA?
                 </h2>
                 <p className="text-lg text-gray-600 max-w-3xl mx-auto">
                   Disenado especificamente para la Gobernacion de Mompox, nuestro asistente IA te guia

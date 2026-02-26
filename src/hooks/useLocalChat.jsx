@@ -272,6 +272,8 @@ export const useLocalChat = () => {
         'mompox_about': '/api/v1/mompox/about/',
         'about_mompox_inteligente': '/api/v1/mompox/about/',
         'get_mompox_news': '/api/v1/mompox/news/',
+        'get_mompox_tourism': '/api/v1/mompox/tourism/',
+        'get_mompox_restaurants': '/api/v1/mompox/restaurants/',
 
         // ========== UNIGUIDE TOOLS (7) ==========
         'query_university_rag': '/api/v1/uniguide/functions/rag-query/',

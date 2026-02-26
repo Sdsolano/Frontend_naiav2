@@ -166,8 +166,8 @@ const MompoxRoleSelection = () => {
             </Link>
 
             <div className="text-center">
-              <h1 className="text-lg sm:text-xl font-bold">MAIA</h1>
-              <p className="text-red-500 text-xs sm:text-sm">Gobernacion de Mompox</p>
+              <h1 className="text-lg sm:text-xl font-bold">SABIA</h1>
+              <p className="text-red-500 text-xs sm:text-sm">Sistema de Atencion de Bolivar con Inteligencia Artificial</p>
             </div>
 
             <div className="w-20"></div>
@@ -305,14 +305,14 @@ const MompoxRoleSelection = () => {
               className="h-8 sm:h-10 w-auto mr-2 sm:mr-3"
             />
             <div>
-              <h2 className="text-base sm:text-lg font-bold bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">MAIA</h2>
+              <h2 className="text-base sm:text-lg font-bold bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">SABIA</h2>
               <p className="text-[10px] sm:text-xs text-gray-500">Gobernacion de Mompox (c) 2025</p>
             </div>
           </div>
           <div className="flex items-center space-x-4 sm:space-x-6 text-gray-600">
             <Link to="/mompox" className="text-xs sm:text-sm hover:text-red-600 transition-colors flex items-center gap-1">
               <Info size={14} className="sm:w-4 sm:h-4" />
-              <span>Acerca de MAIA</span>
+              <span>Acerca de SABIA</span>
             </Link>
           </div>
         </div>
