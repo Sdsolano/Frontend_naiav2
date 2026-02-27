@@ -581,7 +581,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
           {/* Input area */}
           <div className="flex items-center gap-2 pointer-events-auto max-w-screen-sm w-full mx-auto">
             <textarea
-              className="w-full h-12 placeholder:text-gray-500 p-3 rounded-md bg-opacity-80 bg-white backdrop-blur-md resize-none"
+              className="hidden"
               placeholder="Escribe un mensaje..."
               ref={input}
               onKeyDown={handleKeyDown}
