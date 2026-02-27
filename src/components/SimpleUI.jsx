@@ -4,7 +4,7 @@ import { useHybridChat } from "../hooks/useHybridChat";
 import { useLocalChat } from "../hooks/useLocalChat";
 import { useSimpleVoice } from "../hooks/useSimpleVoice";
 import { useUserImage } from "../hooks/useUserImage"; 
-import { Send, Loader, Mic, MicOff, RefreshCw, Camera, Ear, EarOff, Volume2 } from "lucide-react";
+import { RefreshCw, Ear, Volume2 } from "lucide-react";
 import FunctionResultsDisplay from "./FunctionResultsDisplay";
 import { useNavigate } from "react-router-dom";
 import { getCurrentRoleName } from "../utils/roleUtils";
@@ -579,16 +579,7 @@ export const SimpleUI = ({ hidden, ...props }) => {
           )}
 
           {/* Input area */}
-          <div className="flex items-center gap-2 pointer-events-auto max-w-screen-sm w-full mx-auto">
-            <textarea
-              className="hidden"
-              placeholder="Escribe un mensaje..."
-              ref={input}
-              onKeyDown={handleKeyDown}
-              onChange={handleInputChange}
-              disabled={isAvatarResponding || inputDisabled}
-              rows={1}
-            />
+          <div className="flex items-center justify-center gap-2 pointer-events-auto max-w-screen-sm w-full mx-auto">
             {/*
            
             <button
@@ -656,18 +647,6 @@ export const SimpleUI = ({ hidden, ...props }) => {
               </button>
             )}
             */}
-            
-            {/* Botón de enviar */}
-            <button
-              disabled={isAvatarResponding || inputDisabled}
-              onClick={() => sendMessage()}
-              className={`bg-blue-950 hover:bg-blue-900 text-white p-3 rounded-md flex-shrink-0 ${
-                (isAvatarResponding || inputDisabled) ? "cursor-not-allowed opacity-50" : ""
-              }`}
-              title="Enviar mensaje"
-            >
-              {loading ? <Loader className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-            </button>
             
             {/* Botón de zoom 
             <button
