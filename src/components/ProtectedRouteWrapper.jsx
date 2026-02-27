@@ -1,6 +1,6 @@
 // ProtectedRouteWrapper.jsx - Versión corregida
 import React, { useState, useEffect, useRef } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useUser } from './UserContext';
 import { useMsal } from '@azure/msal-react';
 import { X, Shield, Clock } from 'lucide-react';
@@ -11,16 +11,26 @@ const ProtectedRouteWrapper = ({ children }) => {
     userId, 
     userSetupFailed, 
     lastFailureReason,
-    isLoadingUserId,
-    showPermissionDeniedModal 
+    isLoadingUserId
   } = useUser();
   const { accounts } = useMsal();
-  const navigate = useNavigate(); // 🚨 AÑADIR useNavigate
   
   const [showTempModal, setShowTempModal] = useState(false);
   
   // 🚨 SOLO REF PARA EVITAR MÚLTIPLES ACTIVACIONES
   const modalActivatedRef = useRef(false);
+
+  // 🚨 DETECTAR FALTA DE PERMISOS de forma más estable
+  const hasPermissionError = userSetupFailed && lastFailureReason?.includes('Sin permisos');
+
+  // 🚨 ACTIVAR MODAL UNA SOLA VEZ - ESTE HOOK DEBE EJECUTARSE SIEMPRE
+  useEffect(() => {
+    if (hasPermissionError && !modalActivatedRef.current) {
+      console.log('🚫 Activando modal de permisos denegados (SIN TIMERS)');
+      modalActivatedRef.current = true;
+      setShowTempModal(true);
+    }
+  }, [hasPermissionError]);
 
   // Si no está autenticado con Microsoft, redirigir al login
   if (!isAuthenticated || accounts.length === 0) {
@@ -38,18 +48,6 @@ const ProtectedRouteWrapper = ({ children }) => {
       </div>
     );
   }
-
-  // 🚨 DETECTAR FALTA DE PERMISOS de forma más estable
-  const hasPermissionError = userSetupFailed && lastFailureReason?.includes('Sin permisos');
-  
-  // 🚨 ACTIVAR MODAL UNA SOLA VEZ - SIN TIMERS EN EL COMPONENTE PADRE
-  useEffect(() => {
-    if (hasPermissionError && !modalActivatedRef.current) {
-      console.log('🚫 Activando modal de permisos denegados (SIN TIMERS)');
-      modalActivatedRef.current = true;
-      setShowTempModal(true);
-    }
-  }, [hasPermissionError]);
 
   // Si hay error general de configuración (no de permisos), mostrar mensaje
   if (userSetupFailed && !hasPermissionError) {
