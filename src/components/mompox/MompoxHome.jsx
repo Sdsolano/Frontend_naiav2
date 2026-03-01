@@ -110,25 +110,25 @@ const MompoxHome = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-amber-50">
       <header className="text-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
-                  <span className="text-red-600 font-bold text-xl">M</span>
+                  <span className="text-blue-900 font-bold text-xl">M</span>
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold">SABIA</h1>
-                  <p className="text-red-800 text-sm">Sistema de Atencion de Bolivar con Inteligencia Artificial</p>
+                  <p className="text-blue-900/80 text-sm">Sistema de Atencion de Bolivar con Inteligencia Artificial</p>
                 </div>
               </div>
             </div>
 
             <button
               onClick={handleMenuToggle}
-              className="p-3 rounded-lg bg-red-600 hover:bg-red-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
+              className="p-3 rounded-lg bg-blue-900 hover:bg-blue-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
               aria-label="Abrir menu"
               type="button"
             >
@@ -151,7 +151,7 @@ const MompoxHome = () => {
       />
 
       <main className="space-y-12 pb-12 md:px-32">
-        <section className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-orange-600 text-white shadow-2xl mx-4 sm:mx-6 lg:mx-8 mt-12">
+        <section className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-700 text-white shadow-2xl mx-4 sm:mx-6 lg:mx-8 mt-12">
           {(() => {
             const svgBg = "data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='white' fill-opacity='0.1'%3E%3Cpath d='m0 40l40-40h-40v40zm40 0v-40h-40l40 40z'/%3E%3C/g%3E%3C/svg%3E";
             return (
@@ -173,10 +173,10 @@ const MompoxHome = () => {
 
                   <h1 className="text-4xl md:text-5xl font-bold leading-tight">
                     Conoce a SABIA, <br />
-                    <span className="text-orange-300">tu asistente AI</span> de Mompox
+                    <span className="text-amber-300">tu asistente AI</span> de Mompox
                   </h1>
 
-                  <p className="text-lg sm:text-xl text-red-100 leading-relaxed max-w-2xl">
+                  <p className="text-lg sm:text-xl text-blue-100 leading-relaxed max-w-2xl">
                     Tu asistente inteligente para servicios gubernamentales de Mompox.
                     Obten informacion sobre tramites, programas sociales y servicios al ciudadano de forma rapida y eficiente.
                   </p>
@@ -184,7 +184,7 @@ const MompoxHome = () => {
                   <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <Link
                       to="/mompox/naia"
-                      className="flex items-center justify-center gap-2 bg-white text-red-600 hover:bg-red-50 px-8 py-4 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                      className="flex items-center justify-center gap-2 bg-amber-400 text-blue-950 hover:bg-amber-300 px-8 py-4 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105"
                     >
                       Comenzar ahora
                       <ArrowRight size={18} />
@@ -208,7 +208,7 @@ const MompoxHome = () => {
         <section className="px-4 sm:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
-                <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4 md:pt-12">
+                <h2 className="text-3xl sm:text-4xl font-bold text-slate-800 mb-4 md:pt-12">
                   Como puede ayudarte SABIA?
                 </h2>
                 <p className="text-lg text-gray-600 max-w-3xl mx-auto">
@@ -219,9 +219,9 @@ const MompoxHome = () => {
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-red-100">
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-6">
-                  <MessageSquare className="w-6 h-6 text-red-600" />
+              <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
+                  <MessageSquare className="w-6 h-6 text-blue-800" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">Consultas Inteligentes</h3>
                 <p className="text-gray-600">
@@ -230,9 +230,9 @@ const MompoxHome = () => {
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-orange-100">
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-6">
-                  <Users className="w-6 h-6 text-orange-600" />
+              <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-amber-200">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-6">
+                  <Users className="w-6 h-6 text-amber-700" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">Atencion Personalizada</h3>
                 <p className="text-gray-600">
@@ -241,9 +241,9 @@ const MompoxHome = () => {
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-red-100">
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-6">
-                  <ArrowRight className="w-6 h-6 text-red-600" />
+              <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
+                  <ArrowRight className="w-6 h-6 text-blue-800" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">Conexion Directa</h3>
                 <p className="text-gray-600">

@@ -11,10 +11,11 @@ const roles = [
     icon: Users,
     title: "Asistente de Atencion al Ciudadano",
     description: "Tu guia especializada para tramites y servicios gubernamentales de Mompox.",
-    color: "bg-red-600",
-    textColor: "text-red-600",
-    bgColor: "bg-red-50",
-    borderColor: "border-red-200",
+    color: "bg-blue-900",
+    textColor: "text-blue-900",
+    bgColor: "bg-blue-50",
+    hoverBgColor: "hover:bg-blue-50",
+    borderColor: "border-blue-200",
     available: true,
     image: Ciudadano_AF,
     features: [
@@ -153,8 +154,8 @@ const MompoxRoleSelection = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-white">
-      <header className="relative text-red-600 ">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-amber-50">
+      <header className="relative text-blue-900 ">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
             <Link
@@ -167,7 +168,7 @@ const MompoxRoleSelection = () => {
 
             <div className="text-center">
               <h1 className="text-lg sm:text-xl font-bold">SABIA</h1>
-              <p className="text-red-500 text-xs sm:text-sm">Sistema de Atencion de Bolivar con Inteligencia Artificial</p>
+              <p className="text-blue-800 text-xs sm:text-sm">Sistema de Atencion de Bolivar con Inteligencia Artificial</p>
             </div>
 
             <div className="w-20"></div>
@@ -222,13 +223,13 @@ const MompoxRoleSelection = () => {
 
                       <div className="p-5">
                         <div>
-                          <div className={`inline-flex items-center text-xs ${role.available ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"} px-2 py-1 rounded-full font-medium`}>
+                          <div className={`inline-flex items-center text-xs ${role.available ? "bg-amber-100 text-amber-900" : "bg-gray-100 text-gray-800"} px-2 py-1 rounded-full font-medium`}>
                             {role.available ? "Disponible" : "Proximamente"}
                           </div>
                         </div>
 
                         <button
-                          className={`mt-2 w-full ${role.textColor} border ${role.borderColor} hover:${role.bgColor}
+                          className={`mt-2 w-full ${role.textColor} border ${role.borderColor} ${role.hoverBgColor}
                             py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold
                             transition-all duration-300 group-hover:scale-105
                             flex items-center justify-center gap-1`}
@@ -244,7 +245,7 @@ const MompoxRoleSelection = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 max-w-4xl mx-auto border border-blue-100">
             <div className="flex items-start gap-3 sm:gap-6">
               <div className={`w-10 h-10 sm:w-14 sm:h-14 ${roles[activeIndex].color} rounded-xl flex items-center justify-center text-white flex-shrink-0`}>
                 {React.createElement(roles[activeIndex].icon, { size: 20, className: "sm:w-7 sm:h-7" })}
@@ -253,7 +254,7 @@ const MompoxRoleSelection = () => {
               <div className="flex-1">
                 <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
                   <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">{roles[activeIndex].title}</h2>
-                  <div className={`text-xs ${roles[activeIndex].available ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"} px-2 py-0.5 sm:py-1 rounded-full font-medium`}>
+                  <div className={`text-xs ${roles[activeIndex].available ? "bg-amber-100 text-amber-900" : "bg-gray-100 text-gray-800"} px-2 py-0.5 sm:py-1 rounded-full font-medium`}>
                     {roles[activeIndex].available ? "Disponible" : "Proximamente"}
                   </div>
                 </div>
@@ -276,7 +277,7 @@ const MompoxRoleSelection = () => {
 
                   <button
                     onClick={() => handleSelectRole(roles[activeIndex])}
-                    className={`${roles[activeIndex].textColor} border ${roles[activeIndex].borderColor} hover:${roles[activeIndex].bgColor}
+                    className={`${roles[activeIndex].textColor} border ${roles[activeIndex].borderColor} ${roles[activeIndex].hoverBgColor}
                       px-4 py-2 sm:px-6 sm:py-3 rounded-xl font-semibold transition-all duration-300
                       flex items-center gap-2 text-sm sm:text-base hover:scale-105`}
                   >
@@ -290,7 +291,7 @@ const MompoxRoleSelection = () => {
 
           <div className="flex justify-center mt-6 sm:mt-8">
             <div className="flex gap-2">
-              <div className="w-4 sm:w-6 h-2 bg-red-600 rounded-full" aria-label="Rol actual" />
+               <div className="w-4 sm:w-6 h-2 bg-blue-900 rounded-full" aria-label="Rol actual" />
             </div>
           </div>
         </div>
@@ -305,12 +306,12 @@ const MompoxRoleSelection = () => {
               className="h-8 sm:h-10 w-auto mr-2 sm:mr-3"
             />
             <div>
-              <h2 className="text-base sm:text-lg font-bold bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">SABIA</h2>
+              <h2 className="text-base sm:text-lg font-bold bg-gradient-to-r from-blue-900 to-amber-500 bg-clip-text text-transparent">SABIA</h2>
               <p className="text-[10px] sm:text-xs text-gray-500">Gobernacion de Mompox (c) 2025</p>
             </div>
           </div>
           <div className="flex items-center space-x-4 sm:space-x-6 text-gray-600">
-            <Link to="/mompox" className="text-xs sm:text-sm hover:text-red-600 transition-colors flex items-center gap-1">
+            <Link to="/mompox" className="text-xs sm:text-sm hover:text-blue-900 transition-colors flex items-center gap-1">
               <Info size={14} className="sm:w-4 sm:h-4" />
               <span>Acerca de SABIA</span>
             </Link>

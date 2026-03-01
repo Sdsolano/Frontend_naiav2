@@ -27,25 +27,22 @@ const MompoxHamburgerMenu = ({ isOpen, onClose }) => {
       label: "Inicio",
       to: "/mompox",
       description: "Volver a la pagina principal",
-      gradient: "from-red-500 to-red-600",
-      iconColor: "text-red-600"
+      gradient: "from-blue-800 to-blue-900"
     },
     {
       icon: MessageSquare,
       label: "Asistente NAIA",
       to: "/mompox/naia",
       description: "Interactuar con el asistente AI",
-      gradient: "from-orange-500 to-orange-600",
-      iconColor: "text-orange-600"
+      gradient: "from-amber-500 to-amber-600"
     },
     {
       icon: ExternalLink,
       label: "Portal Mompox",
-      href: "https://www.atlantico.gov.co",
+      href: "https://mompoxinteligente.bolivar.gov.co/",
       description: "Sitio web oficial",
       external: true,
-      gradient: "from-blue-500 to-blue-600",
-      iconColor: "text-blue-600"
+      gradient: "from-slate-700 to-slate-800"
     }
   ];
 
@@ -74,12 +71,12 @@ const MompoxHamburgerMenu = ({ isOpen, onClose }) => {
         }}
       >
         <div className="absolute inset-0 overflow-hidden rounded-3xl">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-red-400 to-orange-400 opacity-20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-orange-400 to-red-400 opacity-20 rounded-full blur-2xl animate-pulse delay-1000"></div>
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-400 to-amber-400 opacity-20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-amber-300 to-blue-500 opacity-20 rounded-full blur-2xl animate-pulse delay-1000"></div>
         </div>
 
-        <div className="relative bg-gradient-to-r from-red-600 via-red-600 to-orange-500 text-white p-6 rounded-t-3xl overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-orange-500 opacity-90"></div>
+        <div className="relative bg-gradient-to-r from-blue-950 via-blue-900 to-blue-700 text-white p-6 rounded-t-3xl overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-950 to-blue-700 opacity-90"></div>
           <div className="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -translate-y-4 translate-x-4"></div>
           <div className="absolute bottom-0 left-0 w-16 h-16 bg-white bg-opacity-10 rounded-full translate-y-4 -translate-x-4"></div>
 
@@ -91,7 +88,7 @@ const MompoxHamburgerMenu = ({ isOpen, onClose }) => {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">NAIA Gov</h2>
-                  <p className="text-red-100 text-sm opacity-90">Gobernacion de Mompox</p>
+                  <p className="text-blue-100 text-sm opacity-90">Gobernacion de Mompox</p>
                 </div>
               </div>
 
