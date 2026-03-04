@@ -5,7 +5,7 @@ export const ROLE_VOICE_MAPPING = {
   // === VOCES FEMENINAS ===
   'researcher': 'nova',        // Investigadora - Voz clara y profesional
   'receptionist': 'shimmer',   // Recepcionista - Voz amigable y cálida  
-  'companion': 'alloy',        // Compañera de bienestar - Voz suave y empática
+  'companion': 'alloy',        // Beneficios institucionales - Voz clara y cercana
   'ciudadano': 'nova',         // Asistente Ciudadano - Voz femenina clara y profesional
   'mompox': 'nova',            // Asistente Mompox - Voz femenina clara y profesional
 
@@ -101,7 +101,7 @@ export const getVoiceInstructions = (roleId, tts_prompt = null) => {
   const roleSpecificInstructions = {
     'researcher': ", habla con precisión académica y curiosidad intelectual",
     'receptionist': ", usa un tono muy amigable y servicial, como si estuvieras ayudando a un huésped importante", 
-    'companion': ", habla con calidez y empatía, como una amiga comprensiva que escucha atentamente",
+    'companion': ", habla de forma clara, cordial y precisa, como una asesora institucional de Gestion Humana",
     'trainer': ", habla con energía y motivación, como un entrenador que inspira confianza",
     'guide': ", usa un tono conocedor y confiable, como un profesor experimentado que guía estudiantes",
     'assistant': ", habla de forma eficiente y organizada, como un asistente profesional muy competente",

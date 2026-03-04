@@ -31,7 +31,7 @@ export const ROLE_NAMES = {
   'trainer': 'Entrenador de Habilidades',
   'assistant': 'Asistente Personal',
   'guide': 'Guía Universitario',
-  'companion': 'Compañero de bienestar',
+  'companion': 'Asistente de Beneficios Institucionales',
   'ciudadano': 'Asistente de Atención al Ciudadano',
   'mompox': 'Asistente de Atencion al Ciudadano - Mompox',
   'toefl-tutor': 'Tutora TOEFL Especializada'

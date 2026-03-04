@@ -18,7 +18,7 @@ const HeroCarousel = () => {
     { src: Personal_Trainer_AF, alt: "Entrenador NAIA", role: "Entrenador" },
     { src: Personal_Assistant_AF, alt: "Asistente Personal NAIA", role: "Asistente" },
     { src: University_Guide_AF, alt: "Guía Universitario NAIA", role: "Guía" },
-   // { src: Companion_AF, alt: "Compañero de bienestar NAIA", role: "Compañero" }  // ← NUEVA IMAGEN
+    { src: Companion_AF, alt: "Asistente de beneficios institucionales NAIA", role: "Beneficios" }
 
   ];
 
@@ -185,23 +185,23 @@ const Home = () => {
       "Envío de información sobre recursos universitarios",
       "Tour virtual por la universidad"
       ]
-    },/*
+    },
     {
       icon: Heart,
-      title: "Compañero de bienestar",
-      description: "Acompañamiento emocional y bienestar mental.",
+      title: "Beneficios Institucionales",
+      description: "Información oficial sobre beneficios institucionales y flexibilidad laboral.",
       color: "bg-pink-600",
       textColor: "text-pink-600",
       bgColor: "bg-pink-50",
       features: [
-        "Acompañamiento emocional personalizado y comprensivo",
-      "Análisis de patrones de bienestar basado en conversaciones",
-      "Técnicas de relajación y manejo del estrés",
-      "Seguimiento del estado anímico y progreso personal",
-      "Recursos y ejercicios para el desarrollo del bienestar"
+      "Alternativas deportivas y artísticas para colaboradores y familiares",
+      "Reglas de Flexiacademia para docentes",
+      "Reglas de Flexiespacio para administrativos",
+      "Reglas de Flexitiempo para administrativos",
+      "Contacto de Bienestar Organizacional"
       ]
     }
-      */
+
   ];
 
   // Configuración data
@@ -290,24 +290,24 @@ const Home = () => {
         icon: FileText
       }
     ]
-  },/*
+  },
   {
-      role: "Compañero de bienestar",
+      role: "Beneficios Institucionales",
       icon: Heart,
       color: "bg-pink-600",
       lightColor: "bg-pink-50",
       textColor: "text-pink-600",
       borderColor: "border-pink-200",
-      description: "Personaliza tu experiencia de bienestar para obtener el mejor acompañamiento emocional",
+      description: "Configura este rol para resolver dudas puntuales sobre los beneficios de Gestión Humana",
       steps: [
         {
-          title: "Perfil de bienestar",
-          description: "Comparte tus objetivos de bienestar y áreas de interés personal",
-          icon: User
+          title: "Consulta beneficios",
+          description: "Pregunta por requisitos, vigencias, condiciones y proceso de acceso",
+          icon: FileText
         }
       ]
     }
-      */
+
 
     
   ];

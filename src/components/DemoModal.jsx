@@ -74,20 +74,18 @@ export const DemoModal = ({ isOpen, onClose }) => {
       image: University_Guide_AF,
       features: ["Información académica actualizada", "Acceso a recursos", "Orientación estudiantil", "Calendario académico"]
     },
-    /*
     {
       id: 'bienestar',
-      title: "Compañero",
-      subtitle: "Bienestar Mental",
+      title: "Beneficios Institucionales",
+      subtitle: "Gestión Humana",
       icon: Heart,
       gradient: "from-pink-500 via-pink-600 to-pink-700",
       glowColor: "pink",
       videoId: "vHG36nh-3Mc",
-      description: "Acompañamiento emocional y seguimiento de bienestar mental personalizado",
+      description: "Resolver dudas sobre Alternativas deportivas y reglas de Flexibilidad con fuentes institucionales",
       image: Companion_AF,
-      features: ["Apoyo emocional 24/7", "Técnicas de relajación", "Seguimiento de estado", "Recursos de bienestar"]
+      features: ["Alternativas deportivas y artísticas", "Flexiacademia", "Flexiespacio", "Flexitiempo"]
     }
-      */
   ];
 
   if (!isOpen) return null;

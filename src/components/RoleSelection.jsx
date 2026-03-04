@@ -115,13 +115,11 @@ const roles = [
       "Tour virtual por la universidad"
     ]
   },
-  // ← NUEVO ROL: Compañero de bienestar
-  /*
   {
     id: "companion",
     icon: Heart,
-    title: "Compañero de bienestar",
-    description: "Brinda acompañamiento personalizado para tu bienestar emocional y mental.",
+    title: "Beneficios Institucionales",
+    description: "Consulta beneficios y reglas de flexibilidad usando la información oficial de Gestión Humana.",
     color: "bg-pink-600",      
     textColor: "text-pink-600", 
     bgColor: "bg-pink-50",
@@ -129,14 +127,13 @@ const roles = [
     available: true,
     image: Companion_AF,
     features: [
-      "Acompañamiento emocional personalizado y comprensivo",
-      "Análisis de patrones de bienestar basado en conversaciones",
-      "Técnicas de relajación y manejo del estrés",
-      "Seguimiento del estado anímico y progreso personal",
-      "Recursos y ejercicios para el desarrollo del bienestar"
+      "Alternativas deportivas y artísticas (requisitos, fechas y cupos)",
+      "Flexiacademia para docentes",
+      "Flexiespacio y Flexitiempo para administrativos",
+      "Guía de registro y acuerdos en el sistema Agatha",
+      "Canales de contacto de Bienestar Organizacional"
     ]
   }
-    */
 ];
 
 const RoleSelection = () => {
