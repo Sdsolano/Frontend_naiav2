@@ -344,6 +344,10 @@ export const useLocalChat = () => {
         endpoint = '/api/v1/recepcionist/functions/events/';
       } else if (functionName === 'get_location_places' && currentRoleId === 'receptionist') {
         endpoint = '/api/v1/recepcionist/functions/places/';
+      } else if (functionName === 'read_calendar_events' && currentRoleId === 'companion') {
+        endpoint = '/api/v1/mental/read-calendar/';
+      } else if (functionName === 'read_user_emails' && currentRoleId === 'companion') {
+        endpoint = '/api/v1/mental/read-emails/';
       }
 
       if (!endpoint) {
