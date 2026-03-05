@@ -322,13 +322,18 @@ export const useLocalChat = () => {
         if (currentRoleId === 'guide') endpoint = '/api/v1/uniguide/functions/email/';
         else if (currentRoleId === 'researcher') endpoint = '/api/v1/researcher/functions/email/';
         else if (currentRoleId === 'receptionist') endpoint = '/api/v1/recepcionist/functions/email/';
+        else if (currentRoleId === 'companion') endpoint = '/api/v1/mental/send-email/';
       } else if (functionName === 'search_contacts_by_name') {
         if (currentRoleId === 'guide') endpoint = '/api/v1/uniguide/functions/contacts/';
         else if (currentRoleId === 'assistant') endpoint = '/api/v1/personal/functions/contacts/';
         else if (currentRoleId === 'receptionist') endpoint = '/api/v1/recepcionist/functions/contacts/';
+        else if (currentRoleId === 'companion') endpoint = '/api/v1/mental/search-contacts/';
       } else if (functionName === 'create_calendar_event') {
         if (currentRoleId === 'guide') endpoint = '/api/v1/uniguide/functions/calendar-event/';
         else if (currentRoleId === 'assistant') endpoint = '/api/v1/personal/functions/calendar-event/';
+        else if (currentRoleId === 'companion') endpoint = '/api/v1/mental/create-event/';
+      } else if (functionName === 'get_virtual_campus_tour' && currentRoleId === 'companion') {
+        endpoint = '/api/v1/mental/tour/';
       } else if (functionName === 'get_current_news') {
         if (currentRoleId === 'researcher') endpoint = '/api/v1/researcher/functions/news/';
         else if (currentRoleId === 'assistant') endpoint = '/api/v1/personal/functions/news/';
