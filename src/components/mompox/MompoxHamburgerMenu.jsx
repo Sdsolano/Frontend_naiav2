@@ -88,7 +88,7 @@ const MompoxHamburgerMenu = ({ isOpen, onClose }) => {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">NAIA Gov</h2>
-                  <p className="text-blue-100 text-sm opacity-90">Gobernación de Mompox</p>
+                  <p className="text-blue-100 text-sm opacity-90">Gobernación de Bolívar</p>
                 </div>
               </div>
 

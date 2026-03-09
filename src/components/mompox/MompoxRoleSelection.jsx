@@ -25,7 +25,7 @@ const roles = [
       "Contacto directo con dependencias específicas",
       "Horarios de atención y requisitos documentales"
     ],
-    developmentStatus: "Disponible ahora - Especializado en Gobernación de Mompox",
+    developmentStatus: "Disponible ahora - Especializado en Gobernación de Bolívar",
     functionPlaceholder: "TODO(MOMPOX): agregar funciones cuando se definan"
   }
 ];
@@ -307,7 +307,7 @@ const MompoxRoleSelection = () => {
             />
             <div>
               <h2 className="text-base sm:text-lg font-bold bg-gradient-to-r from-blue-900 to-amber-500 bg-clip-text text-transparent">SABIA</h2>
-              <p className="text-[10px] sm:text-xs text-gray-500">Gobernación de Mompox (c) 2025</p>
+              <p className="text-[10px] sm:text-xs text-gray-500">Gobernación de Bolívar (c) 2025</p>
             </div>
           </div>
           <div className="flex items-center space-x-4 sm:space-x-6 text-gray-600">

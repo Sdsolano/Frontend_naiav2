@@ -212,7 +212,7 @@ const MompoxHome = () => {
                   Cómo puede ayudarte SABIA?
                 </h2>
                 <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                  Diseñado específicamente para la Gobernación de Mompox, nuestro asistente IA te guía
+                  Diseñado específicamente para la Gobernación de Bolívar, nuestro asistente IA te guía
                   en todos los procesos gubernamentales.
                 </p>
 
