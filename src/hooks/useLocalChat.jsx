@@ -565,7 +565,7 @@ Remember: You are having a real-time conversation, so be natural, engaging, and 
     const contextualRoleIdentity = isGovRole
       ? 'asistente de la Gobernacion del Atlantico'
       : isMompoxRole
-      ? 'asistente de la Gobernacion de Mompox'
+      ? 'asistente de la Gobernación de Bolívar'
       : isCompanionRole
       ? 'asistente de beneficios institucionales de la Universidad del Norte'
       : 'de la Universidad del Norte';
@@ -578,7 +578,7 @@ Remember: You are having a real-time conversation, so be natural, engaging, and 
 - Consulta de multas de transito y expedicion de pasaportes
 - Informacion turistica y cultural del Atlantico`
       : isMompoxRole
-      ? `Operas como asistente oficial de la Gobernacion de Mompox, especializada en:
+      ? `Operas como asistente oficial de la Gobernación de Bolívar, especializada en:
 - Servicios y tramites gubernamentales locales
 - Informacion sobre procesos administrativos
 - Orientacion sobre programas sociales y beneficios ciudadanos
