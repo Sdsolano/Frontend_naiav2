@@ -88,14 +88,14 @@ const MompoxHamburgerMenu = ({ isOpen, onClose }) => {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">NAIA Gov</h2>
-                  <p className="text-blue-100 text-sm opacity-90">Gobernacion de Mompox</p>
+                  <p className="text-blue-100 text-sm opacity-90">Gobernación de Mompox</p>
                 </div>
               </div>
 
               <button
                 onClick={onClose}
                 className="p-2 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 transition-all duration-300 backdrop-blur-sm hover:scale-110 group"
-                aria-label="Cerrar menu"
+                aria-label="Cerrar menú"
               >
                 <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
               </button>
@@ -161,7 +161,7 @@ const MompoxHamburgerMenu = ({ isOpen, onClose }) => {
         <div className="relative border-t border-white border-opacity-30 p-6 rounded-b-3xl bg-white bg-opacity-30 backdrop-blur-sm">
           <div className="text-center">
             <p className="text-sm text-gray-700 font-medium">
-              © 2025 Gobernacion de Bolivar
+              © 2025 Gobernación de Bolívar
             </p>
             <p className="text-xs text-gray-600 mt-1 flex items-center justify-center space-x-1">
               <span>Powered by</span>

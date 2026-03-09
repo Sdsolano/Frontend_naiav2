@@ -9,8 +9,8 @@ const roles = [
   {
     id: "mompox",
     icon: Users,
-    title: "Asistente de Atencion al Ciudadano",
-    description: "Tu guia especializada para tramites y servicios gubernamentales de Mompox.",
+    title: "Asistente de Atención al Ciudadano",
+    description: "Tu guía especializada para trámites y servicios gubernamentales de Mompox.",
     color: "bg-blue-900",
     textColor: "text-blue-900",
     bgColor: "bg-blue-50",
@@ -19,13 +19,13 @@ const roles = [
     available: true,
     image: MompoxImage,
     features: [
-      "Informacion sobre tramites y servicios gubernamentales",
-      "Orientacion para procesos administrativos",
+      "Información sobre trámites y servicios gubernamentales",
+      "Orientación para procesos administrativos",
       "Consultas sobre programas sociales y beneficios ciudadanos",
-      "Contacto directo con dependencias especificas",
-      "Horarios de atencion y requisitos documentales"
+      "Contacto directo con dependencias específicas",
+      "Horarios de atención y requisitos documentales"
     ],
-    developmentStatus: "Disponible ahora - Especializado en Gobernacion de Mompox",
+    developmentStatus: "Disponible ahora - Especializado en Gobernación de Mompox",
     functionPlaceholder: "TODO(MOMPOX): agregar funciones cuando se definan"
   }
 ];
@@ -168,7 +168,7 @@ const MompoxRoleSelection = () => {
 
             <div className="text-center">
               <h1 className="text-lg sm:text-xl font-bold">SABIA</h1>
-              <p className="text-blue-800 text-xs sm:text-sm">Sistema de Atencion de Bolivar con Inteligencia Artificial</p>
+              <p className="text-blue-800 text-xs sm:text-sm">Sistema de Atención de Bolívar con Inteligencia Artificial</p>
             </div>
 
             <div className="w-20"></div>
@@ -307,7 +307,7 @@ const MompoxRoleSelection = () => {
             />
             <div>
               <h2 className="text-base sm:text-lg font-bold bg-gradient-to-r from-blue-900 to-amber-500 bg-clip-text text-transparent">SABIA</h2>
-              <p className="text-[10px] sm:text-xs text-gray-500">Gobernacion de Mompox (c) 2025</p>
+              <p className="text-[10px] sm:text-xs text-gray-500">Gobernación de Mompox (c) 2025</p>
             </div>
           </div>
           <div className="flex items-center space-x-4 sm:space-x-6 text-gray-600">

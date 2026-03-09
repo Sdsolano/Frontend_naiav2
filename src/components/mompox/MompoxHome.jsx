@@ -9,7 +9,7 @@ const HeroCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const images = [
-    { src: MompoxImage, alt: "Asistente de Atencion al Ciudadano", role: "Asistente Ciudadano" }
+    { src: MompoxImage, alt: "Asistente de Atención al Ciudadano", role: "Asistente Ciudadano" }
   ];
 
   useEffect(() => {
@@ -121,7 +121,7 @@ const MompoxHome = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold">SABIA</h1>
-                  <p className="text-blue-900/80 text-sm">Sistema de Atencion de Bolivar con Inteligencia Artificial</p>
+                  <p className="text-blue-900/80 text-sm">Sistema de Atención de Bolívar con Inteligencia Artificial</p>
                 </div>
               </div>
             </div>
@@ -129,7 +129,7 @@ const MompoxHome = () => {
             <button
               onClick={handleMenuToggle}
               className="p-3 rounded-lg bg-blue-900 hover:bg-blue-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              aria-label="Abrir menu"
+              aria-label="Abrir menú"
               type="button"
             >
               <div className="w-6 h-6 flex flex-col justify-center items-center space-y-1">
@@ -178,7 +178,7 @@ const MompoxHome = () => {
 
                   <p className="text-lg sm:text-xl text-blue-100 leading-relaxed max-w-2xl">
                     Tu asistente inteligente para servicios gubernamentales de Mompox.
-                    Obten informacion sobre tramites, programas sociales y servicios al ciudadano de forma rapida y eficiente.
+                    Obtén información sobre trámites, programas sociales y servicios al ciudadano de forma rápida y eficiente.
                   </p>
 
                   <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -209,10 +209,10 @@ const MompoxHome = () => {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
                 <h2 className="text-3xl sm:text-4xl font-bold text-slate-800 mb-4 md:pt-12">
-                  Como puede ayudarte SABIA?
+                  Cómo puede ayudarte SABIA?
                 </h2>
                 <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                  Disenado especificamente para la Gobernacion de Mompox, nuestro asistente IA te guia
+                  Diseñado específicamente para la Gobernación de Mompox, nuestro asistente IA te guía
                   en todos los procesos gubernamentales.
                 </p>
 
@@ -225,7 +225,7 @@ const MompoxHome = () => {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">Consultas Inteligentes</h3>
                 <p className="text-gray-600">
-                  Pregunta sobre cualquier tramite, programa social o servicio gubernamental
+                  Pregunta sobre cualquier trámite, programa social o servicio gubernamental
                   y recibe respuestas precisas al instante.
                 </p>
               </div>
@@ -234,9 +234,9 @@ const MompoxHome = () => {
                 <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-6">
                   <Users className="w-6 h-6 text-amber-700" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Atencion Personalizada</h3>
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Atención Personalizada</h3>
                 <p className="text-gray-600">
-                  Recibe orientacion paso a paso adaptada a tu situacion especifica
+                  Recibe orientación paso a paso adaptada a tu situación específica
                   y necesidades particulares.
                 </p>
               </div>
@@ -245,10 +245,10 @@ const MompoxHome = () => {
                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
                   <ArrowRight className="w-6 h-6 text-blue-800" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Conexion Directa</h3>
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Conexión Directa</h3>
                 <p className="text-gray-600">
                   Te conectamos directamente con las dependencias correctas
-                  cuando necesites atencion presencial.
+                  cuando necesites atención presencial.
                 </p>
               </div>
             </div>
