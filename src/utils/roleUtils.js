@@ -140,7 +140,7 @@ export const getMompoxConfig = () => ({
   roleId: 8,
   roleName: 'Asistente de Atencion al Ciudadano - Mompox',
   roleKey: 'mompox',
-  avatar: 'ciudadano.glb',
+  avatar: 'mompox.glb',
   image: 'Ciudadano_AF.png'
 });
 

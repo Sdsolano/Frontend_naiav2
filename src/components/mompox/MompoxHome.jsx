@@ -2,14 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Users, Video, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Ciudadano_AF from "../../assets/Ciudadano_AF.png";
+import Mompox_AF from "../../assets/Mompox_AF.png";
 import MompoxHamburgerMenu from "./MompoxHamburgerMenu";
 
 const HeroCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const images = [
-    { src: Ciudadano_AF, alt: "Asistente de Atencion al Ciudadano", role: "Asistente Ciudadano" }
+    { src: Mompox_AF, alt: "Asistente de Atencion al Ciudadano", role: "Asistente Ciudadano" }
   ];
 
   useEffect(() => {

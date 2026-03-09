@@ -120,7 +120,7 @@ const getModelPathForRole = (roleId) => {
     case 'ciudadano':  // ← NUEVO: Asistente de Atención al Ciudadano
       return "/models/ciudadano.glb";
     case 'mompox':
-      return "/models/ciudadano.glb";
+      return "/models/mompox.glb";
 
     case 'toefl-tutor':  // ← NUEVO: Tutora TOEFL (reutiliza companion femenino)
       return "/models/companion.glb";
@@ -909,6 +909,7 @@ useGLTF.preload("/models/companion.glb");
 useGLTF.preload("/models/trainer.glb");
 useGLTF.preload("/models/personal.glb");
 useGLTF.preload("/models/receptionist.glb");
+useGLTF.preload("/models/mompox.glb");
 
 // ← NUEVO: Precargar ambos archivos de animaciones
 useGLTF.preload("/models/animations.glb");      // Femeninas

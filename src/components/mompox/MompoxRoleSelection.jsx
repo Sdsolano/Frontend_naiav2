@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Users, ArrowRight, X, ChevronLeft, Info } from "lucide-react";
 import Thinking_naia from "../../assets/NAIA_greeting.png";
-import Ciudadano_AF from "../../assets/Ciudadano_AF.png";
+import Mompox_AF from "../../assets/Mompox_AF.png";
 import { getMompoxConfig } from "../../utils/roleUtils";
 
 const roles = [
@@ -17,7 +17,7 @@ const roles = [
     hoverBgColor: "hover:bg-blue-50",
     borderColor: "border-blue-200",
     available: true,
-    image: Ciudadano_AF,
+    image: Mompox_AF,
     features: [
       "Informacion sobre tramites y servicios gubernamentales",
       "Orientacion para procesos administrativos",

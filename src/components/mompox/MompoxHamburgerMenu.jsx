@@ -161,7 +161,7 @@ const MompoxHamburgerMenu = ({ isOpen, onClose }) => {
         <div className="relative border-t border-white border-opacity-30 p-6 rounded-b-3xl bg-white bg-opacity-30 backdrop-blur-sm">
           <div className="text-center">
             <p className="text-sm text-gray-700 font-medium">
-              © 2025 Gobernacion de Mompox
+              © 2025 Gobernacion de Bolivar
             </p>
             <p className="text-xs text-gray-600 mt-1 flex items-center justify-center space-x-1">
               <span>Powered by</span>
